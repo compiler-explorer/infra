@@ -26,9 +26,9 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.cache_delta import CacheDeltaCapture
 from lib.golang_stdlib import go_supports_trimpath
-from lib.installation_context import FetchFailure, InstallationContext, PostFailure
+from lib.installation_context import InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
-from lib.library_builder import PossibleBuilds, build_target_settings, conan_search_url, match_conan_settings
+from lib.library_builder import PossibleBuilds, build_target_settings, fetch_possible_builds, find_matching_package_id
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
@@ -411,43 +411,21 @@ require {self.module_path} {self.target_name}
             f.write('        self.copy("metadata.json", dst=".", keep_path=False)\n')
 
     def _get_possible_builds(self) -> PossibleBuilds:
-        # 404 means no packages have been uploaded yet for this lib/version: return empty.
-        if self._possible_builds is not None:
-            return self._possible_builds
-
-        url = conan_search_url(self.libid, self.target_name)
-        try:
-            request = self.http_session.get(url, timeout=_TIMEOUT)
-        except requests.RequestException as e:
-            raise FetchFailure(f"Conan search request failed for {self.libid}/{self.target_name}: {e}") from e
-
-        if request.status_code == 404:
-            self.logger.debug("No uploaded builds yet for %s/%s", self.libid, self.target_name)
-            self._possible_builds = {}
-            return self._possible_builds
-        if not request.ok:
-            raise FetchFailure(f"Conan search returned {request.status_code} for {self.libid}/{self.target_name}")
-
-        try:
-            payload = request.json()
-        except ValueError as e:
-            raise FetchFailure(f"Conan search returned non-JSON for {self.libid}/{self.target_name}") from e
-        if not isinstance(payload, dict):
-            raise FetchFailure(f"Conan search returned non-object JSON for {self.libid}/{self.target_name}")
-        self._possible_builds = payload
+        if self._possible_builds is None:
+            self._possible_builds = fetch_possible_builds(
+                self.libid,
+                self.target_name,
+                lambda url: self.http_session.get(url, timeout=_TIMEOUT),
+                self.logger,
+            )
         return self._possible_builds
 
     def get_conan_hash(self, buildfolder: Path) -> str | None:
         """Find the conan package_id matching the current build parameters, via the proxy search API."""
         if self.install_context.dry_run:
             return None
-
         target = build_target_settings(self.current_buildparameters_obj)
-        for package_id, entry in self._get_possible_builds().items():
-            settings = entry.get("settings", {}) if isinstance(entry, dict) else {}
-            if match_conan_settings(target, settings):
-                return package_id
-        return None
+        return find_matching_package_id(self._get_possible_builds(), target)
 
     def resil_post(self, url: str, json_data: str, headers: dict | None = None) -> requests.Response | dict:
         """Resilient POST request with retries."""

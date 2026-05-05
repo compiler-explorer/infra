@@ -13,8 +13,9 @@ import tempfile
 import time
 import urllib.parse
 from collections import defaultdict
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from enum import Enum, unique
+from logging import Logger
 from pathlib import Path
 from typing import Any, TextIO, TypedDict
 
@@ -136,6 +137,53 @@ def conan_search_url(libname: str, target_name: str) -> str:
     encoded_lib = urllib.parse.quote(libname, safe="")
     encoded_ver = urllib.parse.quote(target_name, safe="")
     return f"{conanserver_url}/v1/conans/{encoded_lib}/{encoded_ver}/{encoded_lib}/{encoded_ver}/search"
+
+
+def fetch_possible_builds(
+    libname: str,
+    target_name: str,
+    fetcher: Callable[[str], requests.Response | None],
+    logger: Logger,
+) -> PossibleBuilds:
+    """Fetch and parse the conan-server /search response for a (libname, target_name).
+
+    `fetcher` is a one-argument callable taking the URL and returning a Response (or None to
+    signal a request that failed all retries). Each builder class supplies its own fetcher
+    so it can pick its retry strategy (resil_get vs raw http_session.get).
+
+    404 means no packages have been uploaded yet for this lib/version, and is the natural
+    starting state for new libraries -- return an empty dict.
+    """
+    url = conan_search_url(libname, target_name)
+    try:
+        response = fetcher(url)
+    except requests.RequestException as e:
+        raise FetchFailure(f"Conan search request failed for {libname}/{target_name}: {e}") from e
+
+    if response is None:
+        raise FetchFailure(f"Conan search request failed for {libname}/{target_name}")
+    if response.status_code == 404:
+        logger.debug("No uploaded builds yet for %s/%s", libname, target_name)
+        return {}
+    if not response.ok:
+        raise FetchFailure(f"Conan search returned {response.status_code} for {libname}/{target_name}")
+
+    try:
+        payload = response.json()
+    except ValueError as e:
+        raise FetchFailure(f"Conan search returned non-JSON for {libname}/{target_name}") from e
+    if not isinstance(payload, dict):
+        raise FetchFailure(f"Conan search returned non-object JSON for {libname}/{target_name}")
+    return payload
+
+
+def find_matching_package_id(possible_builds: PossibleBuilds, target: dict[str, str]) -> str | None:
+    """Return the first package_id in `possible_builds` whose settings match `target`."""
+    for package_id, entry in possible_builds.items():
+        settings = entry.get("settings", {}) if isinstance(entry, dict) else {}
+        if match_conan_settings(target, settings):
+            return package_id
+    return None
 
 
 def build_target_settings(buildparams: dict[str, Any]) -> dict[str, str]:
@@ -1138,48 +1186,21 @@ class LibraryBuilder:
         return compiler + "_" + str(iteration)
 
     def _get_possible_builds(self) -> PossibleBuilds:
-        """Return the conan-server search response for this (libname, target_name), cached.
-
-        Single GET to /v1/conans/{lib}/{ver}/{lib}/{ver}/search returns all uploaded
-        package_ids and their settings, replacing per-iteration `conan info` subprocess calls.
-
-        404 means no packages have been uploaded yet for this lib/version, and is the natural
-        starting state for new libraries -- return an empty dict.
-        """
-        if self._possible_builds is not None:
-            return self._possible_builds
-
-        url = conan_search_url(self.libname, self.target_name)
-        request = self.resil_get(url, stream=False, timeout=_TIMEOUT)
-        if request is None:
-            raise FetchFailure(f"Conan search request failed for {self.libname}/{self.target_name}")
-        if request.status_code == 404:
-            self.logger.debug(f"No uploaded builds yet for {self.libname}/{self.target_name}")
-            self._possible_builds = {}
-            return self._possible_builds
-        if not request.ok:
-            raise FetchFailure(f"Conan search returned {request.status_code} for {self.libname}/{self.target_name}")
-
-        try:
-            payload = request.json()
-        except ValueError as e:
-            raise FetchFailure(f"Conan search returned non-JSON for {self.libname}/{self.target_name}") from e
-        if not isinstance(payload, dict):
-            raise FetchFailure(f"Conan search returned non-object JSON for {self.libname}/{self.target_name}")
-        self._possible_builds = payload
+        """Return the conan-server /search response for this (libname, target_name), cached."""
+        if self._possible_builds is None:
+            self._possible_builds = fetch_possible_builds(
+                self.libname,
+                self.target_name,
+                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
+                self.logger,
+            )
         return self._possible_builds
 
     def get_conan_hash(self, buildfolder: str) -> str | None:
         if self.install_context.dry_run:
             return None
-
         target = build_target_settings(self.current_buildparameters_obj)
-        for package_id, entry in self._get_possible_builds().items():
-            settings = entry.get("settings", {}) if isinstance(entry, dict) else {}
-            if match_conan_settings(target, settings):
-                return package_id
-
-        return None
+        return find_matching_package_id(self._get_possible_builds(), target)
 
     def conanproxy_login(self):
         url = f"{conanserver_url}/login"
