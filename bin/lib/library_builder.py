@@ -1143,10 +1143,8 @@ class LibraryBuilder:
         Single GET to /v1/conans/{lib}/{ver}/{lib}/{ver}/search returns all uploaded
         package_ids and their settings, replacing per-iteration `conan info` subprocess calls.
 
-        404 is treated as 'no uploads exist yet' and returns an empty dict. Any other failure
-        (5xx, connection error after retries, malformed JSON) raises FetchFailure rather than
-        silently degrading -- treating those as 'nothing uploaded' would cause spurious rebuilds
-        or downstream failures in set_as_uploaded.
+        404 means no packages have been uploaded yet for this lib/version, and is the natural
+        starting state for new libraries -- return an empty dict.
         """
         if self._possible_builds is not None:
             return self._possible_builds

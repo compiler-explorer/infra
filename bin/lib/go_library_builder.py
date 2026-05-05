@@ -411,7 +411,7 @@ require {self.module_path} {self.target_name}
             f.write('        self.copy("metadata.json", dst=".", keep_path=False)\n')
 
     def _get_possible_builds(self) -> PossibleBuilds:
-        # 404 -> empty (no uploads yet); other failures raise rather than silently degrading.
+        # 404 means no packages have been uploaded yet for this lib/version: return empty.
         if self._possible_builds is not None:
             return self._possible_builds
 
