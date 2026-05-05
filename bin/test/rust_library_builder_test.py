@@ -54,8 +54,7 @@ def test_makebuildhash(requests_mock):
     assert len(result) > len("rustc-1.70_")
 
 
-@patch("subprocess.check_output")
-def test_get_conan_hash_success(mock_subprocess, requests_mock):
+def test_get_conan_hash_success(requests_mock):
     requests_mock.get(f"{BASE}rust.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock()
@@ -63,15 +62,36 @@ def test_get_conan_hash_success(mock_subprocess, requests_mock):
     build_config = create_rust_test_build_config()
     builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
 
-    mock_subprocess.return_value = b"conanfile.py: ID: rust123456\nOther output"
-    builder.current_buildparameters = ["-s", "os=Linux"]
+    builder.current_buildparameters_obj["os"] = "Linux"
+    builder.current_buildparameters_obj["buildtype"] = "Debug"
+    builder.current_buildparameters_obj["compiler"] = "rustc"
+    builder.current_buildparameters_obj["compiler_version"] = "rustc-1.70"
+    builder.current_buildparameters_obj["libcxx"] = ""
+    builder.current_buildparameters_obj["arch"] = "x86_64"
+    builder.current_buildparameters_obj["stdver"] = ""
+    builder.current_buildparameters_obj["flagcollection"] = ""
+
+    requests_mock.get(
+        "https://conan.compiler-explorer.com/v1/conans/rustlib/1.0.0/rustlib/1.0.0/search",
+        json={
+            "rust123456": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "rustc",
+                    "compiler.version": "rustc-1.70",
+                    "compiler.libcxx": "",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
 
     result = builder.get_conan_hash("/tmp/buildfolder")
 
     assert result == "rust123456"
-    mock_subprocess.assert_called_once_with(
-        ["conan", "info", "-r", "ceserver", "."] + builder.current_buildparameters, cwd="/tmp/buildfolder"
-    )
 
 
 @patch("subprocess.call")

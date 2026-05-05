@@ -25,6 +25,7 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.installation_context import FetchFailure, PostFailure
 from lib.library_build_config import LibraryBuildConfig
+from lib.library_builder import build_target_settings, conan_search_url, match_conan_settings
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
@@ -46,7 +47,6 @@ _propsandlibs: dict[str, Any] = defaultdict(lambda: [])
 _supports_x86: dict[str, Any] = defaultdict(lambda: [])
 
 GITCOMMITHASH_RE = re.compile(r"^(\w*)\s.*")
-CONANINFOHASH_RE = re.compile(r"\s+ID:\s(\w*)")
 
 
 def _quote(string: str) -> str:
@@ -98,7 +98,7 @@ class FortranLibraryBuilder:
         self.needs_uploading = 0
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
-        self._conan_hash_cache: dict[str, str | None] = {}
+        self._possible_builds: dict[str, Any] | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -450,24 +450,46 @@ class FortranLibraryBuilder:
 
         return compiler + "_" + hasher.hexdigest()
 
+    def _get_possible_builds(self) -> dict[str, Any]:
+        if self._possible_builds is not None:
+            return self._possible_builds
+
+        url = conan_search_url(self.libname, self.target_name)
+        try:
+            request = self.http_session.get(url, timeout=_TIMEOUT)
+        except requests.RequestException as e:
+            self.logger.warning(f"Conan search failed for {self.libname}/{self.target_name}: {e}")
+            self._possible_builds = {}
+            return self._possible_builds
+
+        if not request.ok:
+            if request.status_code == 404:
+                self.logger.debug(f"No uploaded builds yet for {self.libname}/{self.target_name}")
+            else:
+                self.logger.warning(f"Conan search failed for {self.libname}/{self.target_name}: {request.status_code}")
+            self._possible_builds = {}
+            return self._possible_builds
+
+        try:
+            payload = request.json()
+        except ValueError:
+            self.logger.warning(f"Conan search returned non-JSON for {self.libname}/{self.target_name}")
+            payload = {}
+        if not isinstance(payload, dict):
+            self.logger.warning(f"Conan search returned non-object JSON for {self.libname}/{self.target_name}")
+            payload = {}
+        self._possible_builds = payload
+        return self._possible_builds
+
     def get_conan_hash(self, buildfolder: str) -> str | None:
-        if buildfolder in self._conan_hash_cache:
-            self.logger.debug(f"Using cached conan hash for {buildfolder}")
-            return self._conan_hash_cache[buildfolder]
+        if self.install_context.dry_run:
+            return None
 
-        if not self.install_context.dry_run:
-            self.logger.debug(["conan", "info", "."] + self.current_buildparameters)
-            conaninfo = subprocess.check_output(
-                ["conan", "info", "-r", "ceserver", "."] + self.current_buildparameters, cwd=buildfolder
-            ).decode("utf-8", "ignore")
-            self.logger.debug(conaninfo)
-            match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
-            if match:
-                result = match[1]
-                self._conan_hash_cache[buildfolder] = result
-                return result
-
-        self._conan_hash_cache[buildfolder] = None
+        target = build_target_settings(self.current_buildparameters_obj)
+        for package_id, entry in self._get_possible_builds().items():
+            settings = entry.get("settings", {}) if isinstance(entry, dict) else {}
+            if match_conan_settings(target, settings):
+                return package_id
         return None
 
     def conanproxy_login(self):
@@ -581,15 +603,17 @@ class FortranLibraryBuilder:
             return False
 
     def set_as_uploaded(self, buildfolder):
+        # Order matters: upload_builds must run before get_conan_hash. See library_builder.py
+        # set_as_uploaded for the full reasoning.
+        annotations = self.get_build_annotations(buildfolder)
+        if "commithash" not in annotations:
+            self.upload_builds()
+
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
             raise RuntimeError(f"Error determining conan hash in {buildfolder}")
 
         self.logger.info(f"commithash: {conanhash}")
-
-        annotations = self.get_build_annotations(buildfolder)
-        if "commithash" not in annotations:
-            self.upload_builds()
         annotations["commithash"] = self.get_commit_hash()
 
         self.logger.info(annotations)
@@ -705,6 +729,7 @@ class FortranLibraryBuilder:
                 self.logger.debug("Clearing cache to speed up next upload")
                 subprocess.check_call(["conan", "remove", "-f", f"{self.libname}/{self.target_name}"])
             self.needs_uploading = 0
+            self._possible_builds = None
 
     def get_compiler_type(self, compiler):
         compilerType = ""

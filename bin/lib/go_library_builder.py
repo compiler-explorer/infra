@@ -11,7 +11,6 @@ import hashlib
 import json
 import logging
 import os
-import re
 import shutil
 import subprocess
 from collections import defaultdict
@@ -29,6 +28,7 @@ from lib.cache_delta import CacheDeltaCapture
 from lib.golang_stdlib import go_supports_trimpath
 from lib.installation_context import InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
+from lib.library_builder import build_target_settings, conan_search_url, match_conan_settings
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
@@ -76,8 +76,6 @@ CONANSERVER_URL = "https://conan.compiler-explorer.com"
 
 # Cache for compiler properties
 _propsandlibs: dict[str, Any] = defaultdict(lambda: [])
-
-CONANINFOHASH_RE = re.compile(r"\s+ID:\s(\w*)")
 
 
 def clear_properties_cache() -> None:
@@ -133,7 +131,7 @@ class GoLibraryBuilder:
         # Prefix with 'go_' to avoid Conan namespace collisions with other languages
         self.libid = f"go_{self.libname}"
         self.conanserverproxy_token: str | None = None
-        self._conan_hash_cache: dict[str, str | None] = {}
+        self._possible_builds: dict[str, Any] | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -412,27 +410,49 @@ require {self.module_path} {self.target_name}
             f.write('        self.copy("module_sources/*", dst=".", keep_path=True)\n')
             f.write('        self.copy("metadata.json", dst=".", keep_path=False)\n')
 
+    def _get_possible_builds(self) -> dict[str, Any]:
+        if self._possible_builds is not None:
+            return self._possible_builds
+
+        url = conan_search_url(self.libid, self.target_name)
+        try:
+            request = self.http_session.get(url, timeout=_TIMEOUT)
+        except requests.RequestException as e:
+            self.logger.warning("Conan search failed for %s/%s: %s", self.libid, self.target_name, e)
+            self._possible_builds = {}
+            return self._possible_builds
+
+        if not request.ok:
+            if request.status_code == 404:
+                self.logger.debug("No uploaded builds yet for %s/%s", self.libid, self.target_name)
+            else:
+                self.logger.warning(
+                    "Conan search failed for %s/%s: %s", self.libid, self.target_name, request.status_code
+                )
+            self._possible_builds = {}
+            return self._possible_builds
+
+        try:
+            payload = request.json()
+        except ValueError:
+            self.logger.warning("Conan search returned non-JSON for %s/%s", self.libid, self.target_name)
+            payload = {}
+        if not isinstance(payload, dict):
+            self.logger.warning("Conan search returned non-object JSON for %s/%s", self.libid, self.target_name)
+            payload = {}
+        self._possible_builds = payload
+        return self._possible_builds
+
     def get_conan_hash(self, buildfolder: Path) -> str | None:
-        """Query Conan for package hash."""
-        if str(buildfolder) in self._conan_hash_cache:
-            return self._conan_hash_cache[str(buildfolder)]
+        """Find the conan package_id matching the current build parameters, via the proxy search API."""
+        if self.install_context.dry_run:
+            return None
 
-        if not self.install_context.dry_run:
-            try:
-                conaninfo = subprocess.check_output(
-                    ["conan", "info", "-r", "ceserver", "."] + self.current_buildparameters,
-                    cwd=buildfolder,
-                    timeout=_TIMEOUT,
-                ).decode("utf-8", "ignore")
-                match = CONANINFOHASH_RE.search(conaninfo)
-                if match:
-                    result = match[1]
-                    self._conan_hash_cache[str(buildfolder)] = result
-                    return result
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-                self.logger.debug("Conan info failed: %s", e)
-
-        self._conan_hash_cache[str(buildfolder)] = None
+        target = build_target_settings(self.current_buildparameters_obj)
+        for package_id, entry in self._get_possible_builds().items():
+            settings = entry.get("settings", {}) if isinstance(entry, dict) else {}
+            if match_conan_settings(target, settings):
+                return package_id
         return None
 
     def resil_post(self, url: str, json_data: str, headers: dict | None = None) -> requests.Response | dict:
@@ -557,15 +577,17 @@ require {self.module_path} {self.target_name}
 
     def set_as_uploaded(self, buildfolder: Path, build_method: str) -> None:
         """Mark build as uploaded in Conan server."""
+        # Order matters: upload_builds must run before get_conan_hash. See library_builder.py
+        # set_as_uploaded for the full reasoning.
+        annotations = self.get_build_annotations(buildfolder)
+        if "commithash" not in annotations:
+            self.upload_builds()
+
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
             raise RuntimeError(f"Error determining conan hash in {buildfolder}")
 
         self.logger.info("conanhash: %s", conanhash)
-
-        annotations = self.get_build_annotations(buildfolder)
-        if "commithash" not in annotations:
-            self.upload_builds()
         annotations["commithash"] = self.target_name
         annotations["build_method"] = build_method
 
@@ -606,6 +628,7 @@ require {self.module_path} {self.target_name}
                 self.logger.debug("Clearing cache to speed up next upload")
                 subprocess.check_call(["conan", "remove", "-f", f"{self.libid}/{self.target_name}"])
             self.needs_uploading = 0
+            self._possible_builds = None
 
     def build_cleanup(self, buildfolder: Path) -> None:
         """Clean up build folder."""

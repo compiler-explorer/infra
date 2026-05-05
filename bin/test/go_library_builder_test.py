@@ -287,6 +287,45 @@ class TestGoLibraryBuilderConanHelpers:
         assert 'name = "go_uuid"' in content
         assert 'version = "v1.6.0"' in content
 
+    @patch("lib.go_library_builder.get_properties_compilers_and_libraries")
+    def test_get_conan_hash_via_search(self, mock_get_props, requests_mock):
+        """get_conan_hash should match the search response settings rather than shelling out."""
+        mock_get_props.return_value = ({"gl1238": {"exe": "/opt/go/bin/go"}}, {})
+        logger = MagicMock()
+        install_context = MagicMock()
+        install_context.dry_run = False
+        buildconfig = create_go_test_build_config()
+
+        builder = GoLibraryBuilder(
+            logger=logger,
+            language="go",
+            libname="uuid",
+            target_name="v1.6.0",
+            install_context=install_context,
+            buildconfig=buildconfig,
+        )
+        builder.set_current_conan_build_parameters("Linux", "Debug", "gl1238", "x86_64")
+
+        requests_mock.get(
+            "https://conan.compiler-explorer.com/v1/conans/go_uuid/v1.6.0/go_uuid/v1.6.0/search",
+            json={
+                "go_hash": {
+                    "settings": {
+                        "os": "Linux",
+                        "build_type": "Debug",
+                        "compiler": "golang",
+                        "compiler.version": "gl1238",
+                        "compiler.libcxx": "",
+                        "arch": "x86_64",
+                        "stdver": "",
+                        "flagcollection": "",
+                    }
+                }
+            },
+        )
+
+        assert builder.get_conan_hash(Path("/tmp/build")) == "go_hash"
+
 
 class TestGoLibraryBuilderBuildStatus:
     """Tests for BuildStatus enum."""

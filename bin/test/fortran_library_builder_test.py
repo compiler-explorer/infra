@@ -163,8 +163,7 @@ def test_expand_make_arg(requests_mock):
     assert result == "--arch=x86_64 --build=Debug --std=f2018"
 
 
-@patch("subprocess.check_output")
-def test_get_conan_hash_success(mock_subprocess, requests_mock):
+def test_get_conan_hash_success(requests_mock):
     requests_mock.get(f"{BASE}fortran.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock()
@@ -174,15 +173,36 @@ def test_get_conan_hash_success(mock_subprocess, requests_mock):
         logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
     )
 
-    mock_subprocess.return_value = b"conanfile.py: ID: fortran123456\nOther output"
-    builder.current_buildparameters = ["-s", "os=Linux"]
+    builder.current_buildparameters_obj["os"] = "Linux"
+    builder.current_buildparameters_obj["buildtype"] = "Debug"
+    builder.current_buildparameters_obj["compiler"] = "fortran"
+    builder.current_buildparameters_obj["compiler_version"] = "f2018"
+    builder.current_buildparameters_obj["libcxx"] = "libgfortran"
+    builder.current_buildparameters_obj["arch"] = "x86_64"
+    builder.current_buildparameters_obj["stdver"] = ""
+    builder.current_buildparameters_obj["flagcollection"] = ""
+
+    requests_mock.get(
+        "https://conan.compiler-explorer.com/v1/conans/fortranlib/2.0.0/fortranlib/2.0.0/search",
+        json={
+            "fortran123456": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "fortran",
+                    "compiler.version": "f2018",
+                    "compiler.libcxx": "libgfortran",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
 
     result = builder.get_conan_hash("/tmp/buildfolder")
 
     assert result == "fortran123456"
-    mock_subprocess.assert_called_once_with(
-        ["conan", "info", "-r", "ceserver", "."] + builder.current_buildparameters, cwd="/tmp/buildfolder"
-    )
 
 
 @patch("subprocess.call")
