@@ -590,7 +590,7 @@ class FortranLibraryBuilder:
         if conanhash is None:
             raise RuntimeError(f"Error determining conan hash in {buildfolder}")
 
-        self.logger.info(f"commithash: {conanhash}")
+        self.logger.info(f"conanhash: {conanhash}")
         annotations["commithash"] = self.get_commit_hash()
 
         self.logger.info(annotations)
