@@ -16,7 +16,7 @@ from collections import defaultdict
 from collections.abc import Generator
 from enum import Enum, unique
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any, TextIO, TypedDict
 
 import botocore
 import requests
@@ -86,6 +86,18 @@ GITCOMMITHASH_RE = re.compile(r"^(\w*)\s.*")
 
 def _quote(string: str) -> str:
     return f'"{string}"'
+
+
+class ConanSearchEntry(TypedDict, total=False):
+    """A single entry in a Conan /v1/.../search response, keyed by package_id at the top level."""
+
+    settings: dict[str, str]
+    options: dict[str, str]
+    full_requires: list[str]
+    recipe_hash: str
+
+
+PossibleBuilds = dict[str, ConanSearchEntry]
 
 
 def match_conan_settings(target: dict[str, str], candidate: dict[str, str]) -> bool:
@@ -193,7 +205,7 @@ class LibraryBuilder:
         self.conanserverproxy_token = None
         self.current_commit_hash = ""
         self.platform = platform
-        self._possible_builds: dict[str, Any] | None = None
+        self._possible_builds: PossibleBuilds | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -1125,34 +1137,37 @@ class LibraryBuilder:
 
         return compiler + "_" + str(iteration)
 
-    def _get_possible_builds(self) -> dict[str, Any]:
+    def _get_possible_builds(self) -> PossibleBuilds:
         """Return the conan-server search response for this (libname, target_name), cached.
 
         Single GET to /v1/conans/{lib}/{ver}/{lib}/{ver}/search returns all uploaded
         package_ids and their settings, replacing per-iteration `conan info` subprocess calls.
+
+        404 is treated as 'no uploads exist yet' and returns an empty dict. Any other failure
+        (5xx, connection error after retries, malformed JSON) raises FetchFailure rather than
+        silently degrading -- treating those as 'nothing uploaded' would cause spurious rebuilds
+        or downstream failures in set_as_uploaded.
         """
         if self._possible_builds is not None:
             return self._possible_builds
 
         url = conan_search_url(self.libname, self.target_name)
         request = self.resil_get(url, stream=False, timeout=_TIMEOUT)
-        if request is None or not request.ok:
-            status = request.status_code if request is not None else "no-response"
-            if request is not None and request.status_code == 404:
-                self.logger.debug(f"No uploaded builds yet for {self.libname}/{self.target_name}")
-            else:
-                self.logger.warning(f"Conan search failed for {self.libname}/{self.target_name}: {status}")
+        if request is None:
+            raise FetchFailure(f"Conan search request failed for {self.libname}/{self.target_name}")
+        if request.status_code == 404:
+            self.logger.debug(f"No uploaded builds yet for {self.libname}/{self.target_name}")
             self._possible_builds = {}
             return self._possible_builds
+        if not request.ok:
+            raise FetchFailure(f"Conan search returned {request.status_code} for {self.libname}/{self.target_name}")
 
         try:
             payload = request.json()
-        except ValueError:
-            self.logger.warning(f"Conan search returned non-JSON for {self.libname}/{self.target_name}")
-            payload = {}
+        except ValueError as e:
+            raise FetchFailure(f"Conan search returned non-JSON for {self.libname}/{self.target_name}") from e
         if not isinstance(payload, dict):
-            self.logger.warning(f"Conan search returned non-object JSON for {self.libname}/{self.target_name}")
-            payload = {}
+            raise FetchFailure(f"Conan search returned non-object JSON for {self.libname}/{self.target_name}")
         self._possible_builds = payload
         return self._possible_builds
 
@@ -1303,10 +1318,14 @@ class LibraryBuilder:
             return False
 
     def set_as_uploaded(self, buildfolder):
-        # Order matters: upload_builds must run before get_conan_hash, because the new search-API
-        # path can only see packages already on the remote. When upload_builds runs (i.e.
-        # needs_uploading > 0), it invalidates _possible_builds so the next get_conan_hash call
-        # refetches and finds the just-uploaded package.
+        # We need the conan package_id (a deterministic SHA from compiler+version+libcxx+arch+...)
+        # to PUT annotations against /annotations/{lib}/{ver}/{package_id}.
+        #
+        # get_conan_hash now derives the id by querying the server's /search index, which only
+        # lists packages already on the server. So for a freshly built package that hasn't been
+        # uploaded yet, we must upload first, then ask for the id. (The previous implementation
+        # used `conan info`, which computed the id locally from the recipe and didn't care
+        # whether the package was on the server -- the order did not matter then.)
         annotations = self.get_build_annotations(buildfolder)
         if "commithash" not in annotations:
             self.upload_builds()

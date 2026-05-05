@@ -9,7 +9,8 @@ from subprocess import TimeoutExpired
 from unittest import mock
 from unittest.mock import patch
 
-from lib.installation_context import InstallationContext
+import pytest
+from lib.installation_context import FetchFailure, InstallationContext
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import BuildStatus, LibraryBuilder, build_timeout
 from lib.library_platform import LibraryPlatform
@@ -299,6 +300,22 @@ def test_get_conan_hash_404_returns_none(requests_mock):
     builder = _make_builder_with_params(requests_mock)
     requests_mock.get(SEARCH_URL, status_code=404)
     assert builder.get_conan_hash("/tmp/buildfolder") is None
+
+
+def test_get_conan_hash_500_raises(requests_mock):
+    """Non-404 server errors should propagate, not silently degrade."""
+    builder = _make_builder_with_params(requests_mock)
+    requests_mock.get(SEARCH_URL, status_code=500)
+    with pytest.raises(FetchFailure):
+        builder.get_conan_hash("/tmp/buildfolder")
+
+
+def test_get_conan_hash_non_dict_json_raises(requests_mock):
+    """Search responses that aren't a JSON object should propagate, not silently degrade."""
+    builder = _make_builder_with_params(requests_mock)
+    requests_mock.get(SEARCH_URL, json=["not", "an", "object"])
+    with pytest.raises(FetchFailure):
+        builder.get_conan_hash("/tmp/buildfolder")
 
 
 def test_get_conan_hash_headeronly_matches_any_compiler(requests_mock):

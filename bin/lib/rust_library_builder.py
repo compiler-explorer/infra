@@ -23,7 +23,7 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.installation_context import FetchFailure, InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
-from lib.library_builder import build_target_settings, conan_search_url, match_conan_settings
+from lib.library_builder import PossibleBuilds, build_target_settings, conan_search_url, match_conan_settings
 from lib.library_platform import LibraryPlatform
 from lib.rust_crates import RustCrate, get_builder_user_agent_id
 from lib.staging import StagingDir
@@ -86,7 +86,7 @@ class RustLibraryBuilder:
         self.needs_uploading = 0
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
-        self._possible_builds: dict[str, Any] | None = None
+        self._possible_builds: PossibleBuilds | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -259,7 +259,8 @@ class RustLibraryBuilder:
 
         return compiler + "_" + hasher.hexdigest()
 
-    def _get_possible_builds(self) -> dict[str, Any]:
+    def _get_possible_builds(self) -> PossibleBuilds:
+        # 404 -> empty (no uploads yet); other failures raise rather than silently degrading.
         if self._possible_builds is not None:
             return self._possible_builds
 
@@ -267,26 +268,21 @@ class RustLibraryBuilder:
         try:
             request = self.http_session.get(url, timeout=_TIMEOUT)
         except requests.RequestException as e:
-            self.logger.warning(f"Conan search failed for {self.libname}/{self.target_name}: {e}")
-            self._possible_builds = {}
-            return self._possible_builds
+            raise FetchFailure(f"Conan search request failed for {self.libname}/{self.target_name}: {e}") from e
 
-        if not request.ok:
-            if request.status_code == 404:
-                self.logger.debug(f"No uploaded builds yet for {self.libname}/{self.target_name}")
-            else:
-                self.logger.warning(f"Conan search failed for {self.libname}/{self.target_name}: {request.status_code}")
+        if request.status_code == 404:
+            self.logger.debug(f"No uploaded builds yet for {self.libname}/{self.target_name}")
             self._possible_builds = {}
             return self._possible_builds
+        if not request.ok:
+            raise FetchFailure(f"Conan search returned {request.status_code} for {self.libname}/{self.target_name}")
 
         try:
             payload = request.json()
-        except ValueError:
-            self.logger.warning(f"Conan search returned non-JSON for {self.libname}/{self.target_name}")
-            payload = {}
+        except ValueError as e:
+            raise FetchFailure(f"Conan search returned non-JSON for {self.libname}/{self.target_name}") from e
         if not isinstance(payload, dict):
-            self.logger.warning(f"Conan search returned non-object JSON for {self.libname}/{self.target_name}")
-            payload = {}
+            raise FetchFailure(f"Conan search returned non-object JSON for {self.libname}/{self.target_name}")
         self._possible_builds = payload
         return self._possible_builds
 
@@ -429,8 +425,9 @@ class RustLibraryBuilder:
             return False
 
     def set_as_uploaded(self, buildfolder, source_folder, build_method):
-        # Order matters: upload_builds must run before get_conan_hash. See library_builder.py
-        # set_as_uploaded for the full reasoning.
+        # Upload before asking for the conan id: see library_builder.py set_as_uploaded for the
+        # full reasoning. Short version: get_conan_hash now resolves the id by querying the
+        # server's /search index, which only knows about packages already uploaded.
         annotations = self.get_build_annotations(buildfolder)
         if "commithash" not in annotations:
             self.upload_builds()
