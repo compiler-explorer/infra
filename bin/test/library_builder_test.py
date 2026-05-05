@@ -12,10 +12,100 @@ from unittest.mock import patch
 import pytest
 from lib.installation_context import FetchFailure, InstallationContext
 from lib.library_build_config import LibraryBuildConfig
-from lib.library_builder import BuildStatus, LibraryBuilder, build_timeout
+from lib.library_builder import BuildStatus, LibraryBuilder, build_timeout, match_conan_settings
 from lib.library_platform import LibraryPlatform
 
 BASE = "https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/"
+
+
+# Direct unit tests for match_conan_settings -- the matcher logic ported from ceconan.ts.
+# These exercise the function in isolation, without the LibraryBuilder/HTTP scaffolding used
+# by the get_conan_hash tests further down.
+
+_TARGET_GCC = {
+    "os": "Linux",
+    "build_type": "Debug",
+    "compiler": "gcc",
+    "compiler.version": "g141",
+    "compiler.libcxx": "libstdc++",
+    "arch": "x86_64",
+    "stdver": "",
+    "flagcollection": "",
+}
+
+
+def _candidate(**overrides):
+    base = {**_TARGET_GCC}
+    base.update(overrides)
+    return base
+
+
+def test_match_conan_settings_exact():
+    assert match_conan_settings(_TARGET_GCC, _candidate()) is True
+
+
+def test_match_conan_settings_compiler_mismatch():
+    assert match_conan_settings(_TARGET_GCC, _candidate(compiler="clang", **{"compiler.version": "clang19"})) is False
+
+
+def test_match_conan_settings_libcxx_mismatch_real_compiler():
+    assert match_conan_settings(_TARGET_GCC, _candidate(**{"compiler.libcxx": "libc++"})) is False
+
+
+def test_match_conan_settings_arch_mismatch():
+    assert match_conan_settings(_TARGET_GCC, _candidate(arch="x86")) is False
+
+
+def test_match_conan_settings_os_mismatch():
+    assert match_conan_settings(_TARGET_GCC, _candidate(os="Windows")) is False
+
+
+def test_match_conan_settings_stdver_is_wildcard():
+    target = {**_TARGET_GCC, "stdver": "c++23"}
+    assert match_conan_settings(target, _candidate(stdver="")) is True
+    assert match_conan_settings(target, _candidate(stdver="c++17")) is True
+
+
+def test_match_conan_settings_headeronly_compiler_wildcard():
+    headeronly = _candidate(compiler="headeronly", **{"compiler.version": "headeronly"})
+    assert match_conan_settings(_TARGET_GCC, headeronly) is True
+
+
+def test_match_conan_settings_headeronly_bypasses_libcxx_and_arch():
+    headeronly = _candidate(
+        compiler="headeronly",
+        **{"compiler.version": "headeronly", "compiler.libcxx": "", "arch": ""},
+    )
+    target = {**_TARGET_GCC, "compiler.libcxx": "libc++", "arch": "x86"}
+    assert match_conan_settings(target, headeronly) is True
+
+
+def test_match_conan_settings_cshared_compiler_wildcard():
+    cshared = _candidate(compiler="cshared", **{"compiler.version": "cshared"})
+    assert match_conan_settings(_TARGET_GCC, cshared) is True
+
+
+def test_match_conan_settings_cshared_bypasses_libcxx_but_not_arch():
+    """Per the TS source: cshared wildcards libcxx; only headeronly wildcards arch."""
+    cshared = _candidate(
+        compiler="cshared",
+        **{"compiler.version": "cshared", "compiler.libcxx": "", "arch": "x86_64"},
+    )
+    # libcxx mismatch is allowed for cshared
+    target_diff_libcxx = {**_TARGET_GCC, "compiler.libcxx": "libc++"}
+    assert match_conan_settings(target_diff_libcxx, cshared) is True
+    # arch mismatch is NOT allowed for cshared
+    target_diff_arch = {**_TARGET_GCC, "arch": "x86"}
+    assert match_conan_settings(target_diff_arch, cshared) is False
+
+
+def test_match_conan_settings_missing_candidate_key_compares_to_empty():
+    """A missing key on the candidate side compares as empty string."""
+    target = {**_TARGET_GCC, "compiler.libcxx": "libstdc++"}
+    candidate = {k: v for k, v in _candidate().items() if k != "compiler.libcxx"}
+    assert match_conan_settings(target, candidate) is False
+    target_empty = {**_TARGET_GCC, "compiler.libcxx": ""}
+    assert match_conan_settings(target_empty, candidate) is True
 
 
 def create_test_build_config():

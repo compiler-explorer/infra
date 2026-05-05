@@ -97,7 +97,7 @@ class ConanSearchEntry(TypedDict, total=False):
     recipe_hash: str
 
 
-PossibleBuilds = dict[str, ConanSearchEntry]
+type PossibleBuilds = dict[str, ConanSearchEntry]
 
 
 def match_conan_settings(target: dict[str, str], candidate: dict[str, str]) -> bool:

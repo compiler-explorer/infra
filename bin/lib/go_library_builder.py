@@ -571,9 +571,11 @@ require {self.module_path} {self.target_name}
 
     def set_as_uploaded(self, buildfolder: Path, build_method: str) -> None:
         """Mark build as uploaded in Conan server."""
-        # Upload before asking for the conan id: see library_builder.py set_as_uploaded for the
-        # full reasoning. Short version: get_conan_hash now resolves the id by querying the
-        # server's /search index, which only knows about packages already uploaded.
+        # We need the conan package_id (a deterministic SHA from compiler+version+libcxx+arch+...)
+        # to PUT annotations against /annotations/{lib}/{ver}/{package_id}. get_conan_hash now
+        # derives the id by querying the server's /search index, which only lists packages
+        # already on the server -- so for a freshly built package, we must upload first.
+        # (The previous implementation used `conan info`, which computed the id locally.)
         annotations = self.get_build_annotations(buildfolder)
         if "commithash" not in annotations:
             self.upload_builds()
