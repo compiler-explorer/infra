@@ -63,3 +63,22 @@ jobs:
 
       - name: Build libraries
         run: cd /tmp && chmod +x start-builder.sh && ./start-builder.sh "${{ secrets.CONAN_PASSWORD }}" "${{ steps.extract.outputs.language }}" "${{ steps.extract.outputs.library_name }}" "${{ inputs.compiler }}"
+
+      - name: Upload build failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-failure-${{ inputs.compiler }}-${{ steps.extract.outputs.library_name }}-${{ github.run_id }}
+          path: |
+            /tmp/*.cpp
+            /tmp/*.ii
+            /tmp/*.c
+            /tmp/*.s
+            /tmp/*.sh
+            /tmp/ce-cefs-temp/staging/**/cemakelog*.txt
+            /tmp/ce-cefs-temp/staging/**/cecmakelog.txt
+            /tmp/ce-cefs-temp/staging/**/ceconfiglog.txt
+            /tmp/ce-cefs-temp/staging/**/cemakeclean.txt
+            /tmp/ce-cefs-temp/staging/**/ceinstall_*.txt
+          if-no-files-found: warn
+          retention-days: 14
