@@ -3,6 +3,12 @@
 set -ex
 
 CE_USER=ce
+# Match the legacy bionic conan-node's ce uid/gid (`id ce` -> uid=111(ce) gid=115(ce))
+# so files on the reattached data volume keep their owner and no chown is needed
+# on cutover or rollback. If these ever diverge from /etc/passwd on the live host,
+# update them before baking; a mismatch turns rollback into a recursive chown.
+CE_UID=111
+CE_GID=115
 NODE_VERSION="v22.11.0"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${DIR}"
@@ -45,8 +51,11 @@ unzip -q awscliv2.zip
 rm -rf aws awscliv2.zip
 popd
 
-# setup ce user with an explicit home (adduser --system on its own gives /nonexistent on noble)
-adduser --system --home /home/${CE_USER} --group ${CE_USER}
+# Create ce group/user with the legacy uid/gid; explicit --home because adduser
+# --system defaults to /nonexistent on noble, which would break the venv below.
+groupadd --system --gid "${CE_GID}" "${CE_USER}"
+useradd --system --uid "${CE_UID}" --gid "${CE_GID}" \
+    --home-dir "/home/${CE_USER}" --shell /usr/sbin/nologin "${CE_USER}"
 mkdir -p /home/${CE_USER}/.conan_server
 chown -R ${CE_USER}:${CE_USER} /home/${CE_USER}
 
