@@ -84,12 +84,12 @@ class RustInstallable(Installable):
             dest_dir = self.install_context.destination / self.install_path
             if os.path.exists(dest_dir):
                 dtime = datetime.fromtimestamp(dest_dir.stat().st_mtime)
-                # The fudge factor of 30m is to sort of account for the installation time. Else
+                # The fudge factor of 90m is to sort of account for the installation time. Else
                 # we start up the same time the next day and we get a 23hr58 minute old build and we
                 # don't reinstall.
-                age = datetime.now() - dtime + timedelta(minutes=30)
+                age = datetime.now() - dtime + timedelta(minutes=90)
                 self._logger.info("Nightly build %s is %s old", dest_dir, age)
-                if age.days > self.nightly_install_days:
+                if age > timedelta(days=self.nightly_install_days):
                     return True
         return super().should_install()
 
