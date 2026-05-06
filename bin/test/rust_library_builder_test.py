@@ -145,6 +145,42 @@ def test_rust_has_failed_before_matches_regardless_of_commithash(requests_mock):
     assert builder.has_failed_before({"build_method": "release"}) is True
 
 
+_RUST_SEARCH_URL = "https://conan.compiler-explorer.com/v1/conans/rustlib/1.0.0/rustlib/1.0.0/search"
+_RUST_ANNOTATIONS_URL = "https://conan.compiler-explorer.com/annotations/rustlib/1.0.0"
+
+
+def test_rust_is_already_uploaded_uses_bulk_annotations(requests_mock):
+    builder = _make_rust_builder(requests_mock)
+    builder.current_buildparameters_obj["os"] = "Linux"
+    builder.current_buildparameters_obj["buildtype"] = "Debug"
+    builder.current_buildparameters_obj["stdver"] = ""
+    requests_mock.get(
+        _RUST_SEARCH_URL,
+        json={
+            "rhash": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "rustc",
+                    "compiler.version": "rustc-1.70",
+                    "compiler.libcxx": "",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
+    matcher = requests_mock.get(
+        _RUST_ANNOTATIONS_URL,
+        json=[{"buildhash": "rhash", "annotation": {"commithash": "1.0.0"}, "buildinfo": {}}],
+    )
+    # Rust uses target_name as commit_hash, so 1.0.0 matches
+    assert builder.is_already_uploaded("/tmp/buildfolder1", "/tmp/source") is True
+    assert builder.is_already_uploaded("/tmp/buildfolder2", "/tmp/source") is True
+    assert matcher.call_count == 1
+
+
 @patch("subprocess.call")
 def test_execute_build_script_success(mock_subprocess, requests_mock):
     requests_mock.get(f"{BASE}rust.amazon.properties", text="")

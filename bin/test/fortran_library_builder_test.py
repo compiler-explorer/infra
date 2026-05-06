@@ -252,6 +252,43 @@ def test_fortran_has_failed_before_stale_commit_returns_false(requests_mock):
     assert builder.has_failed_before() is False
 
 
+_FORTRAN_SEARCH_URL = "https://conan.compiler-explorer.com/v1/conans/fortranlib/2.0.0/fortranlib/2.0.0/search"
+_FORTRAN_ANNOTATIONS_URL = "https://conan.compiler-explorer.com/annotations/fortranlib/2.0.0"
+
+
+def test_fortran_is_already_uploaded_uses_bulk_annotations(requests_mock):
+    # Fortran's get_commit_hash falls back to target_name (here "2.0.0") when
+    # there's no .git directory at sourcefolder, which is the case in this test.
+    builder = _make_fortran_builder_with_buildparams(requests_mock)
+    builder.current_buildparameters_obj["os"] = "Linux"
+    builder.current_buildparameters_obj["buildtype"] = "Debug"
+    builder.current_buildparameters_obj["stdver"] = ""
+    requests_mock.get(
+        _FORTRAN_SEARCH_URL,
+        json={
+            "fhash": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "fortran",
+                    "compiler.version": "f2018",
+                    "compiler.libcxx": "libgfortran",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
+    matcher = requests_mock.get(
+        _FORTRAN_ANNOTATIONS_URL,
+        json=[{"buildhash": "fhash", "annotation": {"commithash": "2.0.0"}, "buildinfo": {}}],
+    )
+    assert builder.is_already_uploaded("/tmp/buildfolder1") is True
+    assert builder.is_already_uploaded("/tmp/buildfolder2") is True
+    assert matcher.call_count == 1
+
+
 @patch("subprocess.call")
 def test_execute_build_script_success(mock_subprocess, requests_mock):
     requests_mock.get(f"{BASE}fortran.amazon.properties", text="")

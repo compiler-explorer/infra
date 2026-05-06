@@ -365,6 +365,53 @@ class TestGoLibraryBuilderConanHelpers:
         # one fetch shared across calls -- the match logic runs in-memory
         assert matcher.call_count == 1
 
+    @patch("lib.go_library_builder.get_properties_compilers_and_libraries")
+    def test_is_already_uploaded_uses_bulk_annotations(self, mock_get_props, requests_mock):
+        """is_already_uploaded should hit /annotations/<libid>/<ver> bulk endpoint and cache it."""
+        mock_get_props.return_value = ({"gl1238": {"exe": "/opt/go/bin/go"}}, {})
+        logger = MagicMock()
+        install_context = MagicMock()
+        install_context.dry_run = False
+        buildconfig = create_go_test_build_config()
+
+        builder = GoLibraryBuilder(
+            logger=logger,
+            language="go",
+            libname="uuid",
+            target_name="v1.6.0",
+            install_context=install_context,
+            buildconfig=buildconfig,
+        )
+        builder.set_current_conan_build_parameters("Linux", "Debug", "gl1238", "x86_64")
+
+        # /search returns a matching package
+        requests_mock.get(
+            "https://conan.compiler-explorer.com/v1/conans/go_uuid/v1.6.0/go_uuid/v1.6.0/search",
+            json={
+                "ghash": {
+                    "settings": {
+                        "os": "Linux",
+                        "build_type": "Debug",
+                        "compiler": "golang",
+                        "compiler.version": "gl1238",
+                        "compiler.libcxx": "",
+                        "arch": "x86_64",
+                        "stdver": "",
+                        "flagcollection": "",
+                    }
+                }
+            },
+        )
+        # bulk annotations contains commithash matching target_name (Go's commithash semantics)
+        matcher = requests_mock.get(
+            "https://conan.compiler-explorer.com/annotations/go_uuid/v1.6.0",
+            json=[{"buildhash": "ghash", "annotation": {"commithash": "v1.6.0"}, "buildinfo": {}}],
+        )
+        assert builder.is_already_uploaded(Path("/tmp/buildfolder1")) is True
+        assert builder.is_already_uploaded(Path("/tmp/buildfolder2")) is True
+        # one fetch shared across iterations
+        assert matcher.call_count == 1
+
 
 class TestGoLibraryBuilderBuildStatus:
     """Tests for BuildStatus enum."""
