@@ -2166,7 +2166,7 @@ libraries:
         build_type: none
         check_file: include/phd/embed.hpp
         method: nightlyclone
-        path_name: libs/phd/embed
+        path_name: libs/phd/embed/{{name}}
         repo: ThePhD/embed
         targets:
         - main
