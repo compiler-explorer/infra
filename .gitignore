@@ -18,3 +18,7 @@ node_modules
 /uv.lock
 /lambda/.build_site_packages
 *.egg-info
+
+# Claude Code runtime/per-user state (committed config lives in .claude/agents, .claude/commands, etc.)
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
