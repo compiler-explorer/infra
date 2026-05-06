@@ -17,6 +17,7 @@ from lib.library_builder import (
     BuildStatus,
     LibraryBuilder,
     build_timeout,
+    fetch_all_annotations,
     fetch_failed_builds,
     match_conan_settings,
     match_failed_build,
@@ -865,3 +866,122 @@ def test_has_failed_before_no_records_returns_false(requests_mock):
     builder.current_commit_hash = "abc123"
     requests_mock.get(_FAILED_URL, json=[])
     assert builder.has_failed_before() is False
+
+
+# Direct unit tests for fetch_all_annotations.
+
+_ANNOTATIONS_BULK_URL = "https://conan.compiler-explorer.com/annotations/testlib/1.0.0"
+
+
+def test_fetch_all_annotations_returns_dict_keyed_by_buildhash(requests_mock):
+    requests_mock.get(
+        _ANNOTATIONS_BULK_URL,
+        json=[
+            {"buildhash": "h1", "annotation": {"commithash": "abc123"}, "buildinfo": {}},
+            {"buildhash": "h2", "annotation": {"commithash": "def456"}, "buildinfo": {}},
+        ],
+    )
+    logger = mock.Mock(spec_set=Logger)
+    result = fetch_all_annotations("testlib", "1.0.0", _fetch, logger)
+    assert result == {"h1": {"commithash": "abc123"}, "h2": {"commithash": "def456"}}
+
+
+def test_fetch_all_annotations_skips_malformed_entries(requests_mock):
+    requests_mock.get(
+        _ANNOTATIONS_BULK_URL,
+        json=[
+            {"buildhash": "h1", "annotation": {"commithash": "abc"}, "buildinfo": {}},
+            {"buildhash": "h2"},  # missing annotation
+            {"annotation": {"commithash": "def"}},  # missing buildhash
+            "not-a-dict",
+        ],
+    )
+    logger = mock.Mock(spec_set=Logger)
+    result = fetch_all_annotations("testlib", "1.0.0", _fetch, logger)
+    assert result == {"h1": {"commithash": "abc"}}
+
+
+def test_fetch_all_annotations_404_returns_empty(requests_mock):
+    requests_mock.get(_ANNOTATIONS_BULK_URL, status_code=404)
+    logger = mock.Mock(spec_set=Logger)
+    assert fetch_all_annotations("testlib", "1.0.0", _fetch, logger) == {}
+
+
+def test_fetch_all_annotations_500_raises(requests_mock):
+    requests_mock.get(_ANNOTATIONS_BULK_URL, status_code=500)
+    logger = mock.Mock(spec_set=Logger)
+    with pytest.raises(FetchFailure):
+        fetch_all_annotations("testlib", "1.0.0", _fetch, logger)
+
+
+def test_fetch_all_annotations_non_list_raises(requests_mock):
+    requests_mock.get(_ANNOTATIONS_BULK_URL, json={"not": "a list"})
+    logger = mock.Mock(spec_set=Logger)
+    with pytest.raises(FetchFailure):
+        fetch_all_annotations("testlib", "1.0.0", _fetch, logger)
+
+
+# Behavioural tests on LibraryBuilder.is_already_uploaded via the bulk-annotations cache.
+
+
+def _matched_settings_dict(**overrides):
+    base = {
+        "os": "Linux",
+        "build_type": "Debug",
+        "compiler": "gcc",
+        "compiler.version": "g141",
+        "compiler.libcxx": "libstdc++",
+        "arch": "x86_64",
+        "stdver": "",
+        "flagcollection": "",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_is_already_uploaded_uses_bulk_annotations(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    # /search returns one matching package
+    requests_mock.get(SEARCH_URL, json={"hash1": {"settings": _matched_settings_dict()}})
+    # bulk annotations contains the matching commithash
+    bulk_matcher = requests_mock.get(
+        _ANNOTATIONS_BULK_URL,
+        json=[{"buildhash": "hash1", "annotation": {"commithash": "abc123"}, "buildinfo": {}}],
+    )
+    assert builder.is_already_uploaded("/tmp/buildfolder1") is True
+    assert bulk_matcher.call_count == 1
+
+
+def test_is_already_uploaded_caches_bulk_across_buildfolders(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    requests_mock.get(SEARCH_URL, json={"hash1": {"settings": _matched_settings_dict()}})
+    bulk_matcher = requests_mock.get(
+        _ANNOTATIONS_BULK_URL,
+        json=[{"buildhash": "hash1", "annotation": {"commithash": "abc123"}, "buildinfo": {}}],
+    )
+    # Two iterations, two distinct buildfolders → bulk should be fetched once
+    assert builder.is_already_uploaded("/tmp/buildfolder1") is True
+    assert builder.is_already_uploaded("/tmp/buildfolder2") is True
+    assert bulk_matcher.call_count == 1
+
+
+def test_is_already_uploaded_returns_false_when_commithash_differs(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    requests_mock.get(SEARCH_URL, json={"hash1": {"settings": _matched_settings_dict()}})
+    requests_mock.get(
+        _ANNOTATIONS_BULK_URL,
+        json=[{"buildhash": "hash1", "annotation": {"commithash": "OLD"}, "buildinfo": {}}],
+    )
+    assert builder.is_already_uploaded("/tmp/buildfolder") is False
+
+
+def test_is_already_uploaded_returns_false_when_hash_missing_from_bulk(requests_mock):
+    """conanhash matches in /search but no annotation has been written yet."""
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    requests_mock.get(SEARCH_URL, json={"hash1": {"settings": _matched_settings_dict()}})
+    requests_mock.get(_ANNOTATIONS_BULK_URL, json=[])
+    assert builder.is_already_uploaded("/tmp/buildfolder") is False

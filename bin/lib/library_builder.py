@@ -270,6 +270,61 @@ def match_failed_build(
     return False
 
 
+type AnnotationsBulk = dict[str, dict[str, Any]]
+
+
+def annotations_bulk_url(libname: str, target_name: str) -> str:
+    encoded_lib = urllib.parse.quote(libname, safe="")
+    encoded_ver = urllib.parse.quote(target_name, safe="")
+    return f"{conanserver_url}/annotations/{encoded_lib}/{encoded_ver}"
+
+
+def fetch_all_annotations(
+    libname: str,
+    target_name: str,
+    fetcher: Callable[[str], requests.Response | None],
+    logger: Logger,
+) -> AnnotationsBulk:
+    """Fetch every annotation for (libname, target_name), keyed by buildhash.
+
+    Response shape: list of {buildhash, annotation, buildinfo}. We only need
+    the per-buildhash annotation dict (which has commithash etc.); buildinfo
+    is ignored for now since current callers only inspect commithash.
+
+    404 means no annotations exist yet; non-2xx and malformed payloads raise FetchFailure.
+    """
+    url = annotations_bulk_url(libname, target_name)
+    try:
+        response = fetcher(url)
+    except requests.RequestException as e:
+        raise FetchFailure(f"Annotations bulk request failed for {libname}/{target_name}: {e}") from e
+
+    if response is None:
+        raise FetchFailure(f"Annotations bulk request failed for {libname}/{target_name}")
+    if response.status_code == 404:
+        logger.debug("No annotations recorded for %s/%s", libname, target_name)
+        return {}
+    if not response.ok:
+        raise FetchFailure(f"Annotations bulk returned {response.status_code} for {libname}/{target_name}")
+
+    try:
+        payload = response.json()
+    except ValueError as e:
+        raise FetchFailure(f"Annotations bulk returned non-JSON for {libname}/{target_name}") from e
+    if not isinstance(payload, list):
+        raise FetchFailure(f"Annotations bulk returned non-array JSON for {libname}/{target_name}")
+
+    out: AnnotationsBulk = {}
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        buildhash = item.get("buildhash")
+        annotation = item.get("annotation")
+        if isinstance(buildhash, str) and isinstance(annotation, dict):
+            out[buildhash] = annotation
+    return out
+
+
 def resil_get(
     http_session: requests.Session,
     url: str,
@@ -386,6 +441,7 @@ class LibraryBuilder:
         self.platform = platform
         self._possible_builds: PossibleBuilds | None = None
         self._failed_builds: FailedBuilds | None = None
+        self._annotations_bulk: AnnotationsBulk | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -1356,6 +1412,16 @@ class LibraryBuilder:
 
         return result
 
+    def _get_annotations_bulk(self) -> AnnotationsBulk:
+        if self._annotations_bulk is None:
+            self._annotations_bulk = fetch_all_annotations(
+                self.libname,
+                self.target_name,
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._annotations_bulk
+
     def get_build_annotations(self, buildfolder):
         if buildfolder in self._annotations_cache:
             self.logger.debug(f"Using cached annotations for {buildfolder}")
@@ -1367,19 +1433,12 @@ class LibraryBuilder:
             self._annotations_cache[buildfolder] = result
             return result
 
-        url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
-        with tempfile.TemporaryFile() as fd:
-            request = resil_get(self.http_session, url, stream=True, timeout=_TIMEOUT)
-            if not request or not request.ok:
-                raise FetchFailure(f"Fetch failure for {url}: {request}")
-            for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
-                fd.write(chunk)
-            fd.flush()
-            fd.seek(0)
-            buffer = fd.read()
-            result = json.loads(buffer)
-            self._annotations_cache[buildfolder] = result
-            return result
+        # Look up in the bulk-cached annotations dict; defensive copy because callers
+        # (set_as_uploaded) mutate the result before POSTing it back to the server.
+        bulk_entry = self._get_annotations_bulk().get(conanhash, {})
+        result = dict(bulk_entry) if bulk_entry else defaultdict(lambda: [])
+        self._annotations_cache[buildfolder] = result
+        return result
 
     def get_commit_hash(self) -> str:
         if self.current_commit_hash:
@@ -1472,6 +1531,9 @@ class LibraryBuilder:
         request = resil_post(self.http_session, url, json_data=json.dumps(annotations), headers=headers)
         if not request.ok:
             raise PostFailure(f"Post failure for {url}: {request}")
+
+        # We just wrote a new annotation server-side; the bulk cache is now stale.
+        self._annotations_bulk = None
 
     def makebuildfor(
         self,
