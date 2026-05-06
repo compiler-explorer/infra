@@ -25,7 +25,15 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.installation_context import FetchFailure, PostFailure
 from lib.library_build_config import LibraryBuildConfig
-from lib.library_builder import PossibleBuilds, build_target_settings, fetch_possible_builds, find_matching_package_id
+from lib.library_builder import (
+    FailedBuilds,
+    PossibleBuilds,
+    build_target_settings,
+    fetch_failed_builds,
+    fetch_possible_builds,
+    find_matching_package_id,
+    match_failed_build,
+)
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
@@ -99,6 +107,7 @@ class FortranLibraryBuilder:
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
         self._possible_builds: PossibleBuilds | None = None
+        self._failed_builds: FailedBuilds | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -506,7 +515,12 @@ class FortranLibraryBuilder:
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
-        return self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
+        result = self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
+
+        if builtok in (BuildStatus.Failed, BuildStatus.TimedOut):
+            self._failed_builds = None
+
+        return result
 
     def get_build_annotations(self, buildfolder):
         if buildfolder in self._annotations_cache:
@@ -553,18 +567,18 @@ class FortranLibraryBuilder:
         else:
             return self.target_name
 
+    def _get_failed_builds(self) -> FailedBuilds:
+        if self._failed_builds is None:
+            self._failed_builds = fetch_failed_builds(
+                self.libname,
+                self.target_name,
+                lambda url: self.http_session.get(url, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._failed_builds
+
     def has_failed_before(self):
-        url = f"{conanserver_url}/whathasfailedbefore"
-        request = self.resil_post(url, json_data=json.dumps(self.current_buildparameters_obj))
-        if not request.ok:
-            raise PostFailure(f"Post failure for {url}: {request}")
-        else:
-            response = json.loads(request.content)
-            current_commit = self.get_commit_hash()
-            if response["commithash"] == current_commit:
-                return response["response"]
-            else:
-                return False
+        return match_failed_build(self._get_failed_builds(), self.current_buildparameters_obj, self.get_commit_hash())
 
     def is_already_uploaded(self, buildfolder):
         annotations = self.get_build_annotations(buildfolder)

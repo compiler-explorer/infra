@@ -10,9 +10,17 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
+import requests
 from lib.installation_context import FetchFailure, InstallationContext
 from lib.library_build_config import LibraryBuildConfig
-from lib.library_builder import BuildStatus, LibraryBuilder, build_timeout, match_conan_settings
+from lib.library_builder import (
+    BuildStatus,
+    LibraryBuilder,
+    build_timeout,
+    fetch_failed_builds,
+    match_conan_settings,
+    match_failed_build,
+)
 from lib.library_platform import LibraryPlatform
 
 BASE = "https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/"
@@ -725,3 +733,136 @@ def test_count_headers(mock_glob, requests_mock):
 
     assert result == 3
     assert mock_glob.call_count == 2
+
+
+# Direct unit tests for match_failed_build.
+
+_FAILED_PARAMS = {
+    "compiler": "gcc",
+    "compiler_version": "g141",
+    "arch": "x86_64",
+    "libcxx": "libstdc++",
+    "flagcollection": "",
+}
+
+
+def _failed_record(**overrides):
+    base = {
+        "compiler": "gcc",
+        "compiler_version": "g141",
+        "arch": "x86_64",
+        "libcxx": "libstdc++",
+        "compiler_flags": "",
+        "commithash": "abc123",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_match_failed_build_exact_match_with_commit_filter():
+    assert match_failed_build([_failed_record()], _FAILED_PARAMS, "abc123") is True
+
+
+def test_match_failed_build_stale_commit_returns_false():
+    assert match_failed_build([_failed_record(commithash="old")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_no_commit_filter_matches_any_commit():
+    assert match_failed_build([_failed_record(commithash="old")], _FAILED_PARAMS, None) is True
+
+
+def test_match_failed_build_compiler_mismatch():
+    assert match_failed_build([_failed_record(compiler="clang")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_version_mismatch():
+    assert match_failed_build([_failed_record(compiler_version="g131")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_arch_mismatch():
+    assert match_failed_build([_failed_record(arch="x86")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_libcxx_mismatch():
+    assert match_failed_build([_failed_record(libcxx="libc++")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_flagcollection_mismatch():
+    assert match_failed_build([_failed_record(compiler_flags="-std=c++23")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_empty_records_returns_false():
+    assert match_failed_build([], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_finds_match_among_many():
+    records = [
+        _failed_record(compiler="clang", compiler_version="c1700"),
+        _failed_record(),
+        _failed_record(compiler="gcc", compiler_version="g131"),
+    ]
+    assert match_failed_build(records, _FAILED_PARAMS, "abc123") is True
+
+
+# Direct unit tests for fetch_failed_builds.
+
+_FAILED_URL = "https://conan.compiler-explorer.com/failedbuilds/testlib/1.0.0"
+
+
+def _direct_fetcher(requests_mock):
+    session = requests.Session()
+    return lambda url: session.get(url, timeout=5)
+
+
+def test_fetch_failed_builds_returns_list(requests_mock):
+    requests_mock.get(_FAILED_URL, json=[_failed_record()])
+    logger = mock.Mock(spec_set=Logger)
+    result = fetch_failed_builds("testlib", "1.0.0", _direct_fetcher(requests_mock), logger)
+    assert result == [_failed_record()]
+
+
+def test_fetch_failed_builds_404_returns_empty(requests_mock):
+    requests_mock.get(_FAILED_URL, status_code=404)
+    logger = mock.Mock(spec_set=Logger)
+    result = fetch_failed_builds("testlib", "1.0.0", _direct_fetcher(requests_mock), logger)
+    assert result == []
+
+
+def test_fetch_failed_builds_500_raises(requests_mock):
+    requests_mock.get(_FAILED_URL, status_code=500)
+    logger = mock.Mock(spec_set=Logger)
+    with pytest.raises(FetchFailure):
+        fetch_failed_builds("testlib", "1.0.0", _direct_fetcher(requests_mock), logger)
+
+
+def test_fetch_failed_builds_non_list_json_raises(requests_mock):
+    requests_mock.get(_FAILED_URL, json={"not": "a list"})
+    logger = mock.Mock(spec_set=Logger)
+    with pytest.raises(FetchFailure):
+        fetch_failed_builds("testlib", "1.0.0", _direct_fetcher(requests_mock), logger)
+
+
+# Behavioural tests on LibraryBuilder.has_failed_before.
+
+
+def test_has_failed_before_caches_endpoint_response(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    matcher = requests_mock.get(_FAILED_URL, json=[_failed_record()])
+    assert builder.has_failed_before() is True
+    assert builder.has_failed_before() is True
+    assert matcher.call_count == 1
+
+
+def test_has_failed_before_stale_commit_returns_false(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    requests_mock.get(_FAILED_URL, json=[_failed_record(commithash="prev")])
+    assert builder.has_failed_before() is False
+
+
+def test_has_failed_before_no_records_returns_false(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    requests_mock.get(_FAILED_URL, json=[])
+    assert builder.has_failed_before() is False

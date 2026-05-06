@@ -186,6 +186,94 @@ def find_matching_package_id(possible_builds: PossibleBuilds, target: dict[str, 
     return None
 
 
+class FailedBuildRecord(TypedDict, total=False):
+    """A single row from /failedbuilds: a known-failed (compiler, ...) tuple for some lib/version."""
+
+    compiler: str
+    compiler_version: str
+    arch: str
+    libcxx: str
+    compiler_flags: str
+    commithash: str
+
+
+type FailedBuilds = list[FailedBuildRecord]
+
+
+def failed_builds_url(libname: str, target_name: str) -> str:
+    encoded_lib = urllib.parse.quote(libname, safe="")
+    encoded_ver = urllib.parse.quote(target_name, safe="")
+    return f"{conanserver_url}/failedbuilds/{encoded_lib}/{encoded_ver}"
+
+
+def fetch_failed_builds(
+    libname: str,
+    target_name: str,
+    fetcher: Callable[[str], requests.Response | None],
+    logger: Logger,
+) -> FailedBuilds:
+    """Fetch and parse the conan-proxy /failedbuilds response for a (libname, target_name).
+
+    Mirrors fetch_possible_builds: 404 means no failures recorded yet (legitimate empty
+    state), other failure modes raise FetchFailure so the builder surfaces them rather
+    than silently treating real outages as "nothing failed".
+    """
+    url = failed_builds_url(libname, target_name)
+    try:
+        response = fetcher(url)
+    except requests.RequestException as e:
+        raise FetchFailure(f"Failed-builds request failed for {libname}/{target_name}: {e}") from e
+
+    if response is None:
+        raise FetchFailure(f"Failed-builds request failed for {libname}/{target_name}")
+    if response.status_code == 404:
+        logger.debug("No recorded failures for %s/%s", libname, target_name)
+        return []
+    if not response.ok:
+        raise FetchFailure(f"Failed-builds returned {response.status_code} for {libname}/{target_name}")
+
+    try:
+        payload = response.json()
+    except ValueError as e:
+        raise FetchFailure(f"Failed-builds returned non-JSON for {libname}/{target_name}") from e
+    if not isinstance(payload, list):
+        raise FetchFailure(f"Failed-builds returned non-array JSON for {libname}/{target_name}")
+    return payload
+
+
+def match_failed_build(
+    records: FailedBuilds,
+    build_params: dict[str, Any],
+    current_commit_hash: str | None,
+) -> bool:
+    """Return True iff some record matches build_params on the discriminator columns.
+
+    Discriminators: compiler, compiler_version, arch, libcxx, flagcollection. When
+    `current_commit_hash` is given (C++/Fortran callers), the matching record must also
+    carry that commithash; older records are treated as stale, preserving the existing
+    trunk-recovery behaviour from /whathasfailedbefore. When None (Go/Rust callers,
+    matching /hasfailedbefore semantics), any matching record counts.
+    """
+    target_compiler = build_params.get("compiler", "")
+    target_version = build_params.get("compiler_version", "")
+    target_arch = build_params.get("arch", "")
+    target_libcxx = build_params.get("libcxx", "")
+    target_flags = build_params.get("flagcollection", "")
+
+    for r in records:
+        if (
+            r.get("compiler", "") == target_compiler
+            and r.get("compiler_version", "") == target_version
+            and r.get("arch", "") == target_arch
+            and r.get("libcxx", "") == target_libcxx
+            and r.get("compiler_flags", "") == target_flags
+        ):
+            if current_commit_hash is None:
+                return True
+            return r.get("commithash", "") == current_commit_hash
+    return False
+
+
 def build_target_settings(buildparams: dict[str, Any]) -> dict[str, str]:
     """Translate current_buildparameters_obj keys into conan settings dotted form.
 
@@ -254,6 +342,7 @@ class LibraryBuilder:
         self.current_commit_hash = ""
         self.platform = platform
         self._possible_builds: PossibleBuilds | None = None
+        self._failed_builds: FailedBuilds | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -1260,7 +1349,12 @@ class LibraryBuilder:
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
-        return self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
+        result = self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
+
+        if builtok in (BuildStatus.Failed, BuildStatus.TimedOut):
+            self._failed_builds = None
+
+        return result
 
     def get_build_annotations(self, buildfolder):
         if buildfolder in self._annotations_cache:
@@ -1313,18 +1407,18 @@ class LibraryBuilder:
 
         return self.current_commit_hash
 
+    def _get_failed_builds(self) -> FailedBuilds:
+        if self._failed_builds is None:
+            self._failed_builds = fetch_failed_builds(
+                self.libname,
+                self.target_name,
+                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._failed_builds
+
     def has_failed_before(self):
-        url = f"{conanserver_url}/whathasfailedbefore"
-        request = self.resil_post(url, json_data=json.dumps(self.current_buildparameters_obj))
-        if not request.ok:
-            raise PostFailure(f"Post failure for {url}: {request}")
-        else:
-            response = json.loads(request.content)
-            current_commit = self.get_commit_hash()
-            if response["commithash"] == current_commit:
-                return response["response"]
-            else:
-                return False
+        return match_failed_build(self._get_failed_builds(), self.current_buildparameters_obj, self.get_commit_hash())
 
     def is_already_uploaded(self, buildfolder):
         annotations = self.get_build_annotations(buildfolder)

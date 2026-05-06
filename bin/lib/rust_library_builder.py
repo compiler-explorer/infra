@@ -23,7 +23,15 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.installation_context import FetchFailure, InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
-from lib.library_builder import PossibleBuilds, build_target_settings, fetch_possible_builds, find_matching_package_id
+from lib.library_builder import (
+    FailedBuilds,
+    PossibleBuilds,
+    build_target_settings,
+    fetch_failed_builds,
+    fetch_possible_builds,
+    find_matching_package_id,
+    match_failed_build,
+)
 from lib.library_platform import LibraryPlatform
 from lib.rust_crates import RustCrate, get_builder_user_agent_id
 from lib.staging import StagingDir
@@ -87,6 +95,7 @@ class RustLibraryBuilder:
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
         self._possible_builds: PossibleBuilds | None = None
+        self._failed_builds: FailedBuilds | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -348,6 +357,9 @@ class RustLibraryBuilder:
         if not request.ok:
             raise PostFailure(f"Post failure for {url}: {request}")
 
+        if builtok in (BuildStatus.Failed, BuildStatus.TimedOut):
+            self._failed_builds = None
+
     def get_build_annotations(self, buildfolder):
         if buildfolder in self._annotations_cache:
             self.logger.debug(f"Using cached annotations for {buildfolder}")
@@ -376,20 +388,20 @@ class RustLibraryBuilder:
     def get_commit_hash(self) -> str:
         return self.target_name
 
+    def _get_failed_builds(self) -> FailedBuilds:
+        if self._failed_builds is None:
+            self._failed_builds = fetch_failed_builds(
+                self.libname,
+                self.target_name,
+                lambda url: self.http_session.get(url, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._failed_builds
+
     def has_failed_before(self, build_method):
-        url = f"{conanserver_url}/hasfailedbefore"
-
-        data = self.current_buildparameters_obj.copy()
-        data["flagcollection"] = build_method["build_method"]
-
-        req_data = json.dumps(data)
-
-        request = self.resil_post(url, req_data)
-        if not request.ok:
-            raise PostFailure(f"Post failure for {url}: {request}")
-        else:
-            response = json.loads(request.content)
-            return response["response"]
+        params = self.current_buildparameters_obj.copy()
+        params["flagcollection"] = build_method["build_method"]
+        return match_failed_build(self._get_failed_builds(), params, None)
 
     def is_already_uploaded(self, buildfolder, source_folder):
         annotations = self.get_build_annotations(buildfolder)

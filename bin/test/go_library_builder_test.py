@@ -326,6 +326,45 @@ class TestGoLibraryBuilderConanHelpers:
 
         assert builder.get_conan_hash(Path("/tmp/build")) == "go_hash"
 
+    @patch("lib.go_library_builder.get_properties_compilers_and_libraries")
+    def test_has_failed_before_via_failedbuilds(self, mock_get_props, requests_mock):
+        """has_failed_before should hit /failedbuilds/<libid>/<ver> and match in-memory."""
+        mock_get_props.return_value = ({"gl1238": {"exe": "/opt/go/bin/go"}}, {})
+        logger = MagicMock()
+        install_context = MagicMock()
+        install_context.dry_run = False
+        buildconfig = create_go_test_build_config()
+
+        builder = GoLibraryBuilder(
+            logger=logger,
+            language="go",
+            libname="uuid",
+            target_name="v1.6.0",
+            install_context=install_context,
+            buildconfig=buildconfig,
+        )
+        builder.set_current_conan_build_parameters("Linux", "Debug", "gl1238", "x86_64")
+
+        # libid is go_uuid (Go always prefixes with go_); endpoint must use that, not bare libname.
+        matcher = requests_mock.get(
+            "https://conan.compiler-explorer.com/failedbuilds/go_uuid/v1.6.0",
+            json=[
+                {
+                    "compiler": "golang",
+                    "compiler_version": "gl1238",
+                    "arch": "x86_64",
+                    "libcxx": "",
+                    "compiler_flags": "gomod",
+                    "commithash": "ignored",
+                }
+            ],
+        )
+
+        assert builder.has_failed_before("gomod") is True
+        assert builder.has_failed_before("gccgo") is False
+        # one fetch shared across calls -- the match logic runs in-memory
+        assert matcher.call_count == 1
+
 
 class TestGoLibraryBuilderBuildStatus:
     """Tests for BuildStatus enum."""

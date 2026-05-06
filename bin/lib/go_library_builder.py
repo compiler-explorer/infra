@@ -28,7 +28,15 @@ from lib.cache_delta import CacheDeltaCapture
 from lib.golang_stdlib import go_supports_trimpath
 from lib.installation_context import InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
-from lib.library_builder import PossibleBuilds, build_target_settings, fetch_possible_builds, find_matching_package_id
+from lib.library_builder import (
+    FailedBuilds,
+    PossibleBuilds,
+    build_target_settings,
+    fetch_failed_builds,
+    fetch_possible_builds,
+    find_matching_package_id,
+    match_failed_build,
+)
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
@@ -132,6 +140,7 @@ class GoLibraryBuilder:
         self.libid = f"go_{self.libname}"
         self.conanserverproxy_token: str | None = None
         self._possible_builds: PossibleBuilds | None = None
+        self._failed_builds: FailedBuilds | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -502,18 +511,24 @@ require {self.module_path} {self.target_name}
             error_text = request.get("text", "") if isinstance(request, dict) else request.text
             raise PostFailure(f"Post failure for {url}: {error_text}")
 
+        if builtok in (BuildStatus.Failed, BuildStatus.TimedOut):
+            self._failed_builds = None
+
+    def _get_failed_builds(self) -> FailedBuilds:
+        if self._failed_builds is None:
+            self._failed_builds = fetch_failed_builds(
+                self.libid,
+                self.target_name,
+                lambda url: self.http_session.get(url, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._failed_builds
+
     def has_failed_before(self, build_method: str) -> bool:
         """Check if this build has failed before."""
-        url = f"{CONANSERVER_URL}/hasfailedbefore"
-        data = dict(self.current_buildparameters_obj)
-        data["flagcollection"] = build_method
-
-        request = self.resil_post(url, json.dumps(data))
-        if isinstance(request, dict) or not request.ok:
-            return False
-
-        response = json.loads(request.content)
-        return response.get("response", False)
+        params = dict(self.current_buildparameters_obj)
+        params["flagcollection"] = build_method
+        return match_failed_build(self._get_failed_builds(), params, None)
 
     def get_build_annotations(self, buildfolder: Path) -> dict:
         """Get build annotations from Conan server."""

@@ -94,6 +94,58 @@ def test_get_conan_hash_success(requests_mock):
     assert result == "rust123456"
 
 
+_RUST_FAILED_URL = "https://conan.compiler-explorer.com/failedbuilds/rustlib/1.0.0"
+
+
+def _make_rust_builder(requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = False
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder.current_buildparameters_obj["compiler"] = "rustc"
+    builder.current_buildparameters_obj["compiler_version"] = "rustc-1.70"
+    builder.current_buildparameters_obj["arch"] = "x86_64"
+    builder.current_buildparameters_obj["libcxx"] = ""
+    return builder
+
+
+def _rust_failed_record(**overrides):
+    base = {
+        "compiler": "rustc",
+        "compiler_version": "rustc-1.70",
+        "arch": "x86_64",
+        "libcxx": "",
+        "compiler_flags": "release",
+        "commithash": "any",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_rust_has_failed_before_overrides_flagcollection_from_build_method(requests_mock):
+    builder = _make_rust_builder(requests_mock)
+    requests_mock.get(_RUST_FAILED_URL, json=[_rust_failed_record(compiler_flags="release")])
+    assert builder.has_failed_before({"build_method": "release"}) is True
+    assert builder.has_failed_before({"build_method": "debug"}) is False
+
+
+def test_rust_has_failed_before_caches_response(requests_mock):
+    builder = _make_rust_builder(requests_mock)
+    matcher = requests_mock.get(_RUST_FAILED_URL, json=[_rust_failed_record(compiler_flags="release")])
+    builder.has_failed_before({"build_method": "release"})
+    builder.has_failed_before({"build_method": "release"})
+    assert matcher.call_count == 1
+
+
+def test_rust_has_failed_before_ignores_commithash(requests_mock):
+    """Rust has no commit-hash filter today; preserve that semantics."""
+    builder = _make_rust_builder(requests_mock)
+    requests_mock.get(_RUST_FAILED_URL, json=[_rust_failed_record(compiler_flags="release", commithash="ancient")])
+    assert builder.has_failed_before({"build_method": "release"}) is True
+
+
 @patch("subprocess.call")
 def test_execute_build_script_success(mock_subprocess, requests_mock):
     requests_mock.get(f"{BASE}rust.amazon.properties", text="")

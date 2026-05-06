@@ -205,6 +205,53 @@ def test_get_conan_hash_success(requests_mock):
     assert result == "fortran123456"
 
 
+def _make_fortran_builder_with_buildparams(requests_mock):
+    requests_mock.get(f"{BASE}fortran.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = False
+    build_config = create_fortran_test_build_config()
+    builder = FortranLibraryBuilder(
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+    )
+    builder.current_buildparameters_obj["compiler"] = "fortran"
+    builder.current_buildparameters_obj["compiler_version"] = "f2018"
+    builder.current_buildparameters_obj["arch"] = "x86_64"
+    builder.current_buildparameters_obj["libcxx"] = "libgfortran"
+    builder.current_buildparameters_obj["flagcollection"] = ""
+    return builder
+
+
+_FORTRAN_FAILED_URL = "https://conan.compiler-explorer.com/failedbuilds/fortranlib/2.0.0"
+
+
+def _fortran_failed_record(**overrides):
+    base = {
+        "compiler": "fortran",
+        "compiler_version": "f2018",
+        "arch": "x86_64",
+        "libcxx": "libgfortran",
+        "compiler_flags": "",
+        "commithash": "2.0.0",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_fortran_has_failed_before_caches_response(requests_mock):
+    builder = _make_fortran_builder_with_buildparams(requests_mock)
+    matcher = requests_mock.get(_FORTRAN_FAILED_URL, json=[_fortran_failed_record()])
+    assert builder.has_failed_before() is True
+    assert builder.has_failed_before() is True
+    assert matcher.call_count == 1
+
+
+def test_fortran_has_failed_before_stale_commit_returns_false(requests_mock):
+    builder = _make_fortran_builder_with_buildparams(requests_mock)
+    requests_mock.get(_FORTRAN_FAILED_URL, json=[_fortran_failed_record(commithash="prev")])
+    assert builder.has_failed_before() is False
+
+
 @patch("subprocess.call")
 def test_execute_build_script_success(mock_subprocess, requests_mock):
     requests_mock.get(f"{BASE}fortran.amazon.properties", text="")
