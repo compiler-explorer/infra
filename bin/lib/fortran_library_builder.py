@@ -261,6 +261,25 @@ class FortranLibraryBuilder:
 
         return expanded
 
+    def resil_get(self, url: str, stream: bool, timeout: int, headers=None) -> requests.Response | None:
+        request: requests.Response | None = None
+        retries = 3
+        while retries > 0:
+            try:
+                if headers is not None:
+                    request = self.http_session.get(url, stream=stream, headers=headers, timeout=timeout)
+                else:
+                    request = self.http_session.get(
+                        url, stream=stream, headers={"Content-Type": "application/json"}, timeout=timeout
+                    )
+
+                retries = 0
+            except ProtocolError:
+                retries = retries - 1
+                time.sleep(1)
+
+        return request
+
     def resil_post(self, url, json_data, headers=None):
         request = None
         retries = 3
@@ -464,7 +483,7 @@ class FortranLibraryBuilder:
             self._possible_builds = fetch_possible_builds(
                 self.libname,
                 self.target_name,
-                lambda url: self.http_session.get(url, timeout=_TIMEOUT),
+                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
                 self.logger,
             )
         return self._possible_builds
@@ -572,7 +591,7 @@ class FortranLibraryBuilder:
             self._failed_builds = fetch_failed_builds(
                 self.libname,
                 self.target_name,
-                lambda url: self.http_session.get(url, timeout=_TIMEOUT),
+                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
                 self.logger,
             )
         return self._failed_builds

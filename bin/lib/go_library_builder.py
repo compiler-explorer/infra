@@ -424,7 +424,7 @@ require {self.module_path} {self.target_name}
             self._possible_builds = fetch_possible_builds(
                 self.libid,
                 self.target_name,
-                lambda url: self.http_session.get(url, timeout=_TIMEOUT),
+                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
                 self.logger,
             )
         return self._possible_builds
@@ -435,6 +435,24 @@ require {self.module_path} {self.target_name}
             return None
         target = build_target_settings(self.current_buildparameters_obj)
         return find_matching_package_id(self._get_possible_builds(), target)
+
+    def resil_get(self, url: str, stream: bool, timeout: int, headers: dict | None = None) -> requests.Response | None:
+        """Resilient GET request with retries on ProtocolError."""
+        request: requests.Response | None = None
+        retries = 3
+        while retries > 0:
+            try:
+                if headers is not None:
+                    request = self.http_session.get(url, stream=stream, headers=headers, timeout=timeout)
+                else:
+                    request = self.http_session.get(
+                        url, stream=stream, headers={"Content-Type": "application/json"}, timeout=timeout
+                    )
+                retries = 0
+            except ProtocolError:
+                retries -= 1
+
+        return request
 
     def resil_post(self, url: str, json_data: str, headers: dict | None = None) -> requests.Response | dict:
         """Resilient POST request with retries."""
@@ -519,7 +537,7 @@ require {self.module_path} {self.target_name}
             self._failed_builds = fetch_failed_builds(
                 self.libid,
                 self.target_name,
-                lambda url: self.http_session.get(url, timeout=_TIMEOUT),
+                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
                 self.logger,
             )
         return self._failed_builds
