@@ -15,7 +15,11 @@ CEPASSWORD=$(aws ssm get-parameter --name /compiler-explorer/conanpwd | jq -r .P
 export CESECRET
 export CEPASSWORD
 
-sudo -u ce -H /home/${CE_USER}/.local/bin/gunicorn -b 0.0.0.0:9300 -w 4 -t 300 conans.server.server_launcher:app &
+# Noble installs gunicorn into a venv; the legacy bionic AMI used a user-local pip install.
+GUNICORN=/home/${CE_USER}/venv/bin/gunicorn
+[ -x "${GUNICORN}" ] || GUNICORN=/home/${CE_USER}/.local/bin/gunicorn
+
+sudo -u ce -H "${GUNICORN}" -b 0.0.0.0:9300 -w 4 -t 300 conans.server.server_launcher:app &
 
 # shellcheck disable=SC2086
 #  (we deliberately pass multiple args in ${EXTRA_ARGS}

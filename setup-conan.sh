@@ -29,12 +29,17 @@ sleep 5
 wait_for_apt
 
 apt-get -y update
-apt-get -y upgrade --force-yes
-apt-get -y install unzip wget mosh fish jq ssmtp cronic upx autojump python3-pip python3.8 python3.8-venv sqlite3
+apt-get -y upgrade
+apt-get -y install unzip wget mosh fish jq ssmtp cronic upx python3-pip python3-venv sqlite3
 apt-get -y autoremove
-pip3 install --upgrade pip
-hash -r pip3
-pip3 install --upgrade awscli
+
+# Install AWS CLI v2 (system pip is PEP 668-restricted on noble)
+pushd /tmp
+curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip -q awscliv2.zip
+./aws/install --update
+rm -rf aws awscliv2.zip
+popd
 
 # setup ce_user
 adduser --system --group ${CE_USER}
@@ -45,8 +50,11 @@ echo "/dev/data/datavol       /home/${CE_USER}/.conan_server   ext4   defaults,u
 
 # note: dont mount yet, volume will not be available
 
-# setup latest conan-server
-sudo -u ${CE_USER} -H pip3 install conan gunicorn
+# setup conan-server in a venv (pinned to v1: builders use conan==1.59 and the
+# server must speak the matching protocol; v2 is a hard break).
+sudo -u ${CE_USER} -H python3 -m venv /home/${CE_USER}/venv
+sudo -u ${CE_USER} -H /home/${CE_USER}/venv/bin/pip install --upgrade pip
+sudo -u ${CE_USER} -H /home/${CE_USER}/venv/bin/pip install 'conan<2' gunicorn
 
 # setup conanproxy
 mkdir -p /home/ubuntu/ceconan

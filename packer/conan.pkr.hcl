@@ -17,10 +17,10 @@ variable "MY_SECRET_KEY" {
   default = ""
 }
 
-data "amazon-ami" "bionic" {
+data "amazon-ami" "noble" {
   access_key = "${var.MY_ACCESS_KEY}"
   filters = {
-    name                = "ubuntu/images/*ubuntu-bionic-18.04-amd64-server-*"
+    name                = "ubuntu/images/*ubuntu-noble-24.04-amd64-server-*"
     root-device-type    = "ebs"
     virtualization-type = "hvm"
   }
@@ -32,9 +32,9 @@ data "amazon-ami" "bionic" {
 
 locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
-source "amazon-ebs" "bionic" {
+source "amazon-ebs" "noble" {
   access_key = "${var.MY_ACCESS_KEY}"
-  ami_name                    = "ce-conan packer 18.04 @ ${local.timestamp}"
+  ami_name                    = "ce-conan packer 24.04 @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
   instance_type               = "t3.medium"
@@ -47,7 +47,7 @@ source "amazon-ebs" "bionic" {
   region            = "us-east-1"
   secret_key        = "${var.MY_SECRET_KEY}"
   security_group_id = "sg-f53f9f80"
-  source_ami        = "${data.amazon-ami.bionic.id}"
+  source_ami        = "${data.amazon-ami.noble.id}"
   ssh_username      = "ubuntu"
   subnet_id         = "subnet-1df1e135"
   tags = {
@@ -57,7 +57,7 @@ source "amazon-ebs" "bionic" {
 }
 
 build {
-  sources = ["source.amazon-ebs.bionic"]
+  sources = ["source.amazon-ebs.noble"]
 
   provisioner "file" {
     destination = "/home/ubuntu/"
