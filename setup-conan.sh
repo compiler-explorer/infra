@@ -30,30 +30,35 @@ wait_for_apt
 
 apt-get -y update
 apt-get -y upgrade
-apt-get -y install unzip wget mosh fish jq ssmtp cronic upx python3-pip python3-venv sqlite3
+apt-get -y install \
+    unzip wget mosh fish jq ssmtp cronic upx \
+    python3-pip python3-venv \
+    sqlite3 \
+    lvm2 rsyslog
 apt-get -y autoremove
 
 # Install AWS CLI v2 (system pip is PEP 668-restricted on noble)
 pushd /tmp
 curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip -q awscliv2.zip
-./aws/install --update
+./aws/install
 rm -rf aws awscliv2.zip
 popd
 
-# setup ce_user
-adduser --system --group ${CE_USER}
-
+# setup ce user with an explicit home (adduser --system on its own gives /nonexistent on noble)
+adduser --system --home /home/${CE_USER} --group ${CE_USER}
 mkdir -p /home/${CE_USER}/.conan_server
+chown -R ${CE_USER}:${CE_USER} /home/${CE_USER}
+
+# Data volume is LVM (created on the legacy bionic instance). Mounted at first boot
+# from the existing /etc/fstab below; do not mount during AMI bake — the volume
+# will not be present.
 echo "/dev/data/datavol       /home/${CE_USER}/.conan_server   ext4   defaults,user=${CE_USER}       0 0
 " >>/etc/fstab
 
-# note: dont mount yet, volume will not be available
-
 # setup conan-server in a venv (pinned to v1: builders use conan==1.59 and the
-# server must speak the matching protocol; v2 is a hard break).
+# server speaks the v1 wire protocol; v2 is a hard break).
 sudo -u ${CE_USER} -H python3 -m venv /home/${CE_USER}/venv
-sudo -u ${CE_USER} -H /home/${CE_USER}/venv/bin/pip install --upgrade pip
 sudo -u ${CE_USER} -H /home/${CE_USER}/venv/bin/pip install 'conan<2' gunicorn
 
 # setup conanproxy
@@ -94,7 +99,7 @@ PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
 echo "*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}" >"${PTRAIL}"
 service rsyslog restart
 pushd /tmp
-curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.20/remote_syslog_linux_amd64.tar.gz' | tar zxf -
+curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.21/remote_syslog_linux_amd64.tar.gz' | tar zxf -
 cp remote_syslog/remote_syslog /usr/local/bin/
 popd
 
