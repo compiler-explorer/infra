@@ -65,10 +65,12 @@ chown -R ${CE_USER}:${CE_USER} /home/${CE_USER}
 echo "/dev/data/datavol       /home/${CE_USER}/.conan_server   ext4   defaults,user=${CE_USER}       0 0
 " >>/etc/fstab
 
-# setup conan-server in a venv (pinned to v1: builders use conan==1.59 and the
-# server speaks the v1 wire protocol; v2 is a hard break).
+# setup conan-server in a venv. Pinned to 1.59 to match what builders run
+# (init/start-builder.sh:35); the live legacy server has been on 1.30.2 since
+# 2020, so 1.59 is a deliberate but minimal bump. v2 is a hard break (different
+# wire protocol).
 sudo -u ${CE_USER} -H python3 -m venv /home/${CE_USER}/venv
-sudo -u ${CE_USER} -H /home/${CE_USER}/venv/bin/pip install 'conan<2' gunicorn
+sudo -u ${CE_USER} -H /home/${CE_USER}/venv/bin/pip install 'conan==1.59' gunicorn
 
 # setup conanproxy
 mkdir -p /home/ubuntu/ceconan
