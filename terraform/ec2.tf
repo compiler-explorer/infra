@@ -81,6 +81,10 @@ resource "aws_volume_attachment" "ebs_conanserver" {
   device_name = "/dev/xvdb"
   volume_id   = "vol-0a99526fcf7bcfc11"
   instance_id = aws_instance.ConanNode.id
+  # Have terraform stop the instance (ACPI shutdown -> graceful systemd
+  # unmount of /home/ce/.conan_server) before detaching the data volume.
+  # Without this, destroy of this resource on an in-use volume hangs.
+  stop_instance_before_detaching = true
 }
 
 
