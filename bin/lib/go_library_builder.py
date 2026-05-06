@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import Any, TextIO
 
 import requests
-from urllib3.exceptions import ProtocolError
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
@@ -36,6 +35,8 @@ from lib.library_builder import (
     fetch_possible_builds,
     find_matching_package_id,
     match_failed_build,
+    resil_get,
+    resil_post,
 )
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
@@ -424,7 +425,7 @@ require {self.module_path} {self.target_name}
             self._possible_builds = fetch_possible_builds(
                 self.libid,
                 self.target_name,
-                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
                 self.logger,
             )
         return self._possible_builds
@@ -436,46 +437,6 @@ require {self.module_path} {self.target_name}
         target = build_target_settings(self.current_buildparameters_obj)
         return find_matching_package_id(self._get_possible_builds(), target)
 
-    def resil_get(self, url: str, stream: bool, timeout: int, headers: dict | None = None) -> requests.Response | None:
-        """Resilient GET request with retries on ProtocolError."""
-        request: requests.Response | None = None
-        retries = 3
-        while retries > 0:
-            try:
-                if headers is not None:
-                    request = self.http_session.get(url, stream=stream, headers=headers, timeout=timeout)
-                else:
-                    request = self.http_session.get(
-                        url, stream=stream, headers={"Content-Type": "application/json"}, timeout=timeout
-                    )
-                retries = 0
-            except ProtocolError:
-                retries -= 1
-
-        return request
-
-    def resil_post(self, url: str, json_data: str, headers: dict | None = None) -> requests.Response | dict:
-        """Resilient POST request with retries."""
-        request = None
-        retries = 3
-        last_error: str | Exception = ""
-        while retries > 0:
-            try:
-                if headers is not None:
-                    request = self.http_session.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
-                else:
-                    request = self.http_session.post(
-                        url, data=json_data, headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
-                    )
-                retries = 0
-            except ProtocolError as e:
-                last_error = e
-                retries -= 1
-
-        if request is None:
-            return {"ok": False, "text": str(last_error)}
-        return request
-
     def conanproxy_login(self) -> None:
         """Login to Conan proxy server."""
         url = f"{CONANSERVER_URL}/login"
@@ -483,7 +444,7 @@ require {self.module_path} {self.target_name}
         login_body["password"] = get_ssm_param("/compiler-explorer/conanpwd")
         req_data = json.dumps(login_body)
 
-        request = self.resil_post(url, req_data)
+        request = resil_post(self.http_session, url, req_data)
         if isinstance(request, dict) or not request.ok:
             error_text = request.get("text", "") if isinstance(request, dict) else request.text
             raise RuntimeError(f"Conan login failed: {error_text}")
@@ -524,7 +485,7 @@ require {self.module_path} {self.target_name}
         }
 
         req_data = json.dumps(buildparameters_copy)
-        request = self.resil_post(url, req_data, headers)
+        request = resil_post(self.http_session, url, req_data, headers)
         if isinstance(request, dict) or not request.ok:
             error_text = request.get("text", "") if isinstance(request, dict) else request.text
             raise PostFailure(f"Post failure for {url}: {error_text}")
@@ -537,7 +498,7 @@ require {self.module_path} {self.target_name}
             self._failed_builds = fetch_failed_builds(
                 self.libid,
                 self.target_name,
-                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
                 self.logger,
             )
         return self._failed_builds
@@ -604,7 +565,7 @@ require {self.module_path} {self.target_name}
         }
         url = f"{CONANSERVER_URL}/annotations/{self.libid}/{self.target_name}/{conanhash}"
 
-        request = self.resil_post(url, json.dumps(annotations), headers)
+        request = resil_post(self.http_session, url, json.dumps(annotations), headers)
         if isinstance(request, dict) or not request.ok:
             error_text = request.get("text", "") if isinstance(request, dict) else request.text
             raise RuntimeError(f"Post failure for {url}: {error_text}")

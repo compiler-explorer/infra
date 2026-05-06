@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Any, TextIO
 
 import requests
-from urllib3.exceptions import ProtocolError
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
@@ -31,6 +30,8 @@ from lib.library_builder import (
     fetch_possible_builds,
     find_matching_package_id,
     match_failed_build,
+    resil_get,
+    resil_post,
 )
 from lib.library_platform import LibraryPlatform
 from lib.rust_crates import RustCrate, get_builder_user_agent_id
@@ -273,7 +274,7 @@ class RustLibraryBuilder:
             self._possible_builds = fetch_possible_builds(
                 self.libname,
                 self.target_name,
-                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
                 self.logger,
             )
         return self._possible_builds
@@ -284,47 +285,6 @@ class RustLibraryBuilder:
         target = build_target_settings(self.current_buildparameters_obj)
         return find_matching_package_id(self._get_possible_builds(), target)
 
-    def resil_get(self, url: str, stream: bool, timeout: int, headers=None) -> requests.Response | None:
-        request: requests.Response | None = None
-        retries = 3
-        while retries > 0:
-            try:
-                if headers is not None:
-                    request = self.http_session.get(url, stream=stream, headers=headers, timeout=timeout)
-                else:
-                    request = self.http_session.get(
-                        url, stream=stream, headers={"Content-Type": "application/json"}, timeout=timeout
-                    )
-
-                retries = 0
-            except ProtocolError:
-                retries = retries - 1
-
-        return request
-
-    def resil_post(self, url, json_data, headers=None):
-        request = None
-        retries = 3
-        last_error = ""
-        while retries > 0:
-            try:
-                if headers is not None:
-                    request = self.http_session.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
-                else:
-                    request = self.http_session.post(
-                        url, data=json_data, headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
-                    )
-
-                retries = 0
-            except ProtocolError as e:
-                last_error = e
-                retries = retries - 1
-
-        if request is None:
-            request = {"ok": False, "text": last_error}
-
-        return request
-
     def conanproxy_login(self):
         url = f"{conanserver_url}/login"
 
@@ -333,7 +293,7 @@ class RustLibraryBuilder:
 
         req_data = json.dumps(login_body)
 
-        request = self.resil_post(url, req_data)
+        request = resil_post(self.http_session, url, req_data)
         if not request.ok:
             self.logger.info(request.text)
             raise RuntimeError(f"Post failure for {url}: {request}")
@@ -371,7 +331,7 @@ class RustLibraryBuilder:
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
         req_data = json.dumps(buildparameters_copy)
-        request = self.resil_post(url, req_data, headers)
+        request = resil_post(self.http_session, url, req_data, headers)
         if not request.ok:
             raise PostFailure(f"Post failure for {url}: {request}")
 
@@ -411,7 +371,7 @@ class RustLibraryBuilder:
             self._failed_builds = fetch_failed_builds(
                 self.libname,
                 self.target_name,
-                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
                 self.logger,
             )
         return self._failed_builds
@@ -456,7 +416,7 @@ class RustLibraryBuilder:
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
 
-        request = self.resil_post(url, json.dumps(annotations), headers)
+        request = resil_post(self.http_session, url, json.dumps(annotations), headers)
         if not request.ok:
             raise RuntimeError(f"Post failure for {url}: {request}")
 

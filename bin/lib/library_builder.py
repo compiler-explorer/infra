@@ -270,6 +270,53 @@ def match_failed_build(
     return False
 
 
+def resil_get(
+    http_session: requests.Session,
+    url: str,
+    *,
+    stream: bool,
+    timeout: int,
+    headers: dict[str, str] | None = None,
+) -> requests.Response | None:
+    """GET with 3 retries on urllib3 ProtocolError (TCP-level transient errors), 1s between attempts."""
+    request: requests.Response | None = None
+    retries = 3
+    actual_headers = headers if headers is not None else {"Content-Type": "application/json"}
+    while retries > 0:
+        try:
+            request = http_session.get(url, stream=stream, headers=actual_headers, timeout=timeout)
+            retries = 0
+        except ProtocolError:
+            retries -= 1
+            time.sleep(1)
+    return request
+
+
+def resil_post(
+    http_session: requests.Session,
+    url: str,
+    json_data: str,
+    headers: dict[str, str] | None = None,
+) -> requests.Response | dict[str, Any]:
+    """POST with 3 retries on urllib3 ProtocolError. Returns a Response, or a {ok: False, text: ...} dict on full failure."""
+    request: requests.Response | None = None
+    retries = 3
+    last_error: str | Exception = ""
+    actual_headers = headers if headers is not None else {"Content-Type": "application/json"}
+    while retries > 0:
+        try:
+            request = http_session.post(url, data=json_data, headers=actual_headers, timeout=_TIMEOUT)
+            retries = 0
+        except ProtocolError as e:
+            last_error = e
+            retries -= 1
+            time.sleep(1)
+
+    if request is None:
+        return {"ok": False, "text": str(last_error)}
+    return request
+
+
 def build_target_settings(buildparams: dict[str, Any]) -> dict[str, str]:
     """Translate current_buildparameters_obj keys into conan settings dotted form.
 
@@ -588,49 +635,6 @@ class LibraryBuilder:
         expanded = self.replace_optional_arg(expanded, "cmake_bool_windows", cmake_bool_windows)
 
         return expanded
-
-    def resil_post(self, url, json_data, headers=None):
-        request = None
-        retries = 3
-        last_error = ""
-        while retries > 0:
-            try:
-                if headers is not None:
-                    request = self.http_session.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
-                else:
-                    request = self.http_session.post(
-                        url, data=json_data, headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
-                    )
-
-                retries = 0
-            except ProtocolError as e:
-                last_error = e
-                retries = retries - 1
-                time.sleep(1)
-
-        if request is None:
-            request = {"ok": False, "text": last_error}
-
-        return request
-
-    def resil_get(self, url: str, stream: bool, timeout: int, headers=None) -> requests.Response | None:
-        request: requests.Response | None = None
-        retries = 3
-        while retries > 0:
-            try:
-                if headers is not None:
-                    request = self.http_session.get(url, stream=stream, headers=headers, timeout=timeout)
-                else:
-                    request = self.http_session.get(
-                        url, stream=stream, headers={"Content-Type": "application/json"}, timeout=timeout
-                    )
-
-                retries = 0
-            except ProtocolError:
-                retries = retries - 1
-                time.sleep(1)
-
-        return request
 
     def expand_build_script_line(
         self, line: str, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags
@@ -1276,7 +1280,7 @@ class LibraryBuilder:
             self._possible_builds = fetch_possible_builds(
                 self.libname,
                 self.target_name,
-                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
                 self.logger,
             )
         return self._possible_builds
@@ -1301,7 +1305,7 @@ class LibraryBuilder:
                     "No password found for conan server, setup AWS credentials to access the CE SSM, or set CONAN_PASSWORD environment variable"
                 ) from exc
 
-        request = self.resil_post(url, json_data=json.dumps(login_body))
+        request = resil_post(self.http_session, url, json_data=json.dumps(login_body))
         if not request.ok:
             self.logger.info(request.text)
             raise PostFailure(f"Post failure for {url}: {request}")
@@ -1345,7 +1349,7 @@ class LibraryBuilder:
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
-        result = self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
+        result = resil_post(self.http_session, url, json_data=json.dumps(buildparameters_copy), headers=headers)
 
         # Failed/TimedOut add a failure row server-side; Ok deletes one. Either way the cache is stale.
         self._failed_builds = None
@@ -1365,7 +1369,7 @@ class LibraryBuilder:
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
         with tempfile.TemporaryFile() as fd:
-            request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
+            request = resil_get(self.http_session, url, stream=True, timeout=_TIMEOUT)
             if not request or not request.ok:
                 raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
@@ -1408,7 +1412,7 @@ class LibraryBuilder:
             self._failed_builds = fetch_failed_builds(
                 self.libname,
                 self.target_name,
-                lambda url: self.resil_get(url, stream=False, timeout=_TIMEOUT),
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
                 self.logger,
             )
         return self._failed_builds
@@ -1465,7 +1469,7 @@ class LibraryBuilder:
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
-        request = self.resil_post(url, json_data=json.dumps(annotations), headers=headers)
+        request = resil_post(self.http_session, url, json_data=json.dumps(annotations), headers=headers)
         if not request.ok:
             raise PostFailure(f"Post failure for {url}: {request}")
 
@@ -1619,7 +1623,7 @@ class LibraryBuilder:
     def download_compiler_usage_csv(self):
         url = "https://compiler-explorer.s3.amazonaws.com/public/compiler_usage.csv"
         with tempfile.TemporaryFile() as fd:
-            request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
+            request = resil_get(self.http_session, url, stream=True, timeout=_TIMEOUT)
             if not request or not request.ok:
                 raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
