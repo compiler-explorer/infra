@@ -357,8 +357,8 @@ class RustLibraryBuilder:
         if not request.ok:
             raise PostFailure(f"Post failure for {url}: {request}")
 
-        if builtok in (BuildStatus.Failed, BuildStatus.TimedOut):
-            self._failed_builds = None
+        # Failed/TimedOut add a failure row server-side; Ok deletes one. Either way the cache is stale.
+        self._failed_builds = None
 
     def get_build_annotations(self, buildfolder):
         if buildfolder in self._annotations_cache:

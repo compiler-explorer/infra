@@ -517,8 +517,8 @@ class FortranLibraryBuilder:
 
         result = self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
 
-        if builtok in (BuildStatus.Failed, BuildStatus.TimedOut):
-            self._failed_builds = None
+        # Failed/TimedOut add a failure row server-side; Ok deletes one. Either way the cache is stale.
+        self._failed_builds = None
 
         return result
 

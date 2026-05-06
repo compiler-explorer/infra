@@ -511,8 +511,8 @@ require {self.module_path} {self.target_name}
             error_text = request.get("text", "") if isinstance(request, dict) else request.text
             raise PostFailure(f"Post failure for {url}: {error_text}")
 
-        if builtok in (BuildStatus.Failed, BuildStatus.TimedOut):
-            self._failed_builds = None
+        # Failed/TimedOut add a failure row server-side; Ok deletes one. Either way the cache is stale.
+        self._failed_builds = None
 
     def _get_failed_builds(self) -> FailedBuilds:
         if self._failed_builds is None:

@@ -139,8 +139,7 @@ def test_rust_has_failed_before_caches_response(requests_mock):
     assert matcher.call_count == 1
 
 
-def test_rust_has_failed_before_ignores_commithash(requests_mock):
-    """Rust has no commit-hash filter today; preserve that semantics."""
+def test_rust_has_failed_before_matches_regardless_of_commithash(requests_mock):
     builder = _make_rust_builder(requests_mock)
     requests_mock.get(_RUST_FAILED_URL, json=[_rust_failed_record(compiler_flags="release", commithash="ancient")])
     assert builder.has_failed_before({"build_method": "release"}) is True

@@ -809,22 +809,21 @@ def test_match_failed_build_finds_match_among_many():
 _FAILED_URL = "https://conan.compiler-explorer.com/failedbuilds/testlib/1.0.0"
 
 
-def _direct_fetcher(requests_mock):
-    session = requests.Session()
-    return lambda url: session.get(url, timeout=5)
+def _fetch(url):
+    return requests.get(url, timeout=5)
 
 
 def test_fetch_failed_builds_returns_list(requests_mock):
     requests_mock.get(_FAILED_URL, json=[_failed_record()])
     logger = mock.Mock(spec_set=Logger)
-    result = fetch_failed_builds("testlib", "1.0.0", _direct_fetcher(requests_mock), logger)
+    result = fetch_failed_builds("testlib", "1.0.0", _fetch, logger)
     assert result == [_failed_record()]
 
 
 def test_fetch_failed_builds_404_returns_empty(requests_mock):
     requests_mock.get(_FAILED_URL, status_code=404)
     logger = mock.Mock(spec_set=Logger)
-    result = fetch_failed_builds("testlib", "1.0.0", _direct_fetcher(requests_mock), logger)
+    result = fetch_failed_builds("testlib", "1.0.0", _fetch, logger)
     assert result == []
 
 
@@ -832,14 +831,14 @@ def test_fetch_failed_builds_500_raises(requests_mock):
     requests_mock.get(_FAILED_URL, status_code=500)
     logger = mock.Mock(spec_set=Logger)
     with pytest.raises(FetchFailure):
-        fetch_failed_builds("testlib", "1.0.0", _direct_fetcher(requests_mock), logger)
+        fetch_failed_builds("testlib", "1.0.0", _fetch, logger)
 
 
 def test_fetch_failed_builds_non_list_json_raises(requests_mock):
     requests_mock.get(_FAILED_URL, json={"not": "a list"})
     logger = mock.Mock(spec_set=Logger)
     with pytest.raises(FetchFailure):
-        fetch_failed_builds("testlib", "1.0.0", _direct_fetcher(requests_mock), logger)
+        fetch_failed_builds("testlib", "1.0.0", _fetch, logger)
 
 
 # Behavioural tests on LibraryBuilder.has_failed_before.

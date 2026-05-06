@@ -214,9 +214,7 @@ def fetch_failed_builds(
 ) -> FailedBuilds:
     """Fetch and parse the conan-proxy /failedbuilds response for a (libname, target_name).
 
-    Mirrors fetch_possible_builds: 404 means no failures recorded yet (legitimate empty
-    state), other failure modes raise FetchFailure so the builder surfaces them rather
-    than silently treating real outages as "nothing failed".
+    404 means no failures recorded yet; non-2xx and malformed payloads raise FetchFailure.
     """
     url = failed_builds_url(libname, target_name)
     try:
@@ -249,10 +247,8 @@ def match_failed_build(
     """Return True iff some record matches build_params on the discriminator columns.
 
     Discriminators: compiler, compiler_version, arch, libcxx, flagcollection. When
-    `current_commit_hash` is given (C++/Fortran callers), the matching record must also
-    carry that commithash; older records are treated as stale, preserving the existing
-    trunk-recovery behaviour from /whathasfailedbefore. When None (Go/Rust callers,
-    matching /hasfailedbefore semantics), any matching record counts.
+    `current_commit_hash` is given, the record's commithash must match too -- a failure
+    against a different commit is treated as stale so the next build can retry.
     """
     target_compiler = build_params.get("compiler", "")
     target_version = build_params.get("compiler_version", "")
@@ -1351,8 +1347,8 @@ class LibraryBuilder:
 
         result = self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
 
-        if builtok in (BuildStatus.Failed, BuildStatus.TimedOut):
-            self._failed_builds = None
+        # Failed/TimedOut add a failure row server-side; Ok deletes one. Either way the cache is stale.
+        self._failed_builds = None
 
         return result
 
