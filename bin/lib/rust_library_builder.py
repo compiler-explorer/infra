@@ -9,7 +9,6 @@ import os
 import re
 import shutil
 import subprocess
-import tempfile
 from collections import defaultdict
 from collections.abc import Generator
 from enum import Enum, unique
@@ -20,12 +19,14 @@ import requests
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
-from lib.installation_context import FetchFailure, InstallationContext, PostFailure
+from lib.installation_context import InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import (
+    AnnotationsBulk,
     FailedBuilds,
     PossibleBuilds,
     build_target_settings,
+    fetch_all_annotations,
     fetch_failed_builds,
     fetch_possible_builds,
     find_matching_package_id,
@@ -97,6 +98,7 @@ class RustLibraryBuilder:
         self.conanserverproxy_token = None
         self._possible_builds: PossibleBuilds | None = None
         self._failed_builds: FailedBuilds | None = None
+        self._annotations_bulk: AnnotationsBulk | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -338,6 +340,16 @@ class RustLibraryBuilder:
         # Failed/TimedOut add a failure row server-side; Ok deletes one. Either way the cache is stale.
         self._failed_builds = None
 
+    def _get_annotations_bulk(self) -> AnnotationsBulk:
+        if self._annotations_bulk is None:
+            self._annotations_bulk = fetch_all_annotations(
+                self.libname,
+                self.target_name,
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._annotations_bulk
+
     def get_build_annotations(self, buildfolder):
         if buildfolder in self._annotations_cache:
             self.logger.debug(f"Using cached annotations for {buildfolder}")
@@ -349,19 +361,10 @@ class RustLibraryBuilder:
             self._annotations_cache[buildfolder] = result
             return result
 
-        url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
-        with tempfile.TemporaryFile() as fd:
-            request = self.http_session.get(url, stream=True, timeout=_TIMEOUT)
-            if not request.ok:
-                raise FetchFailure(f"Fetch failure for {url}: {request}")
-            for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
-                fd.write(chunk)
-            fd.flush()
-            fd.seek(0)
-            buffer = fd.read()
-            result = json.loads(buffer)
-            self._annotations_cache[buildfolder] = result
-            return result
+        bulk_entry = self._get_annotations_bulk().get(conanhash, {})
+        result = dict(bulk_entry) if bulk_entry else defaultdict(lambda: [])
+        self._annotations_cache[buildfolder] = result
+        return result
 
     def get_commit_hash(self) -> str:
         return self.target_name
@@ -419,6 +422,9 @@ class RustLibraryBuilder:
         request = resil_post(self.http_session, url, json.dumps(annotations), headers)
         if not request.ok:
             raise RuntimeError(f"Post failure for {url}: {request}")
+
+        # Just wrote a new annotation server-side; bulk cache is stale.
+        self._annotations_bulk = None
 
     def clone_branch(self, dest, staging: StagingDir):
         subprocess.check_call(

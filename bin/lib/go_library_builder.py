@@ -28,9 +28,11 @@ from lib.golang_stdlib import go_supports_trimpath
 from lib.installation_context import InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import (
+    AnnotationsBulk,
     FailedBuilds,
     PossibleBuilds,
     build_target_settings,
+    fetch_all_annotations,
     fetch_failed_builds,
     fetch_possible_builds,
     find_matching_package_id,
@@ -142,6 +144,7 @@ class GoLibraryBuilder:
         self.conanserverproxy_token: str | None = None
         self._possible_builds: PossibleBuilds | None = None
         self._failed_builds: FailedBuilds | None = None
+        self._annotations_bulk: AnnotationsBulk | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -509,6 +512,16 @@ require {self.module_path} {self.target_name}
         params["flagcollection"] = build_method
         return match_failed_build(self._get_failed_builds(), params, None)
 
+    def _get_annotations_bulk(self) -> AnnotationsBulk:
+        if self._annotations_bulk is None:
+            self._annotations_bulk = fetch_all_annotations(
+                self.libid,
+                self.target_name,
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._annotations_bulk
+
     def get_build_annotations(self, buildfolder: Path) -> dict:
         """Get build annotations from Conan server."""
         if str(buildfolder) in self._annotations_cache:
@@ -520,17 +533,8 @@ require {self.module_path} {self.target_name}
             self._annotations_cache[str(buildfolder)] = result
             return result
 
-        url = f"{CONANSERVER_URL}/annotations/{self.libid}/{self.target_name}/{conanhash}"
-        try:
-            request = self.http_session.get(url, timeout=_TIMEOUT)
-            if request.ok:
-                result = json.loads(request.content)
-                self._annotations_cache[str(buildfolder)] = result
-                return result
-        except (requests.RequestException, json.JSONDecodeError) as e:
-            self.logger.debug("Failed to get annotations: %s", e)
-
-        result = defaultdict(lambda: [])
+        bulk_entry = self._get_annotations_bulk().get(conanhash, {})
+        result = dict(bulk_entry) if bulk_entry else defaultdict(lambda: [])
         self._annotations_cache[str(buildfolder)] = result
         return result
 
@@ -569,6 +573,9 @@ require {self.module_path} {self.target_name}
         if isinstance(request, dict) or not request.ok:
             error_text = request.get("text", "") if isinstance(request, dict) else request.text
             raise RuntimeError(f"Post failure for {url}: {error_text}")
+
+        # Just wrote a new annotation server-side; bulk cache is stale.
+        self._annotations_bulk = None
 
     def executeconanscript(self, buildfolder: Path) -> BuildStatus:
         """Execute Conan export script."""
