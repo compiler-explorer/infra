@@ -1608,8 +1608,10 @@ class LibraryBuilder:
         build_status = self.executebuildscript(build_folder)
         if build_status == BuildStatus.Ok:
             if self.buildconfig.package_install:
-                if self.buildconfig.lib_type == "headeronly":
-                    self.logger.debug("Header only library, no binaries to upload")
+                if self.buildconfig.lib_type in ("headeronly", "cmake_built_headeronly"):
+                    # No archive/shared object expected: validate the cmake-install
+                    # tree by counting the headers it placed under include/.
+                    self.logger.debug(f"{self.buildconfig.lib_type} library, no binaries to upload")
                     filesfound = self.countHeaders(Path(install_folder) / "include")
                 else:
                     filesfound = self.countValidLibraryBinaries(
@@ -1769,6 +1771,12 @@ class LibraryBuilder:
             else:
                 self.logger.info("Header-only library, no need to build")
                 return [builds_succeeded, 1, builds_failed]
+        elif self.buildconfig.lib_type == "cmake_built_headeronly":
+            # Header-only on disk, but the build script must run per-compiler so
+            # configure_file substitutions and generated CMake package config files
+            # land in the install tree. Fall through to the per-compiler loop;
+            # makebuildfor counts headers (not binaries) for this lib_type.
+            self.logger.info("Header-only library that needs a per-compiler cmake build for configured artifacts")
         elif buildfor == "nonx86":
             self.forcebuild = True
             checkcompiler = ""

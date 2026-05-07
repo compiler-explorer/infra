@@ -375,10 +375,8 @@ libraries:
         - -DBUILD_TESTING=OFF
         - -DBEMAN_ITERATOR_INTERFACE_BUILD_TESTS=OFF
         - -DBEMAN_ITERATOR_INTERFACE_BUILD_EXAMPLES=OFF
-        lib_type: static
+        lib_type: cmake_built_headeronly
         package_install: true
-        staticliblink:
-        - beman.iterator_interface
         targets:
         - 0.1.0
       beman_monadics:
@@ -1546,10 +1544,8 @@ libraries:
           - -DBUILD_TESTING=OFF
           - -DBEMAN_ITERATOR_INTERFACE_BUILD_TESTS=OFF
           - -DBEMAN_ITERATOR_INTERFACE_BUILD_EXAMPLES=OFF
-          lib_type: static
+          lib_type: cmake_built_headeronly
           package_install: true
-          staticliblink:
-          - beman.iterator_interface
           targets:
           - main
         beman_map:
