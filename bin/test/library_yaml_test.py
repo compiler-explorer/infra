@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from lib.library_yaml import LibraryYaml
+from lib.library_yaml import LibraryYaml, collect_library_leaves
 
 
 def make_lib_props(versions: dict) -> dict:
@@ -134,3 +134,55 @@ class TestGetLibvername:
         linux_lib = make_lib_props({"197": {"version": "19.7", "lookupversion": "v19.7"}})
         yaml = LibraryYaml.__new__(LibraryYaml)
         assert yaml.get_libvername({"name": "v19.7"}, linux_lib) == "19.7"
+
+
+class TestCollectLibraryLeaves:
+    def test_finds_top_level_leaves(self):
+        leaves = collect_library_leaves({"foo": {"targets": ["1.0"]}, "bar": {"targets": ["2.0"]}})
+        assert set(leaves.keys()) == {"foo", "bar"}
+        assert leaves["foo"][0]["targets"] == ["1.0"]
+
+    def test_grouping_node_recursed_into(self):
+        leaves = collect_library_leaves({"group": {"foo": {"targets": ["1.0"]}}})
+        assert "group" not in leaves
+        assert leaves["foo"][0]["targets"] == ["1.0"]
+
+    def test_inherits_scalar_props_from_grouping(self):
+        leaves = collect_library_leaves({
+            "group": {"build_type": "cmake", "type": "github", "foo": {"targets": ["1.0"]}}
+        })
+        libdef = leaves["foo"][0]
+        assert libdef["build_type"] == "cmake"
+        assert libdef["type"] == "github"
+
+    def test_inherits_list_props_from_grouping(self):
+        leaves = collect_library_leaves({"group": {"extra_cmake_arg": ["-DFOO=1"], "foo": {"targets": ["1.0"]}}})
+        assert leaves["foo"][0]["extra_cmake_arg"] == ["-DFOO=1"]
+
+    def test_leaf_overrides_inherited(self):
+        leaves = collect_library_leaves({
+            "group": {"build_type": "none", "foo": {"build_type": "cmake", "targets": ["1.0"]}}
+        })
+        assert leaves["foo"][0]["build_type"] == "cmake"
+
+    def test_same_libid_in_multiple_groupings(self):
+        leaves = collect_library_leaves({
+            "foo": {"targets": ["1.0"]},
+            "nightly": {"foo": {"targets": ["trunk"]}},
+        })
+        assert len(leaves["foo"]) == 2
+        # Outer-level leaf is recorded before the one inside the nested grouping.
+        assert leaves["foo"][0]["targets"] == ["1.0"]
+        assert leaves["foo"][1]["targets"] == ["trunk"]
+
+    def test_deeply_nested(self):
+        leaves = collect_library_leaves({"outer": {"target_prefix": "v", "inner": {"foo": {"targets": ["1.0"]}}}})
+        assert leaves["foo"][0]["target_prefix"] == "v"
+        assert leaves["foo"][0]["targets"] == ["1.0"]
+
+    def test_targets_key_makes_a_leaf_even_with_dict_children(self):
+        # If a node has both `targets` and dict children, the node itself is treated
+        # as a library leaf. Children are not recursed into.
+        leaves = collect_library_leaves({"foo": {"targets": ["1.0"], "child": {"targets": ["2.0"]}}})
+        assert "foo" in leaves
+        assert "child" not in leaves
