@@ -150,6 +150,37 @@ WantedBy=multi-user.target
 EOF
 systemctl enable remote-syslog
 
+# setup grafana-agent (filesystem + journal metrics into Grafana Cloud).
+# Conan node has /home/ce/.conan_server as a real data mount in addition to /,
+# so the FS_IGNORE pattern only excludes kernel/virtual filesystems instead of
+# the default '^/.+$' which drops everything that isn't '/'.
+ARCH=$(dpkg --print-architecture)
+GRAFANA_VERSION=0.41.1
+pushd /tmp
+curl -sLo agent-linux.zip "https://github.com/grafana/agent/releases/download/v${GRAFANA_VERSION}/grafana-agent-linux-${ARCH}.zip"
+unzip -o agent-linux.zip
+cp "grafana-agent-linux-${ARCH}" /usr/local/bin/grafana-agent
+rm -f agent-linux.zip "grafana-agent-linux-${ARCH}"
+popd
+
+PROM_PASSWORD=$(get_conf /compiler-explorer/promPassword)
+LOKI_PASSWORD=$(get_conf /compiler-explorer/lokiPassword)
+mkdir -p /etc/grafana
+cp /home/ubuntu/infra/grafana/agent.yaml /etc/grafana/agent.yaml.tpl
+sed -i "s/@PROM_PASSWORD@/${PROM_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
+sed -i "s/@LOKI_PASSWORD@/${LOKI_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
+sed -i 's#@FS_IGNORE@#^/(proc|sys|dev|run|tmp|snap|boot)($|/)#g' /etc/grafana/agent.yaml.tpl
+chmod 600 /etc/grafana/agent.yaml.tpl
+
+cp /home/ubuntu/infra/grafana/make-config.sh /etc/grafana/make-config.sh
+cp /home/ubuntu/infra/grafana/update-metrics.sh /etc/grafana/update-metrics.sh
+cp /home/ubuntu/infra/grafana/ce-metrics.service /lib/systemd/system/ce-metrics.service
+cp /home/ubuntu/infra/grafana/grafana-agent.service /lib/systemd/system/grafana-agent.service
+
+systemctl daemon-reload
+systemctl enable ce-metrics
+systemctl enable grafana-agent
+
 # ---
 
 cd /home/ubuntu/

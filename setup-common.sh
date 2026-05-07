@@ -135,6 +135,7 @@ setup_grafana() {
     cp $GRAFANA_CONFIG /etc/grafana/agent.yaml.tpl
     sed -i "s/@PROM_PASSWORD@/${PROM_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
     sed -i "s/@LOKI_PASSWORD@/${LOKI_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
+    sed -i 's#@FS_IGNORE@#^/.+$#g' /etc/grafana/agent.yaml.tpl
     chmod 600 /etc/grafana/agent.yaml.tpl
     if [ "${INSTALL_TYPE}" = "ci" ]; then
       cp /infra/grafana/make-config-ci.sh /etc/grafana/make-config.sh
