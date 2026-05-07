@@ -32,15 +32,24 @@ cp "grafana-agent-linux-${ARCH}" /usr/local/bin/grafana-agent
 rm -f agent-linux.zip "grafana-agent-linux-${ARCH}"
 popd
 
-PROM_PASSWORD=$(get_conf /compiler-explorer/promPassword)
-LOKI_PASSWORD=$(get_conf /compiler-explorer/lokiPassword)
+# Escape characters that have meaning in sed replacement strings. Without
+# this, a value containing &, \, or the delimiter would mis-substitute
+# (and for the secrets, potentially produce a corrupted config).
+sed_escape() { printf '%s' "$1" | sed -e 's/[\&]/\\&/g; s/#/\\#/g'; }
 
 mkdir -p /etc/grafana
 cp "${GRAFANA_DIR}/agent.yaml" /etc/grafana/agent.yaml.tpl
-sed -i "s/@PROM_PASSWORD@/${PROM_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
-sed -i "s/@LOKI_PASSWORD@/${LOKI_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
-# # delimiter because FS_IGNORE regex generally contains slashes.
-sed -i "s#@FS_IGNORE@#${FS_IGNORE}#g" /etc/grafana/agent.yaml.tpl
+
+# Disable xtrace while handling secrets so they don't leak into bake logs.
+{ set +x; } 2>/dev/null
+PROM_PASSWORD=$(get_conf /compiler-explorer/promPassword)
+LOKI_PASSWORD=$(get_conf /compiler-explorer/lokiPassword)
+sed -i "s#@PROM_PASSWORD@#$(sed_escape "${PROM_PASSWORD}")#g" /etc/grafana/agent.yaml.tpl
+sed -i "s#@LOKI_PASSWORD@#$(sed_escape "${LOKI_PASSWORD}")#g" /etc/grafana/agent.yaml.tpl
+unset PROM_PASSWORD LOKI_PASSWORD
+set -x
+
+sed -i "s#@FS_IGNORE@#$(sed_escape "${FS_IGNORE}")#g" /etc/grafana/agent.yaml.tpl
 chmod 600 /etc/grafana/agent.yaml.tpl
 
 case "${INSTALL_TYPE}" in
