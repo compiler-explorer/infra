@@ -151,10 +151,15 @@ EOF
 systemctl enable remote-syslog
 
 # Install grafana-agent. Conan-node has a real data mount at
-# /home/ce/.conan_server, so override FS_IGNORE to drop only kernel/virtual
-# filesystems rather than the default '^/.+$' which would also drop the data
-# mount.
-FS_IGNORE='^/(proc|sys|dev|run|tmp|snap|boot)($|/)' /home/ubuntu/infra/grafana/install-agent.sh
+# /home/ce/.conan_server, so override FS_IGNORE to let it through. We'd
+# rather express this as an allowlist ('only / and /home/ce/.conan_server')
+# but grafana-agent's node_exporter integration only exposes the deny side
+# (filesystem_mount_points_exclude). The denylist below covers every mount
+# type we know to be noisy or high-cardinality (kernel, tmpfs, snap, EFS,
+# CEFS, docker), so if we ever add anything fundamentally new -- a different
+# autofs, a sidecar container's overlay -- update this regex before the
+# Grafana Cloud bill notices.
+FS_IGNORE='^/(dev|proc|sys|run|tmp|snap|boot|cefs|efs|var/lib/(docker|snapd))($|/)' /home/ubuntu/infra/grafana/install-agent.sh
 
 # ---
 
