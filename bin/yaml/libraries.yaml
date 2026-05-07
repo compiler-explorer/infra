@@ -325,6 +325,160 @@ libraries:
       targets:
       - 4.31.0.0
       type: github
+    beman_any_view:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/any_view
+      target_prefix: v
+      targets:
+      - name: 1.0.0
+        target_prefix: ''
+      - 1.1.0
+      type: github
+    beman_cache_latest:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/cache_latest
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
+    beman_copyable_function:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/copyable_function
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
+    beman_cstring_view:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/cstring_view
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
+    beman_exemplar:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/exemplar
+      target_prefix: v
+      targets:
+      - name: 1.0.0
+        target_prefix: ''
+      - name: 2.0.0
+        target_prefix: ''
+      - name: 2.1.0
+        target_prefix: ''
+      - name: 2.1.1
+        target_prefix: ''
+      - name: 2.2.0
+        target_prefix: ''
+      - name: 2.2.1
+        target_prefix: ''
+      - 2.3.0
+      - 2.4.0
+      type: github
+    beman_indices_view:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/indices_view
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
+    beman_inplace_vector:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/inplace_vector
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
+    beman_iterator_interface:
+      after_stage_script:
+      - sed -i 's/add_subdirectory(examples)//g' CMakeLists.txt
+      build_type: cmake
+      check_file: README.md
+      extra_cmake_arg:
+      - -DBUILD_TESTING=OFF
+      lib_type: static
+      package_install: true
+      repo: bemanproject/iterator_interface
+      staticliblink:
+      - beman.iterator_interface
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
+    beman_monadics:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/monadics
+      target_prefix: v
+      targets:
+      - 0.1.0
+      - 1.0.0
+      type: github
+    beman_optional:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/optional
+      target_prefix: v
+      targets:
+      - 1.0.0
+      type: github
+    beman_scan_view:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/scan_view
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
+    beman_scope:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/scope
+      targets:
+      - 0.0.1
+      type: github
+    beman_take_before:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/take_before
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
+    beman_timed_lock_alg:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/timed_lock_alg
+      target_prefix: v
+      targets:
+      - 1.0.0
+      - 1.1.0
+      type: github
+    beman_transform_view:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/transform_view
+      target_prefix: v
+      targets:
+      - 0.1.0
+      - 0.2.0
+      type: github
+    beman_utf_view:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/utf_view
+      target_prefix: v
+      targets:
+      - 0.1.0
+      - 0.2.0
+      type: github
     benchmark:
       build_type: cmake
       extra_cmake_arg:
