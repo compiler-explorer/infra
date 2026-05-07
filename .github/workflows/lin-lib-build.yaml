@@ -65,6 +65,9 @@ jobs:
 
           echo "language=$LANGUAGE" >> $GITHUB_OUTPUT
           echo "library_name=$LIBRARY_NAME" >> $GITHUB_OUTPUT
+          # actions/upload-artifact rejects forward slashes in artifact names, so
+          # provide a sanitized variant for use in the failure-artifact step.
+          echo "library_safe=${LIBRARY_NAME//\//-}" >> $GITHUB_OUTPUT
           echo "Detected language: $LANGUAGE, library: $LIBRARY_NAME"
 
       - name: Download build script
@@ -77,7 +80,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: build-failure-${{ inputs.compiler }}-${{ steps.extract.outputs.library_name }}-${{ github.run_id }}
+          name: build-failure-${{ inputs.compiler }}-${{ steps.extract.outputs.library_safe }}-${{ github.run_id }}
           path: |
             /tmp/*.cpp
             /tmp/*.ii
