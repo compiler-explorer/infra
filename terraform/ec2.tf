@@ -66,7 +66,7 @@ resource "aws_instance" "ConanNode" {
   }
 
   volume_tags = {
-    Name = "CEConanServerVol1"
+    Name = "ConanNodeRoot"
     Site = "CompilerExplorer"
   }
 
