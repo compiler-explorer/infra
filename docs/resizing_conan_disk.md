@@ -11,20 +11,14 @@ You can resize everything while the server is online and the disk is mounted.
 
 ## Enlarging the volume in AWS
 
-Open a PR that bumps `size` on `aws_ebs_volume.conan_data` in
-`terraform/ec2.tf`, then merge and `terraform apply`. EBS volume size
-modifications are online — no detach, no instance restart.
+Bump `size` on `aws_ebs_volume.conan_data` in `terraform/ec2.tf`, open a PR,
+and `terraform apply`. You don't have to merge first — apply from the branch
+if you're working under time pressure, and merge afterwards. EBS volume size
+modifications are online: no detach, no instance restart.
 
-If you need to resize urgently and a PR isn't practical, you can do it
-out-of-band with the CLI and back-fill the terraform change afterwards:
-
-```sh
-aws ec2 modify-volume --volume-id vol-0a99526fcf7bcfc11 --size <NEW_GIB>
-```
-
-Either way, wait for the modification to reach state `optimizing` before
-running the host-side steps below — that's when the new size becomes visible
-to the kernel. Check with:
+Wait for the modification to reach state `optimizing` before running the
+host-side steps below — that's when the new size becomes visible to the
+kernel. Check with:
 
 ```sh
 aws ec2 describe-volumes-modifications --volume-ids vol-0a99526fcf7bcfc11
