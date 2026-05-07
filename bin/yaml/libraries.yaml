@@ -373,6 +373,8 @@ libraries:
         build_type: cmake
         extra_cmake_arg:
         - -DBUILD_TESTING=OFF
+        - -DBEMAN_ITERATOR_INTERFACE_BUILD_TESTS=OFF
+        - -DBEMAN_ITERATOR_INTERFACE_BUILD_EXAMPLES=OFF
         lib_type: static
         package_install: true
         staticliblink:
@@ -1542,6 +1544,8 @@ libraries:
           build_type: cmake
           extra_cmake_arg:
           - -DBUILD_TESTING=OFF
+          - -DBEMAN_ITERATOR_INTERFACE_BUILD_TESTS=OFF
+          - -DBEMAN_ITERATOR_INTERFACE_BUILD_EXAMPLES=OFF
           lib_type: static
           package_install: true
           staticliblink:
