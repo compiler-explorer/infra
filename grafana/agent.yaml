@@ -58,8 +58,9 @@ integrations:
       - timex
       - udp_queues
     # filesystems to skip from filesystem metrics; substituted at bake time per host
-    # (see setup_grafana in setup-common.sh; conan-node uses a looser pattern that
-    # lets /home/ce/.conan_server through).
+    # (see grafana/install-agent.sh; conan-node uses a looser pattern that lets
+    # /home/ce/.conan_server through, while other hosts keep the legacy "/-only"
+    # default).
     filesystem_ignored_mount_points: "@FS_IGNORE@"
     metric_relabel_configs:
       - source_labels: [ __name__, proto ]

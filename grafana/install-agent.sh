@@ -12,7 +12,7 @@
 #   FS_IGNORE        regex of mount points to drop (default '^/.+$')
 #   GRAFANA_VERSION  grafana-agent release tag (default 0.41.1)
 
-set -ex
+set -euxo pipefail
 
 GRAFANA_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FS_IGNORE=${FS_IGNORE:-'^/.+$'}
