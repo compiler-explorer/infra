@@ -75,6 +75,26 @@ libraries:
       targets:
       - 9.1.0
       type: github
+    glibc:
+      after_stage_script:
+      - mkdir -p build
+      - cd build
+      - '../{{untar_dir}}/configure --prefix=/opt/compiler-explorer/libs/glibc/glibc-{{name}}'
+      - make -j
+      - make install
+      - rm -rf ../{{untar_dir}}
+      build_type: none
+      check_file: lib/libc.so
+      compression: gz
+      dir: libs/glibc/glibc-{{name}}
+      lib_type: cshared
+      targets:
+        - '2.16'
+        - '2.42'
+      type: tarballs
+      untar_dir: glibc-{{name}}
+      url: https://ftp.gnu.org/gnu/glibc/glibc-{{name}}.tar.gz
+      use_compiler: g161
   c++:
     abseil:
       build_type: cmake
