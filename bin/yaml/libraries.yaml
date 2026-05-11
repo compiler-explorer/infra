@@ -83,6 +83,7 @@ libraries:
       - make -j
       - make install
       - rm -rf ../{{untar_dir}}
+      - mkdir -p ../{{untar_dir}}
       build_type: none
       check_file: lib/libc.so
       compression: gz
