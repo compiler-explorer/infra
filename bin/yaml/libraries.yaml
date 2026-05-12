@@ -77,15 +77,14 @@ libraries:
       type: github
     glibc:
       after_stage_script:
+      - mv {{untar_dir}} src
       - mkdir -p build
       - cd build
-      - '../{{untar_dir}}/configure --prefix=/opt/compiler-explorer/libs/glibc/glibc-{{name}}'
+      - ../src/configure --prefix=/usr
       - make -j
-      - make install
-      - rm -rf ../{{untar_dir}}
-      - mkdir -p ../{{untar_dir}}
+      - make install DESTDIR=$(realpath ../{{untar_dir}})
       build_type: none
-      check_file: lib/libc.so
+      check_file: usr/lib64/libc.so
       compression: gz
       dir: libs/glibc/glibc-{{name}}
       lib_type: cshared
