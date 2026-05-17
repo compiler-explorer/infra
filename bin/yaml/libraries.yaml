@@ -91,6 +91,7 @@ libraries:
       targets:
         - '2.16'
         - '2.41'
+        - '2.42'
       type: tarballs
       untar_dir: glibc-{{name}}
       url: https://ftp.gnu.org/gnu/glibc/glibc-{{name}}.tar.gz
