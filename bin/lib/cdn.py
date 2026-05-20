@@ -13,7 +13,7 @@ from pathlib import Path
 from tempfile import mkdtemp
 from zipfile import ZipFile
 
-from lib.amazon import botocore, force_lazy_init, s3_client
+from lib.amazon import botocore, s3_client
 
 logger = logging.getLogger("ce-cdn")
 
@@ -243,8 +243,6 @@ class DeploymentJob:
         return file
 
     def check_hashes(self):
-        force_lazy_init(s3_client)
-
         if ".zip" in self.tar_file_path:
             files = self.__unpack_zip()
         else:
@@ -269,9 +267,6 @@ class DeploymentJob:
 
     def run(self):
         logger.debug("running with %d workers", self.max_workers)
-
-        # work around race condition with parallel lazy init of boto3
-        force_lazy_init(s3_client)
 
         if ".zip" in self.tar_file_path:
             files = self.__unpack_zip()

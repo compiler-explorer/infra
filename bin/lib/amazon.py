@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from datetime import datetime
 from operator import attrgetter
 
@@ -16,21 +17,20 @@ class LazyObjectWrapper:
         self.__fn = fn
         self.__setup = False
         self.__obj = None
+        self.__lock = threading.Lock()
 
     def __ensure_setup(self):
-        if not self.__setup:
+        if self.__setup:
+            return
+        with self.__lock:
+            if self.__setup:
+                return
             self.__obj = self.__fn()
             self.__setup = True
 
     def __getattr__(self, attr):
         self.__ensure_setup()
         return getattr(self.__obj, attr)
-
-
-# this is a free function to avoid potentially shadowing any underlying members
-# which could happen if this was itself placed as a member of LazyObjectWrapper
-def force_lazy_init(lazy):
-    lazy._LazyObjectWrapper__ensure_setup()
 
 
 def _import_boto():
