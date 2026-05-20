@@ -362,17 +362,31 @@ def s3_available_compilers():
 class RestQueryTarballInstallable(TarballInstallable):
     def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
-        document = self.install_context.fetch_rest_query(self.config_get("url"))
-        query = self.config_get("query")
+        self._rest_query_url = self.config_get("url")
+        self._rest_query = self.config_get("query")
+        # TarballInstallable.__init__ stored the query URL in self.url; drop it so the
+        # cached_property below resolves lazily — the REST fetch is only needed at install time.
+        del self.url
+
+    @functools.cached_property
+    def url(self) -> str:  # type: ignore[override]
+        document = self.install_context.fetch_rest_query(self._rest_query_url)
         try:
-            self.url = eval(query, {}, dict(document=document))
+            resolved = eval(self._rest_query, {}, dict(document=document))
         except Exception:  # noqa: BLE001
-            self._logger.exception("Exception evaluating query '%s' for %s", query, self)
+            self._logger.exception("Exception evaluating query '%s' for %s", self._rest_query, self)
             raise
-        if not self.url:
+        if not resolved:
             self._logger.warning("No installation candidate found")
         else:
-            self._logger.info("resolved to %s", self.url)
+            self._logger.info("resolved to %s", resolved)
+        return resolved or ""
+
+    def to_json_dict(self) -> dict[str, Any]:
+        # Force url resolution so JSON consumers see the same schema as before the
+        # cached_property change; lazy resolution would otherwise omit it entirely.
+        _ = self.url
+        return super().to_json_dict()
 
     def should_install(self) -> bool:
         if not self.url:
