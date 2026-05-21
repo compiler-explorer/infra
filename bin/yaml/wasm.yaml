@@ -16,6 +16,8 @@ compilers:
         - 41.0.0
         - 42.0.2
         - 43.0.1
+        - 44.0.2
+        - 45.0.0
     wasi:
       type: tarballs
       compression: gz
