@@ -1,0 +1,9 @@
+compilers:
+  lean:
+    type: ziparchive
+    url: https://github.com/leanprover/lean4/releases/download/v{{name}}/lean-{{name}}-linux.zip
+    dir: lean-{{name}}
+    folder: lean-{{name}}-linux
+    check_exe: bin/lean --version
+    targets:
+      - "4.29.1"
