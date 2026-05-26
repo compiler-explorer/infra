@@ -1,0 +1,9 @@
+compilers:
+  doolang:
+    type: ziparchive
+    dir: doolang-{{name}}
+    url: https://github.com/nynrathod/doolang/releases/download/{{name}}/doo-linux.zip
+    folder: doolang
+    check_exe: doo --version
+    targets:
+      - 'v0.1.0' # REPLACE THIS WITH YOUR ACTUAL RELEASE TAG
