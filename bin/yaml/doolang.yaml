@@ -2,8 +2,8 @@ compilers:
   doolang:
     type: ziparchive
     dir: doolang-{{name}}
-    url: https://github.com/nynrathod/doolang/releases/download/{{name}}/doo-linux-0.4.1.zip
+    url: https://github.com/nynrathod/doolang/releases/download/v{{name}}/doo-linux-0.4.1.zip
     folder: doolang
     check_exe: doo --version
     targets:
-      - 'v0.4.1'
+      - '0.4.1'
