@@ -6,6 +6,7 @@ compilers:
       url: https://github.com/NoNaeAbC/shader_explorer/releases/download/v{{name}}/shader_explorer-{{name}}-linux-x86_64.tar.gz
       compression: gz
       strip_components: 1
+      create_untar_dir: true
       check_exe: bin/shader_explorer --version
       targets:
         - "0.1.2"
