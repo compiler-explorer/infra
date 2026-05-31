@@ -1,0 +1,10 @@
+compilers:
+  lua:
+    type: s3tarballs
+    check_exe: bin/lua -v
+    targets:
+      - 5.1.5
+      - 5.2.4
+      - 5.3.6
+      - 5.4.7
+      - 5.5.0

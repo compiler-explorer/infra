@@ -30,6 +30,7 @@ compilers:
         - 0.14.1
         - 0.15.1
         - 0.15.2
+        - 0.16.0
     nightly:
       if: nightly
       type: restQueryTarballs

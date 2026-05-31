@@ -18,6 +18,17 @@ compilers:
         - 43.0.1
         - 44.0.2
         - 45.0.0
+    nightly:
+      if: nightly
+      wasmtime:
+        type: nightlytarballs
+        compression: xz
+        url: https://github.com/bytecodealliance/wasmtime/releases/download/{{name}}/wasmtime-{{name}}-x86_64-linux.tar.xz
+        check_exe: wasmtime --version
+        dir: wasmtime-{{name}}
+        untar_dir: wasmtime-{{name}}-x86_64-linux
+        targets:
+          - dev
     wasi:
       type: tarballs
       compression: gz
