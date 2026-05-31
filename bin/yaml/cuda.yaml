@@ -97,3 +97,5 @@ compilers:
         build: 590.48.01
       - name: 13.2.0
         build: 595.45.04
+      - name: 13.3.0
+        build: 610.43.02
