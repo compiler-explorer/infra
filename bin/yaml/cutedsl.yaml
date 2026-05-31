@@ -1,0 +1,59 @@
+compilers:
+  cutedsl:
+    depends:
+      - compilers/python 3.12.1
+    type: script
+    dir: cutedsl/v{{name}}
+    check_exe: [ "bin/python3", "-c", "import importlib.metadata as md; import cutlass.cute; from triton.tools import disasm; print(md.version('nvidia-cutlass-dsl'))" ]
+    check_env:
+      - LD_LIBRARY_PATH=%PATH%/lib
+    script: |
+      set -eux
+
+      venv="cutedsl/v{{name}}"
+      "%DEP0%/bin/python3.12" -m venv "${venv}"
+      "${venv}/bin/python" -m pip install --upgrade pip
+      "${venv}/bin/python" -m pip install "{{package}}" triton==3.7.0
+
+      # CUDA toolkit lib64/stubs/libcuda.so is link-only; older CuTe DSL wheels
+      # call driver entry points while producing compile artifacts.
+      mkdir -p "${venv}/lib"
+      gcc -shared -fPIC -Wl,-soname,libcuda.so.1 \
+        -o "${venv}/lib/libcuda.so.1" \
+        "{{resource_dir}}/cutedsl/cuda_driver_stub.c"
+      ln -sf libcuda.so.1 "${venv}/lib/libcuda.so"
+    targets:
+      - name: 4.5.0
+        package: nvidia-cutlass-dsl==4.5.0
+      - name: 4.4.2
+        package: nvidia-cutlass-dsl==4.4.2
+      - name: 4.4.1
+        package: nvidia-cutlass-dsl==4.4.1
+      - name: 4.4.0
+        package: nvidia-cutlass-dsl==4.4.0
+      - name: 4.3.5
+        package: nvidia-cutlass-dsl==4.3.5
+      - name: 4.3.4
+        package: nvidia-cutlass-dsl==4.3.4
+      - name: 4.3.3
+        package: nvidia-cutlass-dsl==4.3.3
+      - name: 4.3.2
+        package: nvidia-cutlass-dsl==4.3.2
+      - name: 4.3.1
+        package: nvidia-cutlass-dsl==4.3.1
+      - name: 4.3.0
+        package: nvidia-cutlass-dsl==4.3.0
+      - name: 4.2.1
+        package: nvidia-cutlass-dsl==4.2.1
+      - name: 4.2.0
+        package: nvidia-cutlass-dsl==4.2.0
+      - name: 4.1.0
+        package: nvidia-cutlass-dsl==4.1.0
+      - name: 4.5.0-cu13
+        package: nvidia-cutlass-dsl[cu13]==4.5.0
+      - name: 4.4.2-cu13
+        package: nvidia-cutlass-dsl[cu13]==4.4.2
+      - name: 4.4.1-cu13
+        package: nvidia-cutlass-dsl[cu13]==4.4.1
+      - name: 4.4.0-cu13
+        package: nvidia-cutlass-dsl[cu13]==4.4.0
