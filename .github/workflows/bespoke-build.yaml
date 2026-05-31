@@ -30,6 +30,7 @@ on:
         - iwyu
         - jakt
         - lfortran
+        - lua
         - mads
         - micropython
         - nasm
