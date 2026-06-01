@@ -1390,6 +1390,7 @@ libraries:
       - 20.1.0
       - 21.1.0
       - 22.1.0
+      - 22.1.6
       type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
