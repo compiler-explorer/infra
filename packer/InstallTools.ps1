@@ -22,8 +22,11 @@ function InstallGIT {
 }
 
 function InstallNodeJS {
-    Write-Host "Downloading NodeJS"
-    Invoke-WebRequest -Uri "https://nodejs.org/download/release/v22.13.1/node-v22.13.1-x64.msi" -OutFile "C:\tmp\node-installer.msi"
+    # packer sets NODE_VERSION from the repo-root node-version file (see win.pkr.hcl).
+    $nodeVersion = $env:NODE_VERSION
+    if (-not $nodeVersion) { throw "NODE_VERSION not set" }
+    Write-Host "Downloading NodeJS v$nodeVersion"
+    Invoke-WebRequest -Uri "https://nodejs.org/download/release/v$nodeVersion/node-v$nodeVersion-x64.msi" -OutFile "C:\tmp\node-installer.msi"
     Write-Host "Installing Node"
     Start-Process "msiexec" -argumentlist "/quiet ALLUSERS=1 /i node-installer.msi" -wait
     Write-Host "Deleting tmp files"
