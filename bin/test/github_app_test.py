@@ -33,7 +33,8 @@ def generate_test_key_pair():
     ).decode()
 
     pem_public = (
-        private_key.public_key()
+        private_key
+        .public_key()
         .public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo,

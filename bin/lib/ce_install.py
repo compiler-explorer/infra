@@ -4,7 +4,6 @@ from __future__ import annotations
 import fnmatch
 import json
 import logging
-import logging.config
 import multiprocessing
 import os
 import signal
