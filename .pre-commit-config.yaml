@@ -35,6 +35,8 @@ repos:
     rev: 3.0.0
     hooks:
       - id: shellcheck
+        # severity is CLI-only (not a valid .shellcheckrc directive); gate on errors.
+        args: ["--severity=error"]
   - repo: https://github.com/antonbabenko/pre-commit-terraform
     rev: v1.100.0
     hooks:
