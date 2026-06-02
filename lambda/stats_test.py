@@ -5,7 +5,6 @@ from typing import Dict
 from unittest import mock
 
 import boto3
-import botocore.client
 import botocore.session
 import pytest
 from aws_embedded_metrics.logger.metrics_logger import MetricsLogger
