@@ -1,10 +1,30 @@
 from unittest.mock import Mock
 
-from lib.ce_install import filter_aggregate, filter_match
+from lib.ce_install import filter_aggregate, filter_match, should_install_helper
 
 
 def fake(context, target_name):
     return Mock(context=context.split("/"), target_name=target_name)
+
+
+def test_should_install_passes_through_result():
+    installable = Mock()
+    installable.should_install.return_value = False
+    assert should_install_helper(False, installable) == (installable, False)
+
+
+def test_should_install_force_skips_check():
+    installable = Mock()
+    assert should_install_helper(True, installable) == (installable, True)
+    installable.should_install.assert_not_called()
+
+
+def test_should_install_failed_check_assumes_needs_install():
+    # A failing up-to-date check must not abort the batch; it should report True so the failure
+    # surfaces per-item in the install loop rather than killing pool.map.
+    installable = Mock()
+    installable.should_install.side_effect = RuntimeError("git ls-remote blew up")
+    assert should_install_helper(False, installable) == (installable, True)
 
 
 def test_should_filter_exact_matches():
