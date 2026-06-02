@@ -483,11 +483,14 @@ class BlueGreenDeployment:
             # the inactive color isn't receiving traffic. We must use HTTP health checks.
             if self.running_on_admin_node:
                 print("\nStep 3: Checking HTTP health endpoints")
+                # Windows instances run compiler discovery on startup, which routinely
+                # takes well over 5 minutes; give them longer before giving up.
+                http_timeout = 600 if self.cfg.env.is_windows else 300
                 try:
-                    wait_for_http_health(instances, timeout=300)  # 5 minute timeout for HTTP checks
+                    wait_for_http_health(instances, timeout=http_timeout)
                     print("✅ All instances are responding to health checks!")
                 except TimeoutError:
-                    LOGGER.error("HTTP health checks timed out after 5 minutes")
+                    LOGGER.error("HTTP health checks timed out after %d seconds", http_timeout)
                     LOGGER.error("This indicates instances are not properly responding to health checks")
 
                     # Try to get more info about what's wrong
