@@ -1,3 +1,6 @@
+# Fail the build on any error instead of silently shipping a half-installed AMI.
+$ErrorActionPreference = 'Stop'
+
 New-Item /tmp -ItemType Directory -Force
 Set-Location -Path /tmp
 
@@ -51,11 +54,25 @@ function InstallExporter {
 }
 
 function InstallNssm {
+    $url = "https://nssm.cc/ci/nssm-2.24-103-gdee49fc.zip"
+    $extracted = "/tmp/nssm-2.24-103-gdee49fc"
     Write-Host "Downloading nssm"
-    Invoke-WebRequest -Uri "https://nssm.cc/ci/nssm-2.24-103-gdee49fc.zip" -OutFile "/tmp/nssm.zip"
+    # nssm.cc is flaky and can serve truncated zips; retry and verify before continuing.
+    for ($attempt = 1; $attempt -le 5; $attempt++) {
+        try {
+            Remove-Item -Recurse -Force "/tmp/nssm.zip", $extracted -ErrorAction SilentlyContinue
+            Invoke-WebRequest -Uri $url -OutFile "/tmp/nssm.zip"
+            Expand-Archive -Path "/tmp/nssm.zip" -DestinationPath "/tmp" -Force
+            if (Test-Path "$extracted/win64/nssm.exe") { break }
+            throw "nssm archive missing win64/nssm.exe"
+        } catch {
+            Write-Host "nssm download attempt $attempt failed: $_"
+            if ($attempt -eq 5) { throw "Failed to install nssm after 5 attempts" }
+            Start-Sleep -Seconds 5
+        }
+    }
     Write-Host "Installing nssm"
-    Expand-Archive -Path "/tmp/nssm.zip" -DestinationPath "/tmp"
-    Move-Item -Path "/tmp/nssm-2.24-103-gdee49fc" -Destination "/nssm"
+    Move-Item -Path $extracted -Destination "/nssm"
     Remove-Item -Force -Path "/tmp/nssm.zip"
 }
 
