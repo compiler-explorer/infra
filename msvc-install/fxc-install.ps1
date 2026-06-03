@@ -96,8 +96,13 @@ function Get-Layout {
     $proc = Start-Process -Wait -PassThru -FilePath $installer -ArgumentList $args
     if ($proc.ExitCode -ne 0) {
         if (Test-Path $logPath) {
-            Write-Host "--- layout.log (tail) ---"
-            Get-Content $logPath -Tail 60 | ForEach-Object { Write-Host $_ }
+            # winsdksetup dumps its entire variable table near the end, which
+            # buries the real failure under ~100 lines. Print the whole log
+            # minus that noise so the Acquire/Apply error is visible.
+            Write-Host "--- layout.log ---"
+            Get-Content $logPath |
+                Where-Object { $_ -notmatch '(?i): Variable: ' } |
+                ForEach-Object { Write-Host $_ }
             Write-Host "--- end layout.log ---"
         }
         throw "winsdksetup.exe /layout for $label exited with code $($proc.ExitCode). Full log: $logPath"
@@ -382,17 +387,29 @@ New-Item -ItemType Directory -Force $extract_root  | Out-Null
 New-Item -ItemType Directory -Force $output_root   | Out-Null
 New-Item -ItemType Directory -Force $archives      | Out-Null
 
+$failures = @()
 foreach ($version in $versions) {
     $label = $version.Label
     Write-Host ""
     Write-Host "=== Windows SDK $label ==="
 
-    Download   -label $label -url $version.Url | Out-Null
-    $layoutPath = Get-Layout -label $label
-    Extract-FxcFromLayout -label $label -layoutPath $layoutPath
-    Zip-Fxc -label $label
+    try {
+        Download   -label $label -url $version.Url | Out-Null
+        $layoutPath = Get-Layout -label $label
+        Extract-FxcFromLayout -label $label -layoutPath $layoutPath
+        Zip-Fxc -label $label
+    } catch {
+        Write-Host "ERROR packaging SDK ${label}: $($_.Exception.Message)"
+        $failures += $label
+    }
 }
 
 Write-Host ""
 Write-Host "fxc.exe / d3dcompiler_47.dll extracted under $output_root"
 Write-Host "archives written to $archives"
+
+if ($failures) {
+    Write-Host ""
+    Write-Host "Failed SDK versions: $($failures -join ', ')"
+    exit 1
+}
