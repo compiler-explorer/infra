@@ -1,0 +1,16 @@
+name: Package FXC
+run-name: Package FXC compilers from the Windows SDK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  package-fxc:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - shell: pwsh
+        run: .\msvc-install\fxc-install.ps1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
