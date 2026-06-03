@@ -22,12 +22,14 @@
 
 # FXC has been largely unmaintained for a while, so we only pull a few SDKs
 # from major versions of Windows.
-# 8.1 - Windows 8.1 (the last SDK to support Windows 7).
 # 10.0.19041 - Windows 10 20H1 and 20H2.
 # 10.0.26100 - Windows 11 24H2 and 23H2.
+#
+# The 8.1 SDK (the last to support Windows 7) is gone: its winsdksetup.exe
+# /layout fails in Apply because the standalone SDK MSI payloads 404 on
+# Microsoft's CDN, so there is no way to acquire fxc.exe from it anymore.
 
 $versions = (
-    (New-Object PSObject -Property @{ Label = "8.1"; Url = "https://go.microsoft.com/fwlink/p/?LinkId=323507" }),
     (New-Object PSObject -Property @{ Label = "10.0.19041"; Url = "https://go.microsoft.com/fwlink/?linkid=2311805" }),
     (New-Object PSObject -Property @{ Label = "10.0.26100"; Url = "https://go.microsoft.com/fwlink/?linkid=2361308" })
 )
