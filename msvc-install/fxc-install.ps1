@@ -32,11 +32,14 @@ $versions = (
     (New-Object PSObject -Property @{ Label = "10.0.26100"; Url = "https://go.microsoft.com/fwlink/?linkid=2361308" })
 )
 
-$download_path = "D:/efs/download/winsdk"
-$layout_root   = "D:/efs/layout/winsdk"
-$extract_root  = "D:/efs/extract/winsdk"
-$output_root   = "D:/efs/fxc"
-$archives      = "D:/efs/archives"
+# This script is destructive to $Env:TEMP and is designed to run on a GH action
+# runner; the package-fxc.yaml workflow invokes it and the AWS credentials in
+# the environment let Write-S3Object upload the resulting archives.
+$download_path = "$Env:TEMP/download/winsdk"
+$layout_root   = "$Env:TEMP/layout/winsdk"
+$extract_root  = "$Env:TEMP/extract/winsdk"
+$output_root   = "$Env:TEMP/fxc"
+$archives      = "$Env:TEMP/archives"
 $architectures = @("x64", "x86", "arm64")
 
 function To-Native {
@@ -366,6 +369,11 @@ function Zip-Fxc {
     if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
     Write-Host "  archiving $labelDir -> $zipPath"
     Compress-Archive -DestinationPath $zipPath -Path $labelDir
+
+    $key = "opt-nonfree/fxc/fxc-$label.zip"
+    Write-Host "  uploading $zipPath -> s3://compiler-explorer/$key"
+    Write-S3Object -BucketName compiler-explorer -Key $key -File $zipPath
+    Write-Host "  uploaded fxc-$label !"
 }
 
 New-Item -ItemType Directory -Force $download_path | Out-Null
