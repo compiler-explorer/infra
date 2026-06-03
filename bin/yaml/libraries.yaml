@@ -713,6 +713,7 @@ libraries:
       check_file: README.md
       extra_cmake_arg:
       - -DBUILD_TZ_LIB=ON
+      - -DMANUAL_TZ_DB=%cmake_bool_windows%
       make_targets:
       - date-tz
       repo: HowardHinnant/date
@@ -1748,6 +1749,7 @@ libraries:
         check_file: README.md
         extra_cmake_arg:
         - -DBUILD_TZ_LIB=ON
+        - -DMANUAL_TZ_DB=%cmake_bool_windows%
         make_targets:
         - date-tz
         method: nightlyclone
