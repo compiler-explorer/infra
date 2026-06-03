@@ -723,6 +723,21 @@ class LibraryBuilder:
             escaped_var_value = var_value.replace('"', '`"')
             return f'$env:{var_name}="$env:{var_name};{escaped_var_value}"\n'
 
+    def script_run_logged(self, command: str, log_file: str, failure_message: str) -> str:
+        """Run a command, redirect its output to log_file, and surface the log tail on failure.
+
+        Emitted in the right shell dialect per platform: bash for Linux (cebuild.sh) and
+        PowerShell for Windows (cebuild.ps1). The bash `|| { ...; }` form is not valid
+        PowerShell, so Windows gets an explicit $LASTEXITCODE check instead.
+        """
+        if self.platform == LibraryPlatform.Windows:
+            return (
+                f"{command} > {log_file} 2>&1\n"
+                f"if ($LASTEXITCODE -ne 0) {{ Write-Host '{failure_message}'; "
+                f"Get-Content -Tail 200 {log_file}; exit 1 }}\n"
+            )
+        return f"{command} > {log_file} 2>&1 || {{ echo '{failure_message}' >&2; tail -200 {log_file} >&2; exit 1; }}\n"
+
     def writebuildscript(
         self,
         buildfolder,
@@ -941,14 +956,13 @@ class LibraryBuilder:
 
                 # Use appropriate CMAKE_*_FLAGS based on build type
                 cmake_flags_suffix = "_DEBUG" if buildtype == "Debug" else "_RELEASE"
-                cmakeline = (
+                cmakecmd = (
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
                     f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
                     f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
-                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {extracmakeargs} {sourcefolder} '
-                    f"> cecmakelog.txt 2>&1 || "
-                    f"{{ echo 'cmake configure failed:' >&2; tail -200 cecmakelog.txt >&2; exit 1; }}\n"
+                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {extracmakeargs} {sourcefolder}'
                 )
+                cmakeline = self.script_run_logged(cmakecmd, "cecmakelog.txt", "cmake configure failed:")
                 self.logger.debug(cmakeline)
                 f.write(cmakeline)
 
@@ -967,15 +981,19 @@ class LibraryBuilder:
                 if len(self.buildconfig.make_targets) != 0:
                     if len(self.buildconfig.make_targets) == 1 and self.buildconfig.make_targets[0] == "all":
                         f.write(
-                            f"cmake --build . {extramakeargs} > cemakelog_.txt 2>&1 || "
-                            f"{{ echo 'cmake --build failed:' >&2; tail -200 cemakelog_.txt >&2; exit 1; }}\n"
+                            self.script_run_logged(
+                                f"cmake --build . {extramakeargs}", "cemakelog_.txt", "cmake --build failed:"
+                            )
                         )
                     else:
                         for lognum, target in enumerate(self.buildconfig.make_targets):
                             log_name = f"cemakelog_{lognum}.txt"
                             f.write(
-                                f"cmake --build . {extramakeargs} --target={target} > {log_name} 2>&1 || "
-                                f"{{ echo 'cmake --build {target} failed:' >&2; tail -200 {log_name} >&2; exit 1; }}\n"
+                                self.script_run_logged(
+                                    f"cmake --build . {extramakeargs} --target={target}",
+                                    log_name,
+                                    f"cmake --build {target} failed:",
+                                )
                             )
                 else:
                     lognum = 0
@@ -999,10 +1017,7 @@ class LibraryBuilder:
                         f.write("}\n")
 
                 if self.buildconfig.package_install:
-                    f.write(
-                        "cmake --install . > ceinstall_0.txt 2>&1 || "
-                        "{ echo 'cmake --install failed:' >&2; tail -200 ceinstall_0.txt >&2; exit 1; }\n"
-                    )
+                    f.write(self.script_run_logged("cmake --install .", "ceinstall_0.txt", "cmake --install failed:"))
             else:
                 if os.path.exists(os.path.join(sourcefolder, "Makefile")):
                     f.write("make clean > cemakeclean.txt 2>&1 || /bin/true\n")

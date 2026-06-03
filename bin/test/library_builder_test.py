@@ -187,6 +187,54 @@ def test_can_write_conan_file(requests_mock):
     )
 
 
+def test_script_run_logged_linux_uses_bash_failure_handling(requests_mock):
+    requests_mock.get(f"{BASE}lang.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    lb = LibraryBuilder(
+        logger,
+        "lang",
+        "somelib",
+        "target",
+        "src-folder",
+        install_context,
+        create_test_build_config(),
+        False,
+        LibraryPlatform.Linux,
+    )
+    line = lb.script_run_logged("cmake --build .", "cemakelog.txt", "cmake --build failed:")
+    assert line == (
+        "cmake --build . > cemakelog.txt 2>&1 || "
+        "{ echo 'cmake --build failed:' >&2; tail -200 cemakelog.txt >&2; exit 1; }\n"
+    )
+
+
+def test_script_run_logged_windows_uses_powershell_failure_handling(requests_mock):
+    requests_mock.get(f"{BASE}lang.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    lb = LibraryBuilder(
+        logger,
+        "lang",
+        "somelib",
+        "target",
+        "src-folder",
+        install_context,
+        create_test_build_config(),
+        False,
+        LibraryPlatform.Windows,
+    )
+    script = lb.script_run_logged("cmake --build .", "cemakelog.txt", "cmake --build failed:")
+    # Regression: bash `|| { ... >&2 ...; }` is a PowerShell ParserError, which broke all compiled
+    # cmake library builds on Windows (e.g. date/date-tz) after PR #2094.
+    assert "||" not in script
+    assert ">&2" not in script
+    assert "cmake --build . > cemakelog.txt 2>&1" in script
+    assert "if ($LASTEXITCODE -ne 0)" in script
+    assert "Get-Content -Tail 200 cemakelog.txt" in script
+    assert script.endswith("exit 1 }\n")
+
+
 def test_get_toolchain_path_from_options_gcc_toolchain(requests_mock):
     requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
