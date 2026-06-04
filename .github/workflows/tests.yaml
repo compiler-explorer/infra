@@ -11,6 +11,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
+      - name: Install Node.js
+        # Pin Node for the events-lambda lint/build/test steps; matches the
+        # nodejs22.x lambda runtime and the package.json engines requirement.
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
@@ -36,4 +42,4 @@ jobs:
         run: make lambda-package events-lambda-package
       - name: Test events-lambda
         working-directory: events-lambda
-        run: npm install && npm test
+        run: npm ci && npm test
