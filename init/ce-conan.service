@@ -5,8 +5,8 @@ Description=CE Conan
 # ordering after resolved (Type=notify, so this waits until it can answer) avoids the
 # race when both restarts share a transaction. Restart=on-failure covers the case where
 # they don't -- a failed git pull retries once resolved is back.
-After=remote-fs.target systemd-resolved.service
-Wants=systemd-resolved.service
+After=remote-fs.target systemd-resolved.service network-online.target
+Wants=systemd-resolved.service network-online.target
 StartLimitIntervalSec=300
 StartLimitBurst=5
 
