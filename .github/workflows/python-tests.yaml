@@ -34,3 +34,6 @@ jobs:
         # Build (not deploy) both lambda zips so dependency-resolution or
         # packaging breakage is caught on the PR rather than at deploy time.
         run: make lambda-package events-lambda-package
+      - name: Test events-lambda
+        working-directory: events-lambda
+        run: npm install && npm test
