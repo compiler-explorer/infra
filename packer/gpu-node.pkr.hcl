@@ -25,7 +25,7 @@ variable "MY_SECRET_KEY" {
 data "amazon-ami" "ubuntu" {
   access_key = "${var.MY_ACCESS_KEY}"
   filters = {
-    name                = "ubuntu-minimal/images/*ubuntu-*-22.04-amd64-minimal-*"
+    name                = "ubuntu/images/*ubuntu-noble-24.04-amd64-server-*"
     root-device-type    = "ebs"
     virtualization-type = "hvm"
   }
@@ -39,7 +39,7 @@ locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
 source "amazon-ebs" "ubuntu" {
   access_key = "${var.MY_ACCESS_KEY}"
-  ami_name                    = "compiler-explorer gpu packer @ ${local.timestamp}"
+  ami_name                    = "compiler-explorer gpu packer 24.04 @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
   instance_type               = "g4dn.xlarge"
