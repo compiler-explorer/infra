@@ -24,6 +24,9 @@ select = [
     "F", # pyflake
     "B", # flake8-bugbear
     "I", # isort
+    "UP", # pyupgrade
+    "PLC", # Pylint Convention rules
+    "BLE001", # Ban blind except: Exception
 ]
 ignore = [
     "E501" # line length

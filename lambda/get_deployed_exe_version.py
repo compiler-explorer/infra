@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from typing import Dict
 
 import boto3
 
@@ -37,7 +36,7 @@ def lambda_handler(event, _context):
     return respond_with_version(item["Item"], jsonp)
 
 
-def respond_with_version(version: Dict, jsonp: str):
+def respond_with_version(version: dict, jsonp: str):
     modified_iso = None
     if "modified" in version:
         timestamp = float(version["modified"]["N"])

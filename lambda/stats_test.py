@@ -1,7 +1,6 @@
 import datetime
 import json
 import os
-from typing import Dict
 from unittest import mock
 
 import boto3
@@ -161,7 +160,7 @@ def test_should_query_compilers_with_the_right_query(dynamodb_client):
 
 
 def test_should_mention_most_recent_compiler_build(dynamodb_client):
-    def make_fake_item(run_id: str) -> Dict:
+    def make_fake_item(run_id: str) -> dict:
         return dict(
             path=dict(S="path"),
             github_run_id=dict(S=run_id),

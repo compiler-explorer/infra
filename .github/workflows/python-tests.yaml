@@ -30,3 +30,7 @@ jobs:
         run: make static-checks
       - name: tests
         run: make test
+      - name: Build lambda packages
+        # Build (not deploy) both lambda zips so dependency-resolution or
+        # packaging breakage is caught on the PR rather than at deploy time.
+        run: make lambda-package events-lambda-package
