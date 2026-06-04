@@ -118,37 +118,6 @@ LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
 echo "*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}" >"${PTRAIL}"
 service rsyslog restart
-pushd /tmp
-curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.21/remote_syslog_linux_amd64.tar.gz' | tar zxf -
-cp remote_syslog/remote_syslog /usr/local/bin/
-popd
-
-cat >/etc/log_files.yml <<EOF
-files:
-    - /var/log/nginx/*.err
-destination:
-    host: ${LOG_DEST_HOST}
-    port: ${LOG_DEST_PORT}
-    protocol: tls
-EOF
-
-cat >/lib/systemd/system/remote-syslog.service <<EOF
-[Unit]
-Description=remote_syslog2
-Documentation=https://github.com/papertrail/remote_syslog2
-After=network-online.target
-
-[Service]
-ExecStartPre=/usr/bin/test -e /etc/log_files.yml
-ExecStart=/usr/local/bin/remote_syslog -D
-Restart=always
-User=root
-Group=root
-
-[Install]
-WantedBy=multi-user.target
-EOF
-systemctl enable remote-syslog
 
 # Install grafana-agent. Conan-node has a real data mount at
 # /home/ce/.conan_server, so override FS_IGNORE to let it through. We'd
