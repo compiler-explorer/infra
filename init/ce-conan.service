@@ -1,6 +1,14 @@
 [Unit]
 Description=CE Conan
-After=remote-fs.target
+# systemd-resolved ordering: the startup script does DNS-dependent work (git pull).
+# needrestart can bounce resolved and this unit together during unattended-upgrades;
+# ordering after resolved (Type=notify, so this waits until it can answer) avoids the
+# race when both restarts share a transaction. Restart=on-failure covers the case where
+# they don't -- a failed git pull retries once resolved is back.
+After=remote-fs.target systemd-resolved.service
+Wants=systemd-resolved.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -11,6 +19,8 @@ ExecStart=/home/ubuntu/infra/init/start-conan.sh
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=ce-conan
+Restart=on-failure
+RestartSec=15
 
 [Install]
 WantedBy=multi-user.target
