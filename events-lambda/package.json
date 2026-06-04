@@ -4,9 +4,13 @@
   "version": "1.0.0",
   "author": "Compiler Explorer Authors",
   "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "lint": "eslint --max-warnings=0 . --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "node --test"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
