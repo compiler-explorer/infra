@@ -106,6 +106,10 @@ def create_deterministic_zip(source_path, output_path):
             if item.name.endswith((".test.js", ".spec.js", ".md", ".pyc")):
                 continue
 
+            # Skip the eslint flat config (not hidden, unlike the old .eslintrc)
+            if item.name.startswith("eslint.config."):
+                continue
+
             # Skip hidden files except for specific ones we might need
             if item.name.startswith(".") and item.name not in [".env"]:
                 continue
@@ -147,8 +151,13 @@ def create_deterministic_zip(source_path, output_path):
 
                 for file in files:
                     file_path = root / file
+                    relative_path = file_path.relative_to(temp_path)
+                    # package-lock.json is needed to run the install but not at
+                    # runtime; keeping it out means dev-only dependency bumps
+                    # don't change the deployed artifact.
+                    if str(relative_path) == "package-lock.json":
+                        continue
                     if not EXCLUDE_PATTERN.search(str(file_path)):
-                        relative_path = file_path.relative_to(temp_path)
                         all_files.append((file_path, relative_path))
 
             # Sort all files by their relative path for deterministic order
