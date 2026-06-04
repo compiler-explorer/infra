@@ -32,22 +32,30 @@ def emit_metric(
     # The record must be a bare JSON line on stdout: routing it through `logger`
     # would prefix the line and stop CloudWatch from parsing it.
     now = now or datetime.datetime.now(datetime.UTC)
+    # Reproduce the default dimensions aws-embedded-metrics attached so the metric
+    # stays the same stream (CompilerExplorer/PageLoad keyed on ServiceName=stats
+    # etc.) consumers have always seen.
+    service = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "stats")
+    dimensions = {"LogGroup": service, "ServiceName": service, "ServiceType": "AWS::Lambda::Function"}
     record: dict[str, Any] = {
         "_aws": {
             "Timestamp": int(now.timestamp() * 1000),
             "CloudWatchMetrics": [
                 {
                     "Namespace": METRICS_NAMESPACE,
-                    "Dimensions": [[]],
+                    "Dimensions": [list(dimensions)],
                     "Metrics": [{"Name": name, "Unit": unit}],
                 }
             ],
         },
+        **dimensions,
         name: value,
     }
     if properties:
         record.update(properties)
-    print(json.dumps(record))
+    # flush: Lambda's stdout is block-buffered, so without this the EMF line can
+    # be delayed past the invocation (or dropped on recycle) and the metric lost.
+    print(json.dumps(record), flush=True)
 
 
 def lambda_handler(event, context):

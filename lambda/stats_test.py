@@ -48,6 +48,7 @@ def test_should_store_results_from_sqs_correctly(s3_client):
         handle_sqs(event, context, s3_client, SOME_DATE)
 
 
+@mock.patch.dict(os.environ, dict(AWS_LAMBDA_FUNCTION_NAME="stats"))
 def test_emit_metric_writes_an_emf_record_to_stdout(capsys):
     emit_metric("PageLoad", 1, properties={"sponsors": ["bob"]}, now=SOME_DATE)
     record = json.loads(capsys.readouterr().out.strip())
@@ -57,6 +58,11 @@ def test_emit_metric_writes_an_emf_record_to_stdout(capsys):
     cloudwatch_metrics = record["_aws"]["CloudWatchMetrics"][0]
     assert cloudwatch_metrics["Namespace"] == "CompilerExplorer"
     assert cloudwatch_metrics["Metrics"] == [dict(Name="PageLoad", Unit="None")]
+    # Dimensions must match the stream Grafana queries (the aws-embedded-metrics defaults).
+    assert cloudwatch_metrics["Dimensions"] == [["LogGroup", "ServiceName", "ServiceType"]]
+    assert record["LogGroup"] == "stats"
+    assert record["ServiceName"] == "stats"
+    assert record["ServiceType"] == "AWS::Lambda::Function"
 
 
 def test_pageloads_should_return_a_200_doc():
