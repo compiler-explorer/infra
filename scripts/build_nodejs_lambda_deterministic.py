@@ -106,6 +106,10 @@ def create_deterministic_zip(source_path, output_path):
             if item.name.endswith((".test.js", ".spec.js", ".md", ".pyc")):
                 continue
 
+            # Skip the eslint flat config (not hidden, unlike the old .eslintrc)
+            if item.name.startswith("eslint.config."):
+                continue
+
             # Skip hidden files except for specific ones we might need
             if item.name.startswith(".") and item.name not in [".env"]:
                 continue

@@ -55,5 +55,5 @@ repos:
         name: Lint events-lambda
         entry: bash -c 'cd events-lambda && npm install && npm run lint'
         language: system
-        files: ^events-lambda/.*\.(js|json|yml)$
+        files: ^events-lambda/.*\.(js|mjs|json|yml)$
         pass_filenames: false

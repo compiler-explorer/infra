@@ -86,8 +86,6 @@ export class EventsConnections {
 
         // Convert Set back to the expected format
         const mergedItems = Array.from(connectionIdSet).map(id => ({connectionId: {S: id}}));
-
-        // eslint-disable-next-line no-console
         if (cachedConnections.length > 0 || result.Count > 0) {
             // eslint-disable-next-line no-console
             console.info(
