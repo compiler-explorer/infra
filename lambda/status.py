@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import functools
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import boto3
 from botocore.exceptions import ClientError
@@ -242,7 +244,7 @@ def lambda_handler(event, _context):
         # Return JSON response
         return create_response(
             status_code=200,
-            body={"environments": environments_status, "timestamp": datetime.now(timezone.utc).isoformat()},
+            body={"environments": environments_status, "timestamp": datetime.now(UTC).isoformat()},
         )
     except (ValueError, TypeError, KeyError, boto3.exceptions.Boto3Error) as e:
         return handle_error(e)

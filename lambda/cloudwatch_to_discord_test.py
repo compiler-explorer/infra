@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 from cloudwatch_to_discord import parse_sns_message

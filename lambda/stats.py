@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import datetime
 import json
 import logging
 import os
 import urllib.parse
-from typing import Any, Dict, Optional
+from typing import Any
 
 import aws_embedded_metrics
 import boto3
@@ -32,13 +34,13 @@ def lambda_handler(event, context, metrics):
 
 
 def handle_sqs(
-    event: Dict,
+    event: dict,
     context,
-    s3_client: Optional[botocore.client.BaseClient] = None,
-    now: Optional[datetime.datetime] = None,
+    s3_client: botocore.client.BaseClient | None = None,
+    now: datetime.datetime | None = None,
 ):
     s3_client = s3_client or boto3.client("s3")
-    now = now or datetime.datetime.utcnow()
+    now = now or datetime.datetime.now(datetime.UTC)
 
     logger.info("Handling %d messages", len(event[RECORD_KEY]))
     key = f"stats/{context.function_name}-{now.strftime('%Y-%m-%d-%H:%M:%S.%f')}.log"
@@ -49,15 +51,15 @@ def handle_sqs(
 
 
 def handle_http(
-    event: Dict,
+    event: dict,
     metrics: MetricsLogger,
-    sqs_client: Optional[botocore.client.BaseClient] = None,
-    dynamo_client: Optional[botocore.client.BaseClient] = None,
-    now: Optional[datetime.datetime] = None,
+    sqs_client: botocore.client.BaseClient | None = None,
+    dynamo_client: botocore.client.BaseClient | None = None,
+    now: datetime.datetime | None = None,
 ):
     sqs_client = sqs_client or boto3.client("sqs")
     dynamo_client = dynamo_client or boto3.client("dynamodb")
-    now = now or datetime.datetime.utcnow()
+    now = now or datetime.datetime.now(datetime.UTC)
 
     path = event["path"].split("/")[1:]
     method = event["httpMethod"]
@@ -77,7 +79,7 @@ def handle_http(
 
 
 def handle_pageload(
-    event: Dict, metrics: MetricsLogger, now: datetime.datetime, queue_url: str, sqs_client: botocore.client.BaseClient
+    event: dict, metrics: MetricsLogger, now: datetime.datetime, queue_url: str, sqs_client: botocore.client.BaseClient
 ):
     date = now.strftime("%Y-%m-%d")
     time = now.strftime("%H:%M:%S")
@@ -107,9 +109,9 @@ def handle_pageload(
 
 
 def _do_one_query(
-    compiler: str, table: str, dynamo_client: botocore.client.BaseClient, status: Optional[str]
-) -> Optional[Dict]:
-    params: Dict[str, Any] = dict(
+    compiler: str, table: str, dynamo_client: botocore.client.BaseClient, status: str | None
+) -> dict | None:
+    params: dict[str, Any] = dict(
         TableName=table,
         Limit=100,  # NB limit to _evaluate_ not the limit of matches
         ScanIndexForward=False,  # items in reverse order (by time)
@@ -134,7 +136,7 @@ def _do_one_query(
     return None
 
 
-def handle_compiler_stats(compiler: str, table: str, dynamo_client: botocore.client.BaseClient) -> Dict:
+def handle_compiler_stats(compiler: str, table: str, dynamo_client: botocore.client.BaseClient) -> dict:
     result = dict(
         last_success=_do_one_query(compiler, table, dynamo_client, "OK"),
         last_build=_do_one_query(compiler, table, dynamo_client, None),
