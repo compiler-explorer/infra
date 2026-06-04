@@ -12,6 +12,7 @@ on:
         options:
         # main ones
         - gcc
+        - gcc-old
         - gcc-cross
         - clang
         - misc
