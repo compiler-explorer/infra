@@ -6,12 +6,11 @@ from unittest import mock
 import boto3
 import botocore.session
 import pytest
-from aws_embedded_metrics.logger.metrics_logger import MetricsLogger
 from botocore.stub import ANY, Stubber
 
-from stats import handle_compiler_stats, handle_pageload, handle_sqs
+from stats import emit_metric, handle_compiler_stats, handle_pageload, handle_sqs
 
-SOME_DATE = datetime.datetime(2020, 1, 2, 3, 4, 5, 12312)
+SOME_DATE = datetime.datetime(2020, 1, 2, 3, 4, 5, 12312, tzinfo=datetime.UTC)
 
 
 @pytest.fixture
@@ -49,78 +48,87 @@ def test_should_store_results_from_sqs_correctly(s3_client):
         handle_sqs(event, context, s3_client, SOME_DATE)
 
 
+@mock.patch.dict(os.environ, dict(AWS_LAMBDA_FUNCTION_NAME="stats"))
+def test_emit_metric_writes_an_emf_record_to_stdout(capsys):
+    emit_metric("PageLoad", 1, properties={"sponsors": ["bob"]}, now=SOME_DATE)
+    record = json.loads(capsys.readouterr().out.strip())
+    assert record["PageLoad"] == 1
+    assert record["sponsors"] == ["bob"]
+    assert record["_aws"]["Timestamp"] == int(SOME_DATE.timestamp() * 1000)
+    cloudwatch_metrics = record["_aws"]["CloudWatchMetrics"][0]
+    assert cloudwatch_metrics["Namespace"] == "CompilerExplorer"
+    assert cloudwatch_metrics["Metrics"] == [dict(Name="PageLoad", Unit="None")]
+    # Dimensions must match the stream Grafana queries (the aws-embedded-metrics defaults).
+    assert cloudwatch_metrics["Dimensions"] == [["LogGroup", "ServiceName", "ServiceType"]]
+    assert record["LogGroup"] == "stats"
+    assert record["ServiceName"] == "stats"
+    assert record["ServiceType"] == "AWS::Lambda::Function"
+
+
 def test_pageloads_should_return_a_200_doc():
-    metrics = mock.Mock(spec_set=MetricsLogger)
     queue_url = "some-queue-url"
-    result = handle_pageload(dict(queryStringParameters={}), metrics, SOME_DATE, queue_url, mock.Mock())
+    with mock.patch("stats.emit_metric") as emit:
+        result = handle_pageload(dict(queryStringParameters={}), SOME_DATE, queue_url, mock.Mock())
     assert result["statusCode"] == 200
     assert result["body"] == "Ok"
-    metrics.put_metric.assert_called_once_with("PageLoad", 1)
+    emit.assert_called_once_with("PageLoad", 1, properties=dict(sponsors=[]), now=SOME_DATE)
 
 
 def test_should_handle_pageloads_with_no_sponsors(sqs_client):
-    metrics = mock.Mock(spec_set=MetricsLogger)
     queue_url = "some-queue-url"
-    with Stubber(sqs_client) as stubber:
+    with Stubber(sqs_client) as stubber, mock.patch("stats.emit_metric") as emit:
         stubber.add_response(
             "send_message", {}, dict(QueueUrl=queue_url, MessageBody=make_expected_body("PageLoad", ""))
         )
-        handle_pageload(dict(queryStringParameters={}), metrics, SOME_DATE, queue_url, sqs_client)
-    metrics.set_property.assert_called_once_with("sponsors", [])
-    metrics.put_metric.assert_called_once_with("PageLoad", 1)
+        handle_pageload(dict(queryStringParameters={}), SOME_DATE, queue_url, sqs_client)
+    emit.assert_called_once_with("PageLoad", 1, properties=dict(sponsors=[]), now=SOME_DATE)
 
 
 def test_should_handle_pageloads_with_empty_sponsors(sqs_client):
-    metrics = mock.Mock(spec_set=MetricsLogger)
     queue_url = "some-queue-url"
-    with Stubber(sqs_client) as stubber:
+    with Stubber(sqs_client) as stubber, mock.patch("stats.emit_metric") as emit:
         stubber.add_response(
             "send_message", {}, dict(QueueUrl=queue_url, MessageBody=make_expected_body("PageLoad", ""))
         )
-        handle_pageload(dict(queryStringParameters=dict(icons="")), metrics, SOME_DATE, queue_url, sqs_client)
-    metrics.set_property.assert_called_once_with("sponsors", [])
+        handle_pageload(dict(queryStringParameters=dict(icons="")), SOME_DATE, queue_url, sqs_client)
+    emit.assert_called_once_with("PageLoad", 1, properties=dict(sponsors=[]), now=SOME_DATE)
 
 
 def test_should_handle_pageloads_with_one_sponsor(sqs_client):
-    metrics = mock.Mock(spec_set=MetricsLogger)
     queue_url = "some-queue-url"
-    with Stubber(sqs_client) as stubber:
+    with Stubber(sqs_client) as stubber, mock.patch("stats.emit_metric") as emit:
         stubber.add_response("send_message", {}, dict(QueueUrl=queue_url, MessageBody=ANY))
         stubber.add_response(
             "send_message", {}, dict(QueueUrl=queue_url, MessageBody=make_expected_body("SponsorView", "bob"))
         )
-        handle_pageload(dict(queryStringParameters=dict(icons="bob")), metrics, SOME_DATE, queue_url, sqs_client)
-    metrics.set_property.assert_called_once_with("sponsors", ["bob"])
+        handle_pageload(dict(queryStringParameters=dict(icons="bob")), SOME_DATE, queue_url, sqs_client)
+    emit.assert_called_once_with("PageLoad", 1, properties=dict(sponsors=["bob"]), now=SOME_DATE)
 
 
 def test_should_handle_pageloads_with_many_sponsors(sqs_client):
-    metrics = mock.Mock(spec_set=MetricsLogger)
     queue_url = "some-queue-url"
-    with Stubber(sqs_client) as stubber:
+    with Stubber(sqs_client) as stubber, mock.patch("stats.emit_metric") as emit:
         stubber.add_response("send_message", {}, dict(QueueUrl=queue_url, MessageBody=ANY))
         for expectation in ("bob", "alice", "crystal"):
             stubber.add_response(
                 "send_message", {}, dict(QueueUrl=queue_url, MessageBody=make_expected_body("SponsorView", expectation))
             )
-        handle_pageload(
-            dict(queryStringParameters=dict(icons="bob,alice,crystal")), metrics, SOME_DATE, queue_url, sqs_client
-        )
-    metrics.set_property.assert_called_once_with("sponsors", ["bob", "alice", "crystal"])
+        handle_pageload(dict(queryStringParameters=dict(icons="bob,alice,crystal")), SOME_DATE, queue_url, sqs_client)
+    emit.assert_called_once_with("PageLoad", 1, properties=dict(sponsors=["bob", "alice", "crystal"]), now=SOME_DATE)
 
 
 def test_should_handle_pageloads_with_many_sponsors_uri_encoded(sqs_client):
-    metrics = mock.Mock(spec_set=MetricsLogger)
     queue_url = "some-queue-url"
-    with Stubber(sqs_client) as stubber:
+    with Stubber(sqs_client) as stubber, mock.patch("stats.emit_metric") as emit:
         stubber.add_response("send_message", {}, dict(QueueUrl=queue_url, MessageBody=ANY))
         for expectation in ("bob", "alice", "crystal"):
             stubber.add_response(
                 "send_message", {}, dict(QueueUrl=queue_url, MessageBody=make_expected_body("SponsorView", expectation))
             )
         handle_pageload(
-            dict(queryStringParameters=dict(icons="bob%2Calice%2Ccrystal")), metrics, SOME_DATE, queue_url, sqs_client
+            dict(queryStringParameters=dict(icons="bob%2Calice%2Ccrystal")), SOME_DATE, queue_url, sqs_client
         )
-    metrics.set_property.assert_called_once_with("sponsors", ["bob", "alice", "crystal"])
+    emit.assert_called_once_with("PageLoad", 1, properties=dict(sponsors=["bob", "alice", "crystal"]), now=SOME_DATE)
 
 
 @pytest.mark.skip("run manually with creds")
