@@ -15,7 +15,7 @@ if [[ "$ID" == "ubuntu" ]] && [[ "${VERSION_ID%%.*}" -eq 22 ]]; then
 fi
 
 pushd /tmp
-curl -sL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb -o cuda_keyring.deb
+curl -sL "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${VERSION_ID//./}/x86_64/cuda-keyring_1.1-1_all.deb" -o cuda_keyring.deb
 dpkg -i cuda_keyring.deb
 rm cuda_keyring.deb
 popd
