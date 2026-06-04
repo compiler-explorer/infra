@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from alert_on_elb_instance import Reason, parse_sns_message
 
 UNHEALTHY_EVENT = dict(

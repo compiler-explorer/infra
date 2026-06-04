@@ -22,7 +22,6 @@ select = [
     "E", # pycodestyle errors,
     "W", # pycodestyle warnings
     "F", # pyflake
-    "FA", # pyflake future annotations
     "B", # flake8-bugbear
     "I", # isort
     "UP", # pyupgrade
@@ -32,6 +31,3 @@ select = [
 ignore = [
     "E501" # line length
 ]
-
-[tool.ruff.lint.isort]
-required-imports = ["from __future__ import annotations"]
