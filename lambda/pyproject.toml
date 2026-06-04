@@ -7,7 +7,6 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "aws-embedded-metrics",
     "requests==2.33.0"
 ]
 
