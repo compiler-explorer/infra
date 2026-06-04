@@ -163,8 +163,7 @@ def test_expand_make_arg(requests_mock):
     assert result == "--arch=x86_64 --build=Debug --std=f2018"
 
 
-@patch("subprocess.check_output")
-def test_get_conan_hash_success(mock_subprocess, requests_mock):
+def test_get_conan_hash_success(requests_mock):
     requests_mock.get(f"{BASE}fortran.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock()
@@ -174,15 +173,120 @@ def test_get_conan_hash_success(mock_subprocess, requests_mock):
         logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
     )
 
-    mock_subprocess.return_value = b"conanfile.py: ID: fortran123456\nOther output"
-    builder.current_buildparameters = ["-s", "os=Linux"]
+    builder.current_buildparameters_obj["os"] = "Linux"
+    builder.current_buildparameters_obj["buildtype"] = "Debug"
+    builder.current_buildparameters_obj["compiler"] = "fortran"
+    builder.current_buildparameters_obj["compiler_version"] = "f2018"
+    builder.current_buildparameters_obj["libcxx"] = "libgfortran"
+    builder.current_buildparameters_obj["arch"] = "x86_64"
+    builder.current_buildparameters_obj["stdver"] = ""
+    builder.current_buildparameters_obj["flagcollection"] = ""
+
+    requests_mock.get(
+        "https://conan.compiler-explorer.com/v1/conans/fortranlib/2.0.0/fortranlib/2.0.0/search",
+        json={
+            "fortran123456": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "fortran",
+                    "compiler.version": "f2018",
+                    "compiler.libcxx": "libgfortran",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
 
     result = builder.get_conan_hash("/tmp/buildfolder")
 
     assert result == "fortran123456"
-    mock_subprocess.assert_called_once_with(
-        ["conan", "info", "-r", "ceserver", "."] + builder.current_buildparameters, cwd="/tmp/buildfolder"
+
+
+def _make_fortran_builder_with_buildparams(requests_mock):
+    requests_mock.get(f"{BASE}fortran.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = False
+    build_config = create_fortran_test_build_config()
+    builder = FortranLibraryBuilder(
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
     )
+    builder.current_buildparameters_obj["compiler"] = "fortran"
+    builder.current_buildparameters_obj["compiler_version"] = "f2018"
+    builder.current_buildparameters_obj["arch"] = "x86_64"
+    builder.current_buildparameters_obj["libcxx"] = "libgfortran"
+    builder.current_buildparameters_obj["flagcollection"] = ""
+    return builder
+
+
+_FORTRAN_FAILED_URL = "https://conan.compiler-explorer.com/failedbuilds/fortranlib/2.0.0"
+
+
+def _fortran_failed_record(**overrides):
+    base = {
+        "compiler": "fortran",
+        "compiler_version": "f2018",
+        "arch": "x86_64",
+        "libcxx": "libgfortran",
+        "compiler_flags": "",
+        "commithash": "2.0.0",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_fortran_has_failed_before_caches_response(requests_mock):
+    builder = _make_fortran_builder_with_buildparams(requests_mock)
+    matcher = requests_mock.get(_FORTRAN_FAILED_URL, json=[_fortran_failed_record()])
+    assert builder.has_failed_before() is True
+    assert builder.has_failed_before() is True
+    assert matcher.call_count == 1
+
+
+def test_fortran_has_failed_before_stale_commit_returns_false(requests_mock):
+    builder = _make_fortran_builder_with_buildparams(requests_mock)
+    requests_mock.get(_FORTRAN_FAILED_URL, json=[_fortran_failed_record(commithash="prev")])
+    assert builder.has_failed_before() is False
+
+
+_FORTRAN_SEARCH_URL = "https://conan.compiler-explorer.com/v1/conans/fortranlib/2.0.0/fortranlib/2.0.0/search"
+_FORTRAN_ANNOTATIONS_URL = "https://conan.compiler-explorer.com/annotations/fortranlib/2.0.0"
+
+
+def test_fortran_is_already_uploaded_uses_bulk_annotations(requests_mock):
+    # Fortran's get_commit_hash falls back to target_name (here "2.0.0") when
+    # there's no .git directory at sourcefolder, which is the case in this test.
+    builder = _make_fortran_builder_with_buildparams(requests_mock)
+    builder.current_buildparameters_obj["os"] = "Linux"
+    builder.current_buildparameters_obj["buildtype"] = "Debug"
+    builder.current_buildparameters_obj["stdver"] = ""
+    requests_mock.get(
+        _FORTRAN_SEARCH_URL,
+        json={
+            "fhash": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "fortran",
+                    "compiler.version": "f2018",
+                    "compiler.libcxx": "libgfortran",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
+    matcher = requests_mock.get(
+        _FORTRAN_ANNOTATIONS_URL,
+        json=[{"buildhash": "fhash", "annotation": {"commithash": "2.0.0"}, "buildinfo": {}}],
+    )
+    assert builder.is_already_uploaded("/tmp/buildfolder1") is True
+    assert builder.is_already_uploaded("/tmp/buildfolder2") is True
+    assert matcher.call_count == 1
 
 
 @patch("subprocess.call")

@@ -1,0 +1,9 @@
+compilers:
+  overt:
+    type: tarballs
+    compression: xz
+    url: https://github.com/paulmooreparks/Overt/releases/download/v{{name}}/overt-{{name}}-linux-x64.tar.xz
+    check_exe: bin/overt --version
+    dir: overt-{{name}}
+    targets:
+      - 0.2.0-preview.1

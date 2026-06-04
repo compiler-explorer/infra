@@ -312,7 +312,10 @@ data "aws_iam_policy_document" "ScanLibraryBuildHistory" {
       "dynamodb:Scan",
       "dynamodb:Query"
     ]
-    resources = [aws_dynamodb_table.library-build-history.arn]
+    resources = [
+      aws_dynamodb_table.library-build-history.arn,
+      "${aws_dynamodb_table.library-build-history.arn}/index/*",
+    ]
   }
 }
 

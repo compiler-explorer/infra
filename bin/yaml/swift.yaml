@@ -11,6 +11,12 @@ compilers:
     after_stage_script:
       # work around insane installation issue
       - chmod og+r ./usr/lib/swift/CoreFoundation/*
+    oldest:
+      url: https://download.swift.org/{{build}}/ubuntu1510/{{toolchain}}/{{toolchain}}-ubuntu15.10.tar.gz
+      after_stage_script: '' # Don't need the CoreFoundation workaround
+      targets:
+        - '2.2'
+        - '2.2.1'
     older:
       url: https://download.swift.org/{{build}}/ubuntu1604/{{toolchain}}/{{toolchain}}-ubuntu16.04.tar.gz
       targets:
@@ -41,18 +47,27 @@ compilers:
       url: https://download.swift.org/{{build}}/ubuntu2204/{{toolchain}}/{{toolchain}}-ubuntu22.04.tar.gz
       targets:
           - '6.2'
+          - '6.2.4'
+          - '6.3'
 
     static-sdk:
-      url: https://download.swift.org/{{build}}/static-sdk/{{toolchain}}/{{toolchain}}_static-linux-0.0.1.artifactbundle.tar.gz
+      url: https://download.swift.org/{{build}}/static-sdk/{{toolchain}}/{{toolchain}}_static-linux-{{sdk_version}}.artifactbundle.tar.gz
       dir: swift-{{name}}-static-sdk
       strip_components: 2
       check_file: 'swift-linux-musl/swift-sdk.json'
       check_exe: '' # No compiler binary to check
       after_stage_script: '' # Don't need the CoreFoundation workaround
-      targets:
+      sdk-0-0-1:
+        sdk_version: '0.0.1'
+        targets:
           - '6.0.3'
           - '6.1'
           - '6.2'
+      sdk-0-1-0:
+        sdk_version: '0.1.0'
+        targets:
+          - '6.2.4'
+          - '6.3'
     nightly:
       if: nightly
       type: restQueryTarballs

@@ -50,9 +50,10 @@ def clear_for_library(library: str, library_version: str | None):
 
 @build_status.command(name="list-failed")
 @click.option("--library", default=None, help="Filter to a specific library name")
+@click.option("--version", "library_version", default=None, help="Filter to a specific library version")
 @click.option("--compiler-version", default=None, help="Filter to a specific compiler version (e.g. g141)")
 @click.option("--timeout", default=300, show_default=True, help="Request timeout in seconds")
-def list_failed(library: str | None, compiler_version: str | None, timeout: int):
+def list_failed(library: str | None, library_version: str | None, compiler_version: str | None, timeout: int):
     """List failed builds. At least one of --library or --compiler-version is required."""
     if not library and not compiler_version:
         raise click.ClickException(
@@ -68,6 +69,8 @@ def list_failed(library: str | None, compiler_version: str | None, timeout: int)
 
     if library:
         failed = [b for b in failed if b.get("library") == library]
+    if library_version:
+        failed = [b for b in failed if b.get("library_version") == library_version]
     if compiler_version:
         failed = [b for b in failed if b.get("compiler_version") == compiler_version]
 

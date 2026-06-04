@@ -30,6 +30,7 @@ on:
         - iwyu
         - jakt
         - lfortran
+        - lua
         - mads
         - micropython
         - nasm
@@ -40,7 +41,6 @@ on:
         - pythran
         - rocm
         - ruby
-        - rust-cg-gcc
         - rust-linux
         - vala
       version:

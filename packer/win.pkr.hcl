@@ -28,10 +28,14 @@ data "amazon-ami" "Server2022" {
   secret_key  = "${var.MY_SECRET_KEY}"
 }
 
-locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
+locals {
+  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
+  # Single source of truth for the Node version, shared with the Linux setup scripts.
+  node_version = trimspace(file("${path.cwd}/node-version"))
+}
 
 source "amazon-ebs" "Server2022" {
-  access_key = "${var.MY_ACCESS_KEY}"
+  access_key           = "${var.MY_ACCESS_KEY}"
   ami_name             = "compiler-explorer windows packer @ ${local.timestamp}"
   communicator         = "winrm"
   iam_instance_profile = "XaniaBlog"
@@ -52,7 +56,8 @@ build {
   sources = ["source.amazon-ebs.Server2022"]
 
   provisioner "powershell" {
-    scripts = ["./packer/InstallPwsh.ps1", "./packer/InstallTools.ps1"]
+    environment_vars = ["NODE_VERSION=${local.node_version}"]
+    scripts          = ["./packer/InstallPwsh.ps1", "./packer/InstallTools.ps1"]
   }
 
 }

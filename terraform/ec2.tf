@@ -1,7 +1,7 @@
 locals {
   runner_image_id        = "ami-05d4fb32368117b54"
   gpu_runner_image_id    = "ami-05df317ba6d2893be"
-  conan_image_id         = "ami-0b41dc7a318b530bd"
+  conan_image_id         = "ami-0243961999a0be147"
   smbserver_image_id     = "ami-01e7c7963a9c4755d"
   smbtestserver_image_id = "ami-0284c821376912369"
   admin_subnet           = module.ce_network.subnet["1a"].id
@@ -66,7 +66,7 @@ resource "aws_instance" "ConanNode" {
   }
 
   volume_tags = {
-    Name = "CEConanServerVol1"
+    Name = "ConanNodeRoot"
     Site = "CompilerExplorer"
   }
 
@@ -77,10 +77,35 @@ resource "aws_instance" "ConanNode" {
   }
 }
 
+# The conan-server data volume. Holds /home/ce/.conan_server (the conan
+# package store) and conanproxy's buildslogs.db. This is the single piece
+# of irreplaceable state on the conan-node -- everything else can be re-baked
+# from packer. prevent_destroy guards against an accidental terraform destroy
+# wiping the volume out; routine instance replacements detach/reattach via
+# aws_volume_attachment.ebs_conanserver below and don't touch this resource.
+resource "aws_ebs_volume" "conan_data" {
+  availability_zone = "us-east-1a"
+  size              = 600
+  type              = "gp2"
+  encrypted         = false
+
+  tags = {
+    Name = "CEConanServerVol1"
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "aws_volume_attachment" "ebs_conanserver" {
   device_name = "/dev/xvdb"
-  volume_id   = "vol-0a99526fcf7bcfc11"
+  volume_id   = aws_ebs_volume.conan_data.id
   instance_id = aws_instance.ConanNode.id
+  # Have terraform stop the instance (ACPI shutdown -> graceful systemd
+  # unmount of /home/ce/.conan_server) before detaching the data volume.
+  # Without this, destroy of this resource on an in-use volume hangs.
+  stop_instance_before_detaching = true
 }
 
 

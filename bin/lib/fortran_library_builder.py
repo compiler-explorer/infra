@@ -11,7 +11,6 @@ import re
 import shutil
 import subprocess
 import tempfile
-import time
 from collections import defaultdict
 from collections.abc import Generator
 from enum import Enum, unique
@@ -19,12 +18,24 @@ from pathlib import Path
 from typing import Any, TextIO
 
 import requests
-from urllib3.exceptions import ProtocolError
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.installation_context import FetchFailure, PostFailure
 from lib.library_build_config import LibraryBuildConfig
+from lib.library_builder import (
+    AnnotationsBulk,
+    FailedBuilds,
+    PossibleBuilds,
+    build_target_settings,
+    fetch_all_annotations,
+    fetch_failed_builds,
+    fetch_possible_builds,
+    find_matching_package_id,
+    match_failed_build,
+    resil_get,
+    resil_post,
+)
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
@@ -46,7 +57,6 @@ _propsandlibs: dict[str, Any] = defaultdict(lambda: [])
 _supports_x86: dict[str, Any] = defaultdict(lambda: [])
 
 GITCOMMITHASH_RE = re.compile(r"^(\w*)\s.*")
-CONANINFOHASH_RE = re.compile(r"\s+ID:\s(\w*)")
 
 
 def _quote(string: str) -> str:
@@ -98,7 +108,9 @@ class FortranLibraryBuilder:
         self.needs_uploading = 0
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
-        self._conan_hash_cache: dict[str, str | None] = {}
+        self._possible_builds: PossibleBuilds | None = None
+        self._failed_builds: FailedBuilds | None = None
+        self._annotations_bulk: AnnotationsBulk | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -251,30 +263,6 @@ class FortranLibraryBuilder:
         expanded = self.replace_optional_arg(expanded, "intelarch", intelarch)
 
         return expanded
-
-    def resil_post(self, url, json_data, headers=None):
-        request = None
-        retries = 3
-        last_error = ""
-        while retries > 0:
-            try:
-                if headers is not None:
-                    request = self.http_session.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
-                else:
-                    request = self.http_session.post(
-                        url, data=json_data, headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
-                    )
-
-                retries = 0
-            except ProtocolError as e:
-                last_error = e
-                retries = retries - 1
-                time.sleep(1)
-
-        if request is None:
-            request = {"ok": False, "text": last_error}
-
-        return request
 
     def writebuildscript(
         self,
@@ -450,25 +438,21 @@ class FortranLibraryBuilder:
 
         return compiler + "_" + hasher.hexdigest()
 
+    def _get_possible_builds(self) -> PossibleBuilds:
+        if self._possible_builds is None:
+            self._possible_builds = fetch_possible_builds(
+                self.libname,
+                self.target_name,
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._possible_builds
+
     def get_conan_hash(self, buildfolder: str) -> str | None:
-        if buildfolder in self._conan_hash_cache:
-            self.logger.debug(f"Using cached conan hash for {buildfolder}")
-            return self._conan_hash_cache[buildfolder]
-
-        if not self.install_context.dry_run:
-            self.logger.debug(["conan", "info", "."] + self.current_buildparameters)
-            conaninfo = subprocess.check_output(
-                ["conan", "info", "-r", "ceserver", "."] + self.current_buildparameters, cwd=buildfolder
-            ).decode("utf-8", "ignore")
-            self.logger.debug(conaninfo)
-            match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
-            if match:
-                result = match[1]
-                self._conan_hash_cache[buildfolder] = result
-                return result
-
-        self._conan_hash_cache[buildfolder] = None
-        return None
+        if self.install_context.dry_run:
+            return None
+        target = build_target_settings(self.current_buildparameters_obj)
+        return find_matching_package_id(self._get_possible_builds(), target)
 
     def conanproxy_login(self):
         url = f"{conanserver_url}/login"
@@ -476,7 +460,7 @@ class FortranLibraryBuilder:
         login_body = defaultdict(lambda: [])
         login_body["password"] = get_ssm_param("/compiler-explorer/conanpwd")
 
-        request = self.resil_post(url, json_data=json.dumps(login_body))
+        request = resil_post(self.http_session, url, json_data=json.dumps(login_body))
         if not request.ok:
             self.logger.info(request.text)
             raise PostFailure(f"Post failure for {url}: {request}")
@@ -510,7 +494,22 @@ class FortranLibraryBuilder:
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
-        return self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
+        result = resil_post(self.http_session, url, json_data=json.dumps(buildparameters_copy), headers=headers)
+
+        # Failed/TimedOut add a failure row server-side; Ok deletes one. Either way the cache is stale.
+        self._failed_builds = None
+
+        return result
+
+    def _get_annotations_bulk(self) -> AnnotationsBulk:
+        if self._annotations_bulk is None:
+            self._annotations_bulk = fetch_all_annotations(
+                self.libname,
+                self.target_name,
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._annotations_bulk
 
     def get_build_annotations(self, buildfolder):
         if buildfolder in self._annotations_cache:
@@ -523,19 +522,10 @@ class FortranLibraryBuilder:
             self._annotations_cache[buildfolder] = result
             return result
 
-        url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
-        with tempfile.TemporaryFile() as fd:
-            request = self.http_session.get(url, stream=True, timeout=_TIMEOUT)
-            if not request.ok:
-                raise FetchFailure(f"Fetch failure for {url}: {request}")
-            for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
-                fd.write(chunk)
-            fd.flush()
-            fd.seek(0)
-            buffer = fd.read()
-            result = json.loads(buffer)
-            self._annotations_cache[buildfolder] = result
-            return result
+        bulk_entry = self._get_annotations_bulk().get(conanhash, {})
+        result = dict(bulk_entry) if bulk_entry else defaultdict(lambda: [])
+        self._annotations_cache[buildfolder] = result
+        return result
 
     def get_commit_hash(self) -> str:
         if os.path.exists(f"{self.sourcefolder}/.git"):
@@ -557,18 +547,18 @@ class FortranLibraryBuilder:
         else:
             return self.target_name
 
+    def _get_failed_builds(self) -> FailedBuilds:
+        if self._failed_builds is None:
+            self._failed_builds = fetch_failed_builds(
+                self.libname,
+                self.target_name,
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._failed_builds
+
     def has_failed_before(self):
-        url = f"{conanserver_url}/whathasfailedbefore"
-        request = self.resil_post(url, json_data=json.dumps(self.current_buildparameters_obj))
-        if not request.ok:
-            raise PostFailure(f"Post failure for {url}: {request}")
-        else:
-            response = json.loads(request.content)
-            current_commit = self.get_commit_hash()
-            if response["commithash"] == current_commit:
-                return response["response"]
-            else:
-                return False
+        return match_failed_build(self._get_failed_builds(), self.current_buildparameters_obj, self.get_commit_hash())
 
     def is_already_uploaded(self, buildfolder):
         annotations = self.get_build_annotations(buildfolder)
@@ -581,15 +571,19 @@ class FortranLibraryBuilder:
             return False
 
     def set_as_uploaded(self, buildfolder):
+        # We need the conan package_id (a deterministic SHA from compiler+version+libcxx+arch+...)
+        # to PUT annotations against /annotations/{lib}/{ver}/{package_id}. get_conan_hash now
+        # derives the id by querying the server's /search index, which only lists packages
+        # already on the server -- so for a freshly built package, we must upload first.
+        annotations = self.get_build_annotations(buildfolder)
+        if "commithash" not in annotations:
+            self.upload_builds()
+
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
             raise RuntimeError(f"Error determining conan hash in {buildfolder}")
 
-        self.logger.info(f"commithash: {conanhash}")
-
-        annotations = self.get_build_annotations(buildfolder)
-        if "commithash" not in annotations:
-            self.upload_builds()
+        self.logger.info(f"conanhash: {conanhash}")
         annotations["commithash"] = self.get_commit_hash()
 
         self.logger.info(annotations)
@@ -597,9 +591,12 @@ class FortranLibraryBuilder:
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
-        request = self.resil_post(url, json_data=json.dumps(annotations), headers=headers)
+        request = resil_post(self.http_session, url, json_data=json.dumps(annotations), headers=headers)
         if not request.ok:
             raise PostFailure(f"Post failure for {url}: {request}")
+
+        # Just wrote a new annotation server-side; bulk cache is stale.
+        self._annotations_bulk = None
 
     def makebuildfor(
         self,
@@ -705,6 +702,7 @@ class FortranLibraryBuilder:
                 self.logger.debug("Clearing cache to speed up next upload")
                 subprocess.check_call(["conan", "remove", "-f", f"{self.libname}/{self.target_name}"])
             self.needs_uploading = 0
+            self._possible_builds = None
 
     def get_compiler_type(self, compiler):
         compilerType = ""
@@ -875,23 +873,29 @@ class FortranLibraryBuilder:
             for args in itertools.product(
                 build_supported_os, build_supported_buildtype, archs, stdvers, stdlibs, build_supported_flagscollection
             ):
-                with self.install_context.new_staging_dir() as staging:
-                    buildstatus = self.makebuildfor(
-                        compiler,
-                        options,
-                        exe,
-                        compilerType,
-                        toolchain,
-                        *args,
-                        self.compilerprops[compiler]["ldPath"],
-                        staging,
-                    )
-                    if buildstatus == BuildStatus.Ok:
-                        builds_succeeded = builds_succeeded + 1
-                    elif buildstatus == BuildStatus.Skipped:
-                        builds_skipped = builds_skipped + 1
-                    else:
-                        builds_failed = builds_failed + 1
+                try:
+                    with self.install_context.new_staging_dir() as staging:
+                        buildstatus = self.makebuildfor(
+                            compiler,
+                            options,
+                            exe,
+                            compilerType,
+                            toolchain,
+                            *args,
+                            self.compilerprops[compiler]["ldPath"],
+                            staging,
+                        )
+                        if buildstatus == BuildStatus.Ok:
+                            builds_succeeded = builds_succeeded + 1
+                        elif buildstatus == BuildStatus.Skipped:
+                            builds_skipped = builds_skipped + 1
+                        else:
+                            builds_failed = builds_failed + 1
+                except Exception:
+                    # Broad catch is intentional: one bad combination (e.g. conan rejecting a setting)
+                    # must not abort the rest of the batch.
+                    self.logger.exception(f"Build of {compiler} {args} failed with an unexpected exception")
+                    builds_failed = builds_failed + 1
 
             if builds_succeeded > 0:
                 self.upload_builds()

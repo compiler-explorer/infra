@@ -20,11 +20,11 @@ apt-get -y install \
     jq \
     nginx
 
-# Install Node.js 22.x (matching Lambda runtime)
+# Install Node.js (arm64 build matches the Lambda runtime major)
 pushd /opt
-TARGET_NODE_VERSION=v22.13.1
+TARGET_NODE_VERSION="v$(cat "${DIR}/node-version")"
 echo "Installing node ${TARGET_NODE_VERSION}"
-curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-arm64.tar.xz" | tar xJf - && mv node-${TARGET_NODE_VERSION}-linux-arm64 node
+curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-arm64.tar.xz" | tar xJf - && mv "node-${TARGET_NODE_VERSION}-linux-arm64" node
 popd
 
 

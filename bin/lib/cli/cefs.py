@@ -596,8 +596,46 @@ def consolidate(
 
         if recon_candidates:
             _LOGGER.info("Found %d items from consolidated images for reconsolidation", len(recon_candidates))
-            # Reconsolidation candidates are already in the right format
-            cefs_items.extend(recon_candidates)
+            # Filter out reconsolidation candidates whose name already appears as a fresh item.
+            # If both a fresh item and a reconsolidation item have the same name they would
+            # produce the same sanitized subdir_name and race when extracted in parallel.
+            fresh_names = {item.name for item in cefs_items}
+            filtered_recon = [c for c in recon_candidates if c.name not in fresh_names]
+            skipped_fresh = len(recon_candidates) - len(filtered_recon)
+            if skipped_fresh:
+                _LOGGER.info(
+                    "Skipping %d reconsolidation candidate(s) whose name already appears as a fresh item",
+                    skipped_fresh,
+                )
+
+            # Also deduplicate within reconsolidation candidates: if the same installable name
+            # appears in multiple old consolidated images (e.g. after multiple consolidation
+            # passes), keep the one from the most recently created consolidated image.
+            # Keeping duplicates causes a ValueError("Duplicate subdir name") when both are
+            # extracted in parallel. We prefer the newest image in case content ever diverged.
+            filtered_recon.sort(
+                key=lambda c: c.squashfs_path.stat().st_mtime if c.squashfs_path.exists() else 0,
+                reverse=True,  # newest first
+            )
+            seen_recon_names: set[str] = set()
+            deduped_recon = []
+            for candidate in filtered_recon:
+                if candidate.name in seen_recon_names:
+                    _LOGGER.info(
+                        "Skipping duplicate reconsolidation candidate '%s' (already included from a newer consolidated image)",
+                        candidate.name,
+                    )
+                else:
+                    seen_recon_names.add(candidate.name)
+                    deduped_recon.append(candidate)
+            skipped_dup = len(filtered_recon) - len(deduped_recon)
+            if skipped_dup:
+                _LOGGER.info(
+                    "Removed %d duplicate reconsolidation candidate(s) appearing in multiple consolidated images",
+                    skipped_dup,
+                )
+
+            cefs_items.extend(deduped_recon)
 
     if not cefs_items:
         _LOGGER.warning("No CEFS items found matching filter: %s", " ".join(filter_) if filter_ else "all")
@@ -821,6 +859,11 @@ def gc(context: CliContext, force: bool, min_age: str, include_broken: bool, cle
             raise click.ClickException(f"GC completed with {error_count} errors during analysis")
         return
 
+    installables_by_name = {
+        installable.name: installable for installable in context.get_installables([], bypass_enable_check=True)
+    }
+    destination_root = context.installation_context.destination
+
     _LOGGER.info("Unreferenced CEFS images to delete:")
     for image_path in unreferenced:
         try:
@@ -838,7 +881,7 @@ def gc(context: CliContext, force: bool, min_age: str, include_broken: bool, cle
         )
 
         # Show where each Installable in this image is currently installed
-        for line in get_installable_current_locations(image_path):
+        for line in get_installable_current_locations(image_path, installables_by_name, destination_root):
             _LOGGER.info(line)
 
     if context.installation_context.dry_run:

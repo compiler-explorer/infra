@@ -13,7 +13,7 @@ resource "aws_ecr_repository" "explain" {
 
 data "aws_ecr_image" "explain" {
   repository_name = aws_ecr_repository.explain.name
-  image_tag       = "gh-83"
+  image_tag       = "gh-100"
 }
 
 resource "aws_lambda_function" "explain" {
@@ -22,7 +22,7 @@ resource "aws_lambda_function" "explain" {
   image_uri     = data.aws_ecr_image.explain.image_uri
   function_name = "explain"
   role          = aws_iam_role.iam_for_lambda.arn # TODO separate role?
-  timeout       = 30
+  timeout       = 60
   memory_size   = 256
 
   depends_on = [aws_cloudwatch_log_group.explain]

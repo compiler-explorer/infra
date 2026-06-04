@@ -117,42 +117,10 @@ systemctl enable remote-syslog
 cp /infra/init/log-instance-id.service /lib/systemd/system/log-instance-id.service
 systemctl enable log-instance-id
 
-setup_grafana() {
-    local GRAFANA_CONFIG=/infra/grafana/agent.yaml
-    local GRAFANA_VERSION=0.41.1
-
-    pushd /tmp
-    curl -sLo agent-linux.zip "https://github.com/grafana/agent/releases/download/v${GRAFANA_VERSION}/grafana-agent-linux-${ARCH}.zip"
-    unzip agent-linux.zip
-    cp "grafana-agent-linux-${ARCH}" /usr/local/bin/grafana-agent
-    popd
-
-    local PROM_PASSWORD
-    local LOKI_PASSWORD
-    PROM_PASSWORD=$(get_conf /compiler-explorer/promPassword)
-    LOKI_PASSWORD=$(get_conf /compiler-explorer/lokiPassword)
-    mkdir -p /etc/grafana
-    cp $GRAFANA_CONFIG /etc/grafana/agent.yaml.tpl
-    sed -i "s/@PROM_PASSWORD@/${PROM_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
-    sed -i "s/@LOKI_PASSWORD@/${LOKI_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
-    chmod 600 /etc/grafana/agent.yaml.tpl
-    if [ "${INSTALL_TYPE}" = "ci" ]; then
-      cp /infra/grafana/make-config-ci.sh /etc/grafana/make-config.sh
-    elif [ "${INSTALL_TYPE}" = "admin" ]; then
-      cp /infra/grafana/make-config-admin.sh /etc/grafana/make-config.sh
-    else
-      cp /infra/grafana/make-config.sh /etc/grafana/make-config.sh
-    fi
-
-    cp /infra/grafana/update-metrics.sh /etc/grafana/update-metrics.sh
-    cp /infra/grafana/ce-metrics.service /lib/systemd/system/ce-metrics.service
-    cp /infra/grafana/grafana-agent.service /lib/systemd/system/grafana-agent.service
-
-    systemctl daemon-reload
-    systemctl enable ce-metrics
-    systemctl enable grafana-agent
-}
-setup_grafana
+# The default exclude regex ('^/.+$') keeps the legacy "/-only" behaviour for
+# nodes that have no real data mount. Hosts with extra data mounts (e.g.
+# conan-node) call install-agent.sh themselves with FS_IGNORE set.
+INSTALL_TYPE="${INSTALL_TYPE}" /infra/grafana/install-agent.sh
 
 # Skip NFS setup if SKIP_NFS_SETUP is set
 if [ "${SKIP_NFS_SETUP:-}" != "1" ]; then

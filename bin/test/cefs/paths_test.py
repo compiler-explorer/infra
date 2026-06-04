@@ -126,8 +126,8 @@ def test_parse_cefs_target_with_real_filesystem(tmp_path):
             "deeply nested consolidated",
         ),
         (
-            "/cefs/9d/9da642f6a4675f8305f992c02fd9cd019555cbfc2f00c4ba6f8110759aba43f9",
-            "9da642f6a4675f8305f992c02fd9cd019555cbfc2f00c4ba6f8110759aba43f9_gcc-assertions.sqfs",
+            "/cefs/ef/ef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            "ef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef_gcc-assertions.sqfs",
             False,
             "gcc-assertions example",
         ),

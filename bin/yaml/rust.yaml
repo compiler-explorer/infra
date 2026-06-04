@@ -107,6 +107,8 @@ compilers:
         - 1.92.0
         - 1.93.0
         - 1.94.0
+        - 1.95.0
+        - 1.96.0
       nightly:
         if: nightly
         targets:
@@ -119,11 +121,6 @@ compilers:
           check_exe: bin/gccrs --version
           targets:
             - gccrs-master
-        rustc-cg-gcc:
-          type: nightly
-          check_exe: "bin/rustc --version --verbose"
-          targets:
-            - master
         mrustc:
           type: nightly
           check_exe: bin/mrustc --version

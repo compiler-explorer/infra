@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import ast
 import io
 import os
@@ -7,12 +9,112 @@ from subprocess import TimeoutExpired
 from unittest import mock
 from unittest.mock import patch
 
-from lib.installation_context import InstallationContext
+import pytest
+import requests
+from lib.installation_context import FetchFailure, InstallationContext
 from lib.library_build_config import LibraryBuildConfig
-from lib.library_builder import BuildStatus, LibraryBuilder
+from lib.library_builder import (
+    BuildStatus,
+    LibraryBuilder,
+    build_timeout,
+    fetch_all_annotations,
+    fetch_failed_builds,
+    match_conan_settings,
+    match_failed_build,
+)
 from lib.library_platform import LibraryPlatform
 
 BASE = "https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/"
+
+
+# Direct unit tests for match_conan_settings -- the matcher logic ported from ceconan.ts.
+# These exercise the function in isolation, without the LibraryBuilder/HTTP scaffolding used
+# by the get_conan_hash tests further down.
+
+_TARGET_GCC = {
+    "os": "Linux",
+    "build_type": "Debug",
+    "compiler": "gcc",
+    "compiler.version": "g141",
+    "compiler.libcxx": "libstdc++",
+    "arch": "x86_64",
+    "stdver": "",
+    "flagcollection": "",
+}
+
+
+def _candidate(**overrides):
+    base = {**_TARGET_GCC}
+    base.update(overrides)
+    return base
+
+
+def test_match_conan_settings_exact():
+    assert match_conan_settings(_TARGET_GCC, _candidate()) is True
+
+
+def test_match_conan_settings_compiler_mismatch():
+    assert match_conan_settings(_TARGET_GCC, _candidate(compiler="clang", **{"compiler.version": "clang19"})) is False
+
+
+def test_match_conan_settings_libcxx_mismatch_real_compiler():
+    assert match_conan_settings(_TARGET_GCC, _candidate(**{"compiler.libcxx": "libc++"})) is False
+
+
+def test_match_conan_settings_arch_mismatch():
+    assert match_conan_settings(_TARGET_GCC, _candidate(arch="x86")) is False
+
+
+def test_match_conan_settings_os_mismatch():
+    assert match_conan_settings(_TARGET_GCC, _candidate(os="Windows")) is False
+
+
+def test_match_conan_settings_stdver_is_wildcard():
+    target = {**_TARGET_GCC, "stdver": "c++23"}
+    assert match_conan_settings(target, _candidate(stdver="")) is True
+    assert match_conan_settings(target, _candidate(stdver="c++17")) is True
+
+
+def test_match_conan_settings_headeronly_compiler_wildcard():
+    headeronly = _candidate(compiler="headeronly", **{"compiler.version": "headeronly"})
+    assert match_conan_settings(_TARGET_GCC, headeronly) is True
+
+
+def test_match_conan_settings_headeronly_bypasses_libcxx_and_arch():
+    headeronly = _candidate(
+        compiler="headeronly",
+        **{"compiler.version": "headeronly", "compiler.libcxx": "", "arch": ""},
+    )
+    target = {**_TARGET_GCC, "compiler.libcxx": "libc++", "arch": "x86"}
+    assert match_conan_settings(target, headeronly) is True
+
+
+def test_match_conan_settings_cshared_compiler_wildcard():
+    cshared = _candidate(compiler="cshared", **{"compiler.version": "cshared"})
+    assert match_conan_settings(_TARGET_GCC, cshared) is True
+
+
+def test_match_conan_settings_cshared_bypasses_libcxx_but_not_arch():
+    """Per the TS source: cshared wildcards libcxx; only headeronly wildcards arch."""
+    cshared = _candidate(
+        compiler="cshared",
+        **{"compiler.version": "cshared", "compiler.libcxx": "", "arch": "x86_64"},
+    )
+    # libcxx mismatch is allowed for cshared
+    target_diff_libcxx = {**_TARGET_GCC, "compiler.libcxx": "libc++"}
+    assert match_conan_settings(target_diff_libcxx, cshared) is True
+    # arch mismatch is NOT allowed for cshared
+    target_diff_arch = {**_TARGET_GCC, "arch": "x86"}
+    assert match_conan_settings(target_diff_arch, cshared) is False
+
+
+def test_match_conan_settings_missing_candidate_key_compares_to_empty():
+    """A missing key on the candidate side compares as empty string."""
+    target = {**_TARGET_GCC, "compiler.libcxx": "libstdc++"}
+    candidate = {k: v for k, v in _candidate().items() if k != "compiler.libcxx"}
+    assert match_conan_settings(target, candidate) is False
+    target_empty = {**_TARGET_GCC, "compiler.libcxx": ""}
+    assert match_conan_settings(target_empty, candidate) is True
 
 
 def create_test_build_config():
@@ -83,6 +185,54 @@ def test_can_write_conan_file(requests_mock):
         'self.cpp_info.libs = ["static1","static2","static1d","static2d","shared1","shared2","shared1d","shared2d"]'
         in lines
     )
+
+
+def test_script_run_logged_linux_uses_bash_failure_handling(requests_mock):
+    requests_mock.get(f"{BASE}lang.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    lb = LibraryBuilder(
+        logger,
+        "lang",
+        "somelib",
+        "target",
+        "src-folder",
+        install_context,
+        create_test_build_config(),
+        False,
+        LibraryPlatform.Linux,
+    )
+    line = lb.script_run_logged("cmake --build .", "cemakelog.txt", "cmake --build failed:")
+    assert line == (
+        "cmake --build . > cemakelog.txt 2>&1 || "
+        "{ echo 'cmake --build failed:' >&2; tail -200 cemakelog.txt >&2; exit 1; }\n"
+    )
+
+
+def test_script_run_logged_windows_uses_powershell_failure_handling(requests_mock):
+    requests_mock.get(f"{BASE}lang.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    lb = LibraryBuilder(
+        logger,
+        "lang",
+        "somelib",
+        "target",
+        "src-folder",
+        install_context,
+        create_test_build_config(),
+        False,
+        LibraryPlatform.Windows,
+    )
+    script = lb.script_run_logged("cmake --build .", "cemakelog.txt", "cmake --build failed:")
+    # Regression: bash `|| { ... >&2 ...; }` is a PowerShell ParserError, which broke all compiled
+    # cmake library builds on Windows (e.g. date/date-tz) after PR #2094.
+    assert "||" not in script
+    assert ">&2" not in script
+    assert "cmake --build . > cemakelog.txt 2>&1" in script
+    assert "if ($LASTEXITCODE -ne 0)" in script
+    assert "Get-Content -Tail 200 cemakelog.txt" in script
+    assert script.endswith("exit 1 }\n")
 
 
 def test_get_toolchain_path_from_options_gcc_toolchain(requests_mock):
@@ -225,8 +375,11 @@ def test_expand_make_arg(requests_mock):
     assert result == "-DARCH=x86_64 -DBUILD=Debug -DSTD=c++17"
 
 
-@patch("subprocess.check_output")
-def test_get_conan_hash_success(mock_subprocess, requests_mock):
+SEARCH_URL = "https://conan.compiler-explorer.com/v1/conans/testlib/1.0.0/testlib/1.0.0/search"
+
+
+def _make_builder_with_params(requests_mock, params_overrides=None):
+    """Build a LibraryBuilder with current_buildparameters_obj populated for hash matching."""
     requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock()
@@ -235,16 +388,260 @@ def test_get_conan_hash_success(mock_subprocess, requests_mock):
     builder = LibraryBuilder(
         logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
     )
+    params = {
+        "os": "Linux",
+        "buildtype": "Debug",
+        "compiler": "gcc",
+        "compiler_version": "g141",
+        "libcxx": "libstdc++",
+        "arch": "x86_64",
+        "stdver": "",
+        "flagcollection": "",
+    }
+    if params_overrides:
+        params.update(params_overrides)
+    for k, v in params.items():
+        builder.current_buildparameters_obj[k] = v
+    return builder
 
-    mock_subprocess.return_value = b"conanfile.py: ID: abc123def456\nOther output"
-    builder.current_buildparameters = ["-s", "os=Linux"]
+
+def test_get_conan_hash_success(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    requests_mock.get(
+        SEARCH_URL,
+        json={
+            "abc123def456": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "gcc",
+                    "compiler.version": "g141",
+                    "compiler.libcxx": "libstdc++",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            },
+            "other_hash": {"settings": {"compiler": "clang", "compiler.version": "clang1400"}},
+        },
+    )
 
     result = builder.get_conan_hash("/tmp/buildfolder")
 
     assert result == "abc123def456"
-    mock_subprocess.assert_called_once_with(
-        ["conan", "info", "-r", "ceserver", "."] + builder.current_buildparameters, cwd="/tmp/buildfolder"
+
+
+def test_get_conan_hash_dry_run_returns_none(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.install_context.dry_run = True
+    assert builder.get_conan_hash("/tmp/buildfolder") is None
+
+
+def test_get_conan_hash_empty_search_returns_none(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    requests_mock.get(SEARCH_URL, json={})
+    assert builder.get_conan_hash("/tmp/buildfolder") is None
+
+
+def test_get_conan_hash_404_returns_none(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    requests_mock.get(SEARCH_URL, status_code=404)
+    assert builder.get_conan_hash("/tmp/buildfolder") is None
+
+
+def test_get_conan_hash_500_raises(requests_mock):
+    """Non-404 server errors should propagate, not silently degrade."""
+    builder = _make_builder_with_params(requests_mock)
+    requests_mock.get(SEARCH_URL, status_code=500)
+    with pytest.raises(FetchFailure):
+        builder.get_conan_hash("/tmp/buildfolder")
+
+
+def test_get_conan_hash_non_dict_json_raises(requests_mock):
+    """Search responses that aren't a JSON object should propagate, not silently degrade."""
+    builder = _make_builder_with_params(requests_mock)
+    requests_mock.get(SEARCH_URL, json=["not", "an", "object"])
+    with pytest.raises(FetchFailure):
+        builder.get_conan_hash("/tmp/buildfolder")
+
+
+def test_get_conan_hash_headeronly_matches_any_compiler(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    requests_mock.get(
+        SEARCH_URL,
+        json={
+            "headeronly_hash": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "headeronly",
+                    "compiler.version": "headeronly",
+                    "compiler.libcxx": "",
+                    "arch": "",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
     )
+    assert builder.get_conan_hash("/tmp/buildfolder") == "headeronly_hash"
+
+
+def test_get_conan_hash_cshared_matches_any_compiler(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    requests_mock.get(
+        SEARCH_URL,
+        json={
+            "cshared_hash": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "cshared",
+                    "compiler.version": "cshared",
+                    "compiler.libcxx": "",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
+    assert builder.get_conan_hash("/tmp/buildfolder") == "cshared_hash"
+
+
+def test_get_conan_hash_stdver_is_wildcard(requests_mock):
+    builder = _make_builder_with_params(requests_mock, {"stdver": "c++23"})
+    requests_mock.get(
+        SEARCH_URL,
+        json={
+            "h": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "gcc",
+                    "compiler.version": "g141",
+                    "compiler.libcxx": "libstdc++",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
+    assert builder.get_conan_hash("/tmp/buildfolder") == "h"
+
+
+def test_get_conan_hash_libcxx_mismatch_returns_none(requests_mock):
+    builder = _make_builder_with_params(requests_mock, {"libcxx": "libstdc++"})
+    requests_mock.get(
+        SEARCH_URL,
+        json={
+            "h": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "gcc",
+                    "compiler.version": "g141",
+                    "compiler.libcxx": "libc++",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
+    assert builder.get_conan_hash("/tmp/buildfolder") is None
+
+
+def test_get_conan_hash_caches_search_response(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    matcher = requests_mock.get(
+        SEARCH_URL,
+        json={
+            "h": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "gcc",
+                    "compiler.version": "g141",
+                    "compiler.libcxx": "libstdc++",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
+
+    builder.get_conan_hash("/tmp/build1")
+    builder.get_conan_hash("/tmp/build2")
+
+    assert matcher.call_count == 1
+
+
+@patch("subprocess.check_call")
+def test_upload_builds_invalidates_search_cache(mock_subprocess, requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    matcher = requests_mock.get(
+        SEARCH_URL,
+        json={
+            "h": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "gcc",
+                    "compiler.version": "g141",
+                    "compiler.libcxx": "libstdc++",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
+    builder.needs_uploading = 1
+
+    builder.get_conan_hash("/tmp/build1")
+    builder.upload_builds()
+    builder.get_conan_hash("/tmp/build2")
+
+    assert matcher.call_count == 2
+
+
+@patch("subprocess.check_call")
+def test_set_as_uploaded_first_time_does_not_raise(mock_subprocess, requests_mock):
+    """Regression test: set_as_uploaded must not raise on a never-before-uploaded build.
+
+    Reproduces the bug where get_conan_hash was called BEFORE upload_builds, so the
+    search response (which only includes already-uploaded packages) returned None.
+    """
+    builder = _make_builder_with_params(requests_mock)
+    builder.conanserverproxy_token = "test-token"
+
+    matched_settings = {
+        "os": "Linux",
+        "build_type": "Debug",
+        "compiler": "gcc",
+        "compiler.version": "g141",
+        "compiler.libcxx": "libstdc++",
+        "arch": "x86_64",
+        "stdver": "",
+        "flagcollection": "",
+    }
+    # First search call (from get_build_annotations) returns empty: package not yet uploaded.
+    # After upload_builds invalidates the cache, the second search call returns our package.
+    requests_mock.get(SEARCH_URL, [{"json": {}}, {"json": {"freshly_uploaded_hash": {"settings": matched_settings}}}])
+    requests_mock.post(
+        "https://conan.compiler-explorer.com/annotations/testlib/1.0.0/freshly_uploaded_hash",
+        json={"ok": True},
+    )
+
+    builder.needs_uploading = 1
+    builder.current_commit_hash = "abc123"
+
+    builder.set_as_uploaded("/tmp/buildfolder")
+
+    mock_subprocess.assert_called()
 
 
 @patch("subprocess.call")
@@ -262,7 +659,7 @@ def test_execute_build_script_success(mock_subprocess, requests_mock):
     result = builder.executebuildscript("/tmp/buildfolder")
 
     assert result == BuildStatus.Ok
-    mock_subprocess.assert_called_once_with(["./cebuild.sh"], cwd="/tmp/buildfolder", timeout=600)
+    mock_subprocess.assert_called_once_with(["./cebuild.sh"], cwd="/tmp/buildfolder", timeout=build_timeout)
 
 
 @patch("subprocess.call")
@@ -385,3 +782,254 @@ def test_count_headers(mock_glob, requests_mock):
 
     assert result == 3
     assert mock_glob.call_count == 2
+
+
+# Direct unit tests for match_failed_build.
+
+_FAILED_PARAMS = {
+    "compiler": "gcc",
+    "compiler_version": "g141",
+    "arch": "x86_64",
+    "libcxx": "libstdc++",
+    "flagcollection": "",
+}
+
+
+def _failed_record(**overrides):
+    base = {
+        "compiler": "gcc",
+        "compiler_version": "g141",
+        "arch": "x86_64",
+        "libcxx": "libstdc++",
+        "compiler_flags": "",
+        "commithash": "abc123",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_match_failed_build_exact_match_with_commit_filter():
+    assert match_failed_build([_failed_record()], _FAILED_PARAMS, "abc123") is True
+
+
+def test_match_failed_build_stale_commit_returns_false():
+    assert match_failed_build([_failed_record(commithash="old")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_no_commit_filter_matches_any_commit():
+    assert match_failed_build([_failed_record(commithash="old")], _FAILED_PARAMS, None) is True
+
+
+def test_match_failed_build_compiler_mismatch():
+    assert match_failed_build([_failed_record(compiler="clang")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_version_mismatch():
+    assert match_failed_build([_failed_record(compiler_version="g131")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_arch_mismatch():
+    assert match_failed_build([_failed_record(arch="x86")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_libcxx_mismatch():
+    assert match_failed_build([_failed_record(libcxx="libc++")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_flagcollection_mismatch():
+    assert match_failed_build([_failed_record(compiler_flags="-std=c++23")], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_empty_records_returns_false():
+    assert match_failed_build([], _FAILED_PARAMS, "abc123") is False
+
+
+def test_match_failed_build_finds_match_among_many():
+    records = [
+        _failed_record(compiler="clang", compiler_version="c1700"),
+        _failed_record(),
+        _failed_record(compiler="gcc", compiler_version="g131"),
+    ]
+    assert match_failed_build(records, _FAILED_PARAMS, "abc123") is True
+
+
+# Direct unit tests for fetch_failed_builds.
+
+_FAILED_URL = "https://conan.compiler-explorer.com/failedbuilds/testlib/1.0.0"
+
+
+def _fetch(url):
+    return requests.get(url, timeout=5)
+
+
+def test_fetch_failed_builds_returns_list(requests_mock):
+    requests_mock.get(_FAILED_URL, json=[_failed_record()])
+    logger = mock.Mock(spec_set=Logger)
+    result = fetch_failed_builds("testlib", "1.0.0", _fetch, logger)
+    assert result == [_failed_record()]
+
+
+def test_fetch_failed_builds_404_returns_empty(requests_mock):
+    requests_mock.get(_FAILED_URL, status_code=404)
+    logger = mock.Mock(spec_set=Logger)
+    result = fetch_failed_builds("testlib", "1.0.0", _fetch, logger)
+    assert result == []
+
+
+def test_fetch_failed_builds_500_raises(requests_mock):
+    requests_mock.get(_FAILED_URL, status_code=500)
+    logger = mock.Mock(spec_set=Logger)
+    with pytest.raises(FetchFailure):
+        fetch_failed_builds("testlib", "1.0.0", _fetch, logger)
+
+
+def test_fetch_failed_builds_non_list_json_raises(requests_mock):
+    requests_mock.get(_FAILED_URL, json={"not": "a list"})
+    logger = mock.Mock(spec_set=Logger)
+    with pytest.raises(FetchFailure):
+        fetch_failed_builds("testlib", "1.0.0", _fetch, logger)
+
+
+# Behavioural tests on LibraryBuilder.has_failed_before.
+
+
+def test_has_failed_before_caches_endpoint_response(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    matcher = requests_mock.get(_FAILED_URL, json=[_failed_record()])
+    assert builder.has_failed_before() is True
+    assert builder.has_failed_before() is True
+    assert matcher.call_count == 1
+
+
+def test_has_failed_before_stale_commit_returns_false(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    requests_mock.get(_FAILED_URL, json=[_failed_record(commithash="prev")])
+    assert builder.has_failed_before() is False
+
+
+def test_has_failed_before_no_records_returns_false(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    requests_mock.get(_FAILED_URL, json=[])
+    assert builder.has_failed_before() is False
+
+
+# Direct unit tests for fetch_all_annotations.
+
+_ANNOTATIONS_BULK_URL = "https://conan.compiler-explorer.com/annotations/testlib/1.0.0"
+
+
+def test_fetch_all_annotations_returns_dict_keyed_by_buildhash(requests_mock):
+    requests_mock.get(
+        _ANNOTATIONS_BULK_URL,
+        json=[
+            {"buildhash": "h1", "annotation": {"commithash": "abc123"}, "buildinfo": {}},
+            {"buildhash": "h2", "annotation": {"commithash": "def456"}, "buildinfo": {}},
+        ],
+    )
+    logger = mock.Mock(spec_set=Logger)
+    result = fetch_all_annotations("testlib", "1.0.0", _fetch, logger)
+    assert result == {"h1": {"commithash": "abc123"}, "h2": {"commithash": "def456"}}
+
+
+def test_fetch_all_annotations_skips_malformed_entries(requests_mock):
+    requests_mock.get(
+        _ANNOTATIONS_BULK_URL,
+        json=[
+            {"buildhash": "h1", "annotation": {"commithash": "abc"}, "buildinfo": {}},
+            {"buildhash": "h2"},  # missing annotation
+            {"annotation": {"commithash": "def"}},  # missing buildhash
+            "not-a-dict",
+        ],
+    )
+    logger = mock.Mock(spec_set=Logger)
+    result = fetch_all_annotations("testlib", "1.0.0", _fetch, logger)
+    assert result == {"h1": {"commithash": "abc"}}
+
+
+def test_fetch_all_annotations_404_returns_empty(requests_mock):
+    requests_mock.get(_ANNOTATIONS_BULK_URL, status_code=404)
+    logger = mock.Mock(spec_set=Logger)
+    assert fetch_all_annotations("testlib", "1.0.0", _fetch, logger) == {}
+
+
+def test_fetch_all_annotations_500_raises(requests_mock):
+    requests_mock.get(_ANNOTATIONS_BULK_URL, status_code=500)
+    logger = mock.Mock(spec_set=Logger)
+    with pytest.raises(FetchFailure):
+        fetch_all_annotations("testlib", "1.0.0", _fetch, logger)
+
+
+def test_fetch_all_annotations_non_list_raises(requests_mock):
+    requests_mock.get(_ANNOTATIONS_BULK_URL, json={"not": "a list"})
+    logger = mock.Mock(spec_set=Logger)
+    with pytest.raises(FetchFailure):
+        fetch_all_annotations("testlib", "1.0.0", _fetch, logger)
+
+
+# Behavioural tests on LibraryBuilder.is_already_uploaded via the bulk-annotations cache.
+
+
+def _matched_settings_dict(**overrides):
+    base = {
+        "os": "Linux",
+        "build_type": "Debug",
+        "compiler": "gcc",
+        "compiler.version": "g141",
+        "compiler.libcxx": "libstdc++",
+        "arch": "x86_64",
+        "stdver": "",
+        "flagcollection": "",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_is_already_uploaded_uses_bulk_annotations(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    # /search returns one matching package
+    requests_mock.get(SEARCH_URL, json={"hash1": {"settings": _matched_settings_dict()}})
+    # bulk annotations contains the matching commithash
+    bulk_matcher = requests_mock.get(
+        _ANNOTATIONS_BULK_URL,
+        json=[{"buildhash": "hash1", "annotation": {"commithash": "abc123"}, "buildinfo": {}}],
+    )
+    assert builder.is_already_uploaded("/tmp/buildfolder1") is True
+    assert bulk_matcher.call_count == 1
+
+
+def test_is_already_uploaded_caches_bulk_across_buildfolders(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    requests_mock.get(SEARCH_URL, json={"hash1": {"settings": _matched_settings_dict()}})
+    bulk_matcher = requests_mock.get(
+        _ANNOTATIONS_BULK_URL,
+        json=[{"buildhash": "hash1", "annotation": {"commithash": "abc123"}, "buildinfo": {}}],
+    )
+    # Two iterations, two distinct buildfolders → bulk should be fetched once
+    assert builder.is_already_uploaded("/tmp/buildfolder1") is True
+    assert builder.is_already_uploaded("/tmp/buildfolder2") is True
+    assert bulk_matcher.call_count == 1
+
+
+def test_is_already_uploaded_returns_false_when_commithash_differs(requests_mock):
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    requests_mock.get(SEARCH_URL, json={"hash1": {"settings": _matched_settings_dict()}})
+    requests_mock.get(
+        _ANNOTATIONS_BULK_URL,
+        json=[{"buildhash": "hash1", "annotation": {"commithash": "OLD"}, "buildinfo": {}}],
+    )
+    assert builder.is_already_uploaded("/tmp/buildfolder") is False
+
+
+def test_is_already_uploaded_returns_false_when_hash_missing_from_bulk(requests_mock):
+    """conanhash matches in /search but no annotation has been written yet."""
+    builder = _make_builder_with_params(requests_mock)
+    builder.current_commit_hash = "abc123"
+    requests_mock.get(SEARCH_URL, json={"hash1": {"settings": _matched_settings_dict()}})
+    requests_mock.get(_ANNOTATIONS_BULK_URL, json=[])
+    assert builder.is_already_uploaded("/tmp/buildfolder") is False

@@ -13,14 +13,14 @@ repos:
       - id: check-toml
       - id: detect-private-key
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.9
+    rev: v0.15.15
     hooks:
       - id: ruff
         args: [ --fix, --preview ]
       - id: ruff-format
         args: [ --preview ]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.1
+    rev: v2.1.0
     hooks:
       - id: mypy
         additional_dependencies:
@@ -35,8 +35,10 @@ repos:
     rev: 3.0.0
     hooks:
       - id: shellcheck
+        # severity is CLI-only (not a valid .shellcheckrc directive); gate on errors.
+        args: ["--severity=error"]
   - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.100.0
+    rev: v1.106.0
     hooks:
       - id: terraform_fmt
       - id: terraform_validate

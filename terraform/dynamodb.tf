@@ -326,6 +326,19 @@ resource "aws_dynamodb_table" "library-build-history" {
     name = "compiler"
     type = "S"
   }
+
+  global_secondary_index {
+    name = "compiler-library-index"
+    key_schema {
+      attribute_name = "compiler"
+      key_type       = "HASH"
+    }
+    key_schema {
+      attribute_name = "library"
+      key_type       = "RANGE"
+    }
+    projection_type = "ALL"
+  }
 }
 
 resource "aws_dynamodb_table" "goo_gl_links" {

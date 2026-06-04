@@ -67,9 +67,11 @@ def expand_target(target: MutableMapping[str, Any], context: list[str]) -> Mutab
         for key, value in target.items():
             try:
                 if is_list_of_strings(value):
-                    target[key] = [expand_one(x, target) for x in value]
+                    if any(string_needs_expansion(x) for x in value):
+                        target[key] = [expand_one(x, target) if string_needs_expansion(x) else x for x in value]
                 elif isinstance(value, str):
-                    target[key] = expand_one(value, target)
+                    if string_needs_expansion(value):
+                        target[key] = expand_one(value, target)
                 elif isinstance(value, float):
                     target[key] = str(value)
             except KeyError as ke:

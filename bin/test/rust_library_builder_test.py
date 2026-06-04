@@ -54,8 +54,7 @@ def test_makebuildhash(requests_mock):
     assert len(result) > len("rustc-1.70_")
 
 
-@patch("subprocess.check_output")
-def test_get_conan_hash_success(mock_subprocess, requests_mock):
+def test_get_conan_hash_success(requests_mock):
     requests_mock.get(f"{BASE}rust.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock()
@@ -63,15 +62,123 @@ def test_get_conan_hash_success(mock_subprocess, requests_mock):
     build_config = create_rust_test_build_config()
     builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
 
-    mock_subprocess.return_value = b"conanfile.py: ID: rust123456\nOther output"
-    builder.current_buildparameters = ["-s", "os=Linux"]
+    builder.current_buildparameters_obj["os"] = "Linux"
+    builder.current_buildparameters_obj["buildtype"] = "Debug"
+    builder.current_buildparameters_obj["compiler"] = "rustc"
+    builder.current_buildparameters_obj["compiler_version"] = "rustc-1.70"
+    builder.current_buildparameters_obj["libcxx"] = ""
+    builder.current_buildparameters_obj["arch"] = "x86_64"
+    builder.current_buildparameters_obj["stdver"] = ""
+    builder.current_buildparameters_obj["flagcollection"] = ""
+
+    requests_mock.get(
+        "https://conan.compiler-explorer.com/v1/conans/rustlib/1.0.0/rustlib/1.0.0/search",
+        json={
+            "rust123456": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "rustc",
+                    "compiler.version": "rustc-1.70",
+                    "compiler.libcxx": "",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
 
     result = builder.get_conan_hash("/tmp/buildfolder")
 
     assert result == "rust123456"
-    mock_subprocess.assert_called_once_with(
-        ["conan", "info", "-r", "ceserver", "."] + builder.current_buildparameters, cwd="/tmp/buildfolder"
+
+
+_RUST_FAILED_URL = "https://conan.compiler-explorer.com/failedbuilds/rustlib/1.0.0"
+
+
+def _make_rust_builder(requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = False
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder.current_buildparameters_obj["compiler"] = "rustc"
+    builder.current_buildparameters_obj["compiler_version"] = "rustc-1.70"
+    builder.current_buildparameters_obj["arch"] = "x86_64"
+    builder.current_buildparameters_obj["libcxx"] = ""
+    return builder
+
+
+def _rust_failed_record(**overrides):
+    base = {
+        "compiler": "rustc",
+        "compiler_version": "rustc-1.70",
+        "arch": "x86_64",
+        "libcxx": "",
+        "compiler_flags": "release",
+        "commithash": "any",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_rust_has_failed_before_overrides_flagcollection_from_build_method(requests_mock):
+    builder = _make_rust_builder(requests_mock)
+    requests_mock.get(_RUST_FAILED_URL, json=[_rust_failed_record(compiler_flags="release")])
+    assert builder.has_failed_before({"build_method": "release"}) is True
+    assert builder.has_failed_before({"build_method": "debug"}) is False
+
+
+def test_rust_has_failed_before_caches_response(requests_mock):
+    builder = _make_rust_builder(requests_mock)
+    matcher = requests_mock.get(_RUST_FAILED_URL, json=[_rust_failed_record(compiler_flags="release")])
+    builder.has_failed_before({"build_method": "release"})
+    builder.has_failed_before({"build_method": "release"})
+    assert matcher.call_count == 1
+
+
+def test_rust_has_failed_before_matches_regardless_of_commithash(requests_mock):
+    builder = _make_rust_builder(requests_mock)
+    requests_mock.get(_RUST_FAILED_URL, json=[_rust_failed_record(compiler_flags="release", commithash="ancient")])
+    assert builder.has_failed_before({"build_method": "release"}) is True
+
+
+_RUST_SEARCH_URL = "https://conan.compiler-explorer.com/v1/conans/rustlib/1.0.0/rustlib/1.0.0/search"
+_RUST_ANNOTATIONS_URL = "https://conan.compiler-explorer.com/annotations/rustlib/1.0.0"
+
+
+def test_rust_is_already_uploaded_uses_bulk_annotations(requests_mock):
+    builder = _make_rust_builder(requests_mock)
+    builder.current_buildparameters_obj["os"] = "Linux"
+    builder.current_buildparameters_obj["buildtype"] = "Debug"
+    builder.current_buildparameters_obj["stdver"] = ""
+    requests_mock.get(
+        _RUST_SEARCH_URL,
+        json={
+            "rhash": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "rustc",
+                    "compiler.version": "rustc-1.70",
+                    "compiler.libcxx": "",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
     )
+    matcher = requests_mock.get(
+        _RUST_ANNOTATIONS_URL,
+        json=[{"buildhash": "rhash", "annotation": {"commithash": "1.0.0"}, "buildinfo": {}}],
+    )
+    # Rust uses target_name as commit_hash, so 1.0.0 matches
+    assert builder.is_already_uploaded("/tmp/buildfolder1", "/tmp/source") is True
+    assert builder.is_already_uploaded("/tmp/buildfolder2", "/tmp/source") is True
+    assert matcher.call_count == 1
 
 
 @patch("subprocess.call")

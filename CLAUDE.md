@@ -23,6 +23,10 @@ When writing, especially PRs and commit messages:
 - Build events lambda package: `make events-lambda-package`
 - **NEVER USE THE SYSTEM PYTHON** - always use `uv` to invoke python or pytest or to run experiments with python syntax
 
+## Documentation
+
+This repository has extensive documentation in the `docs/` directory. Before making changes to a subsystem, read the relevant documentation first. Existing CLI commands, library configuration, and infrastructure patterns are already documented -- don't reinvent or guess at behavior that's written down.
+
 ## Important Workflow Requirements
 
 - ALWAYS run pre-commit hooks before committing: `make pre-commit`
@@ -206,6 +210,16 @@ The CLI system (`bin/ce`) uses Click framework with a modular command structure:
    def subcommand():
        """Subcommand description."""
    ```
+
+## Admin Instance
+
+The admin instance runs fish as its default shell, so `ce` is not in its path. Use the full path when running commands remotely:
+
+```bash
+bin/ce admin exec /home/ubuntu/infra/bin/ce conan restart
+```
+
+After restarting the conan proxy, wait ~10 seconds before making requests to it -- it returns 502 while starting up.
 
 ## GitHub Workflow Integration
 
@@ -602,7 +616,7 @@ Library YAML settings, build types, library types (`cshared`, `shared`, `static`
 
 The `ce_install build-status` command group manages build failure records on the Conan proxy server. Failed builds are tracked so they are not re-attempted; these commands allow clearing that status.
 
-- **`ce_install build-status list-failed`** - List failed builds (requires at least one of `--library` or `--compiler-version`)
+- **`ce_install build-status list-failed`** - List failed builds (requires at least one of `--library` or `--compiler-version`; optional `--version` to filter by library version)
 - **`ce_install build-status clear-for-library LIBRARY [--version VERSION]`** - Clear failures for a library
 - **`ce_install build-status clear-for-compiler COMPILER_VERSION`** - Clear failures for a compiler (e.g. `g141`, `clang1400`)
 

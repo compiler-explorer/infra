@@ -18,8 +18,6 @@ jobs:
 
     steps:
     - name: Update infra
-      run: cd /home/ubuntu/infra && git pull
-    - name: Set build number
-      run: ce builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
-    - name: Start environment
-      run: ce environment start
+      run: cd /home/ubuntu/infra && git pull && make ce
+    - name: Blue-green deploy to staging
+      run: ce --env staging blue-green deploy --branch ${{ github.event.inputs.branch }} --skip-confirmation --no-notify ${{ github.event.inputs.buildnumber }}

@@ -55,12 +55,53 @@ Set via `lib_type`. Determines what the build produces and how CE links the libr
 
 | Value | Description |
 |---|---|
-| `headeronly` | No compiled output. Source/headers only. Cannot have `staticliblink` or `sharedliblink`. |
+| `headeronly` | No compiled output. Source/headers only. Cannot have `staticliblink` or `sharedliblink`. The build pipeline early-returns for header-only libs on Linux -- no per-compiler build runs. |
+| `cmake_built_headeronly` | Header-only artifact (no `.a`/`.so`), but the cmake build script runs **per compiler** so that `configure_file` substitutions and generated CMake package config files end up in the install tree. Requires `build_type: cmake` and `package_install: true`; cannot have `staticliblink`/`sharedliblink`. See [cmake_built_headeronly in depth](#cmake_built_headeronly-in-depth). |
 | `static` | Produces static archives (`.a` / `.lib`). |
 | `shared` | Produces shared objects (`.so` / `.dll`) linked against C++ stdlib. |
 | `cshared` | C shared library with no C++ stdlib dependency. Requires `use_compiler`. See [cshared in depth](#cshared-in-depth). |
 
 Parsed and validated in `bin/lib/library_build_config.py:LibraryBuildConfig`.
+
+### `cmake_built_headeronly` in depth
+
+This is for libraries whose *shipped artifact* is a tree of headers (no compiled
+archive), but whose *build* genuinely needs to run cmake — typically because the
+upstream CMakeLists uses `configure_file` to substitute a `config.hpp.in`
+template, or because `cmake --install` writes generated CMake package config
+files (`lib/cmake/<name>/<name>-config.cmake` etc.) that downstream `find_package`
+consumers depend on.
+
+It is distinct from plain `headeronly` in two important ways:
+
+- **`headeronly`** assumes the headers are usable straight out of the source
+  clone. The build pipeline early-returns; the lib is installed once into
+  `/opt/compiler-explorer/libs/<lib>/<ver>/` and every compiler shares that
+  single tree.
+- **`cmake_built_headeronly`** runs the cmake configure / build / install per
+  (compiler, arch, libcxx) combination, exactly like a `static` lib would. The
+  install tree is uploaded to conan and CE delivers the right per-compiler
+  tarball at user-compile time. The only thing it skips is the
+  `countValidLibraryBinaries` step (which would fail on an INTERFACE-target
+  cmake project that produces no `.a`).
+
+It is distinct from `static` in that the build pipeline does not require a
+`lib<name>.a` archive to be produced; the post-build check uses `countHeaders`
+on `<install>/include` instead.
+
+Why it's `cmake_built_headeronly` rather than just `headeronly` + `build_type:
+cmake`: the two are *not* orthogonal in the existing codebase -- there are
+already libraries (fmt, googletest, catch2, benchmark, date, dlib, gcem, ...)
+that combine the implicit default `lib_type: headeronly` with `build_type:
+cmake`, and rely on the build being silently skipped. Making the existing
+`headeronly` honour `build_type` would change behaviour for all of those.
+`cmake_built_headeronly` is an explicit opt-in.
+
+CE properties for a `cmake_built_headeronly` library should use
+`packagedheaders=true` plus `lookupversion=<install-dir>` per version (the same
+pattern as a `packagedheaders=true` static lib), and must not declare
+`staticliblink`. See `libs.beman_iterator_interface` in
+`compiler-explorer/etc/config/c++.amazon.properties` for a worked example.
 
 ### `cshared` in depth
 

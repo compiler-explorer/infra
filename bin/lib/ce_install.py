@@ -4,7 +4,6 @@ from __future__ import annotations
 import fnmatch
 import json
 import logging
-import logging.config
 import multiprocessing
 import os
 import signal
@@ -736,11 +735,15 @@ def squash_check(
         sys.exit(0)
 
 
-def _should_install(force: bool, installable: Installable) -> tuple[Installable, bool]:
+def should_install_helper(force: bool, installable: Installable) -> tuple[Installable, bool]:
     try:
         return installable, force or installable.should_install()
     except (OSError, RuntimeError) as ex:
-        raise RuntimeError(f"Unable to install {installable}") from ex
+        # Don't let a failed up-to-date check abort the whole run: assume it needs installing so the
+        # failure surfaces per-item in the install loop (and is reported in the final summary) rather
+        # than killing the batch here inside pool.map.
+        _LOGGER.error("Error checking whether to install %s, will attempt anyway: %s", installable, ex)
+        return installable, True
 
 
 @cli.command()
@@ -754,7 +757,7 @@ def install(context: CliContext, filter_: list[str], force: bool):
     failed = []
 
     with context.pool() as pool:
-        to_do = pool.map(partial(_should_install, force), context.get_installables(filter_))
+        to_do = pool.map(partial(should_install_helper, force), context.get_installables(filter_))
 
     for installable, should_install in to_do:
         print(f"Installing {installable.name}")

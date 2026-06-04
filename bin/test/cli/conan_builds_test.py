@@ -112,6 +112,17 @@ class TestListFailed(unittest.TestCase):
         self.assertNotIn("boost", result.output)
 
     @patch("lib.cli.conan_builds.list_failed_builds")
+    def test_filter_by_version(self, mock_list):
+        mock_list.return_value = [
+            {"library": "fmt", "library_version": "10.0.0", "compiler_version": "g141", "success": False},
+            {"library": "fmt", "library_version": "11.0.0", "compiler_version": "g141", "success": False},
+        ]
+        result = self.runner.invoke(build_status, ["list-failed", "--library", "fmt", "--version", "10.0.0"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("10.0.0", result.output)
+        self.assertNotIn("11.0.0", result.output)
+
+    @patch("lib.cli.conan_builds.list_failed_builds")
     def test_filter_by_compiler_version(self, mock_list):
         mock_list.return_value = [
             {"library": "fmt", "library_version": "10.0.0", "compiler_version": "g141", "success": False},

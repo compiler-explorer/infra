@@ -325,6 +325,89 @@ libraries:
       targets:
       - 4.31.0.0
       type: github
+    beman:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/{{ context[-1] | replace('beman_', '', 1) }}
+      target_prefix: v
+      type: github
+      beman_any_view:
+        targets:
+        - name: 1.0.0
+          target_prefix: ''
+        - 1.1.0
+      beman_cache_latest:
+        targets:
+        - 0.1.0
+      beman_copyable_function:
+        targets:
+        - 0.1.0
+      beman_cstring_view:
+        targets:
+        - 0.1.0
+      beman_exemplar:
+        targets:
+        - name: 1.0.0
+          target_prefix: ''
+        - name: 2.0.0
+          target_prefix: ''
+        - name: 2.1.0
+          target_prefix: ''
+        - name: 2.1.1
+          target_prefix: ''
+        - name: 2.2.0
+          target_prefix: ''
+        - name: 2.2.1
+          target_prefix: ''
+        - 2.3.0
+        - 2.4.0
+      beman_indices_view:
+        targets:
+        - 0.1.0
+      beman_inplace_vector:
+        targets:
+        - 0.1.0
+      beman_iterator_interface:
+        after_stage_script:
+        - sed -i 's/add_subdirectory(examples)//g' CMakeLists.txt
+        build_type: cmake
+        extra_cmake_arg:
+        - -DBUILD_TESTING=OFF
+        - -DBEMAN_ITERATOR_INTERFACE_BUILD_TESTS=OFF
+        - -DBEMAN_ITERATOR_INTERFACE_BUILD_EXAMPLES=OFF
+        lib_type: cmake_built_headeronly
+        package_install: true
+        targets:
+        - 0.1.0
+      beman_monadics:
+        targets:
+        - 0.1.0
+        - 1.0.0
+      beman_optional:
+        targets:
+        - 1.0.0
+      beman_scan_view:
+        targets:
+        - 0.1.0
+      beman_scope:
+        target_prefix: ''
+        targets:
+        - 0.0.1
+      beman_take_before:
+        targets:
+        - 0.1.0
+      beman_timed_lock_alg:
+        targets:
+        - 1.0.0
+        - 1.1.0
+      beman_transform_view:
+        targets:
+        - 0.1.0
+        - 0.2.0
+      beman_utf_view:
+        targets:
+        - 0.1.0
+        - 0.2.0
     benchmark:
       build_type: cmake
       extra_cmake_arg:
@@ -429,7 +512,7 @@ libraries:
       postbuild_script_pwsh:
       - echo "skipping zlib check"
       prebuild_script:
-      - curl -sL -o zlib.tgz https://conan.compiler-explorer.com/downloadpkg/zlib/1.3.1/%compiler%/%arch%/%libcxx%
+      - curl -fsL -o zlib.tgz https://conan.compiler-explorer.com/downloadpkg/zlib/1.3.1/%compiler%/%arch%/%libcxx%
       - mkdir -p /tmp/zlib
       - tar xzf zlib.tgz -C /tmp/zlib
       prebuild_script_pwsh:
@@ -630,6 +713,7 @@ libraries:
       check_file: README.md
       extra_cmake_arg:
       - -DBUILD_TZ_LIB=ON
+      - -DMANUAL_TZ_DB=%cmake_bool_windows%
       make_targets:
       - date-tz
       repo: HowardHinnant/date
@@ -831,7 +915,7 @@ libraries:
       - 12.0.0
       type: github
     frozen:
-      check_file: README.md
+      check_file: README.rst
       repo: serge-sans-paille/frozen
       targets:
       - 1.2.0
@@ -1099,9 +1183,13 @@ libraries:
       - 4.7.00
       - 4.7.01
       - 4.7.02
+      - 4.7.03
+      - 4.7.04
       - 5.0.0
       - 5.0.1
       - 5.0.2
+      - 5.1.0
+      - 5.1.1
       type: github
     kumi:
       check_file: README.md
@@ -1306,6 +1394,7 @@ libraries:
       - 20.1.0
       - 21.1.0
       - 22.1.0
+      - 22.1.6
       type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
@@ -1423,86 +1512,84 @@ libraries:
         targets:
         - trunk
         type: github
-      beman_any_view:
+      beman:
         build_type: none
         check_file: README.md
         method: nightlyclone
-        repo: bemanproject/any_view
-        targets:
-        - main
+        repo: bemanproject/{{ context[-1] | replace('beman_', '', 1) }}
         type: github
-      beman_execution:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/execution
-        targets:
-        - main
-        type: github
-      beman_exemplar:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/exemplar
-        targets:
-        - main
-        type: github
-      beman_inplace_vector:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/inplace_vector
-        targets:
-        - main
-        type: github
-      beman_iterator_interface:
-        after_stage_script:
-        - sed -i 's/add_subdirectory(examples)//g' CMakeLists.txt
-        build_type: cmake
-        check_file: README.md
-        extra_cmake_arg:
-        - -DBUILD_TESTING=OFF
-        lib_type: static
-        method: nightlyclone
-        package_install: true
-        repo: bemanproject/iterator_interface
-        staticliblink:
-        - beman.iterator_interface
-        targets:
-        - main
-        type: github
-      beman_net:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/net
-        targets:
-        - main
-        type: github
-      beman_optional:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/optional
-        targets:
-        - main
-        type: github
-      beman_scope:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/scope
-        targets:
-        - main
-        type: github
-      beman_task:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/task
-        targets:
-        - main
-        type: github
+        beman_any_view:
+          targets:
+          - main
+        beman_cache_latest:
+          targets:
+          - main
+        beman_copyable_function:
+          targets:
+          - main
+        beman_cstring_view:
+          targets:
+          - main
+        beman_execution:
+          targets:
+          - main
+        beman_exemplar:
+          targets:
+          - main
+        beman_indices_view:
+          targets:
+          - main
+        beman_inplace_vector:
+          targets:
+          - main
+        beman_iterator_interface:
+          after_stage_script:
+          - sed -i 's/add_subdirectory(examples)//g' CMakeLists.txt
+          build_type: cmake
+          extra_cmake_arg:
+          - -DBUILD_TESTING=OFF
+          - -DBEMAN_ITERATOR_INTERFACE_BUILD_TESTS=OFF
+          - -DBEMAN_ITERATOR_INTERFACE_BUILD_EXAMPLES=OFF
+          lib_type: cmake_built_headeronly
+          package_install: true
+          targets:
+          - main
+        beman_map:
+          targets:
+          - main
+        beman_monadics:
+          targets:
+          - main
+        beman_net:
+          targets:
+          - main
+        beman_optional:
+          targets:
+          - main
+        beman_scan_view:
+          targets:
+          - main
+        beman_scope:
+          targets:
+          - main
+        beman_span:
+          targets:
+          - main
+        beman_take_before:
+          targets:
+          - main
+        beman_task:
+          targets:
+          - main
+        beman_timed_lock_alg:
+          targets:
+          - main
+        beman_transform_view:
+          targets:
+          - main
+        beman_utf_view:
+          targets:
+          - main
       benchmark:
         build_type: cmake
         check_file: README.md
@@ -1665,6 +1752,7 @@ libraries:
         check_file: README.md
         extra_cmake_arg:
         - -DBUILD_TZ_LIB=ON
+        - -DMANUAL_TZ_DB=%cmake_bool_windows%
         make_targets:
         - date-tz
         method: nightlyclone
@@ -2065,6 +2153,15 @@ libraries:
         subdir: PEGTL
         targets:
         - trunk
+        type: github
+      phd-embed:
+        build_type: none
+        check_file: include/phd/embed.hpp
+        method: nightlyclone
+        path_name: libs/phd/embed/{{name}}
+        repo: ThePhD/embed
+        targets:
+        - main
         type: github
       pipes:
         build_type: none
@@ -2528,6 +2625,8 @@ libraries:
         url: https://download.qt.io/official_releases/qt/6.9/6.9.0/submodules/qtbase-everywhere-src-6.9.0.tar.xz
       - name: 6.10.0
         url: https://download.qt.io/official_releases/qt/6.10/6.10.0/submodules/qtbase-everywhere-src-6.10.0.tar.xz
+      - name: 6.11.0
+        url: https://download.qt.io/official_releases/qt/6.11/6.11.0/submodules/qtbase-everywhere-src-6.11.0.tar.xz
       type: tarballs
       untar_dir: qtbase-everywhere-src-{{name}}
     quill:
@@ -2597,7 +2696,7 @@ libraries:
       - echo "postbuild not using abseil"
       prebuild_script:
       - mkdir -p /tmp/abseil-cpp
-      - curl -sL https://conan.compiler-explorer.com/downloadpkg/abseil/20250127.0/%compiler%/%arch%/%libcxx%
+      - curl -fsL https://conan.compiler-explorer.com/downloadpkg/abseil/20250127.0/%compiler%/%arch%/%libcxx%
         -o abseil-cpp-20250127.0.tar.gz
       - tar xzf abseil-cpp-20250127.0.tar.gz -C /tmp/abseil-cpp
       prebuild_script_pwsh:
@@ -2958,6 +3057,8 @@ libraries:
       repo: NVIDIA/cccl
       target_prefix: v
       targets:
+      - 3.3.2
+      - 3.3.1
       - 3.3.0
       - 3.2.1
       - 3.2.0
@@ -3207,7 +3308,7 @@ libraries:
       build_type: fpm
       check_file: fpm.toml
       prebuild_script:
-      - curl -sL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
+      - curl -fsL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
       - tar -xzf curl.tgz
       - cp lib/libcurl-d.so lib/libcurl.so
       - export FPM_CFLAGS="-I/opt/compiler-explorer/libs/curl/7.83.1/include"
@@ -3240,7 +3341,7 @@ libraries:
         check_file: fpm.toml
         method: nightlyclone
         prebuild_script:
-        - curl -sL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
+        - curl -fsL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
         - tar -xzf curl.tgz
         - cp lib/libcurl-d.so lib/libcurl.so
         - export FPM_CFLAGS="-I/opt/compiler-explorer/libs/curl/7.83.1/include"

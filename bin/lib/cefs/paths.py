@@ -207,7 +207,7 @@ def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path, mount_point: Path
     hash = parts[len(mount_parts) + 1]  # 24-char hash
 
     image_dir_subdir = cefs_image_dir / hash_prefix
-    matching_files = list(image_dir_subdir.glob(f"{hash}*.sqfs"))
+    matching_files = sorted(image_dir_subdir.glob(f"{hash}*.sqfs"))
 
     if not matching_files:
         raise ValueError(f"No CEFS image found for hash {hash} in {image_dir_subdir}")

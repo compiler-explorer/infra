@@ -197,3 +197,12 @@ pre-commit: ce  ## Runs all pre-commit hooks
 .PHONY: install-pre-commit
 install-pre-commit: ce  ## Install pre-commit hooks
 	$(UV_BIN) run pre-commit install
+
+FISH_COMPLETIONS_DIR ?= $(HOME)/.config/fish/completions
+
+.PHONY: install-completions
+install-completions: ce  ## Install fish shell completions for ce and ce_install
+	@mkdir -p $(FISH_COMPLETIONS_DIR)
+	@_CE_COMPLETE=fish_source $(CURDIR)/bin/ce > $(FISH_COMPLETIONS_DIR)/ce.fish
+	@_CE_INSTALL_COMPLETE=fish_source $(CURDIR)/bin/ce_install > $(FISH_COMPLETIONS_DIR)/ce_install.fish
+	@echo "installed fish completions to $(FISH_COMPLETIONS_DIR)"

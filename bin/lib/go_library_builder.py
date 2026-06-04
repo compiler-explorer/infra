@@ -11,7 +11,6 @@ import hashlib
 import json
 import logging
 import os
-import re
 import shutil
 import subprocess
 from collections import defaultdict
@@ -21,7 +20,6 @@ from pathlib import Path
 from typing import Any, TextIO
 
 import requests
-from urllib3.exceptions import ProtocolError
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
@@ -29,6 +27,19 @@ from lib.cache_delta import CacheDeltaCapture
 from lib.golang_stdlib import go_supports_trimpath
 from lib.installation_context import InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
+from lib.library_builder import (
+    AnnotationsBulk,
+    FailedBuilds,
+    PossibleBuilds,
+    build_target_settings,
+    fetch_all_annotations,
+    fetch_failed_builds,
+    fetch_possible_builds,
+    find_matching_package_id,
+    match_failed_build,
+    resil_get,
+    resil_post,
+)
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
@@ -76,8 +87,6 @@ CONANSERVER_URL = "https://conan.compiler-explorer.com"
 
 # Cache for compiler properties
 _propsandlibs: dict[str, Any] = defaultdict(lambda: [])
-
-CONANINFOHASH_RE = re.compile(r"\s+ID:\s(\w*)")
 
 
 def clear_properties_cache() -> None:
@@ -133,7 +142,9 @@ class GoLibraryBuilder:
         # Prefix with 'go_' to avoid Conan namespace collisions with other languages
         self.libid = f"go_{self.libname}"
         self.conanserverproxy_token: str | None = None
-        self._conan_hash_cache: dict[str, str | None] = {}
+        self._possible_builds: PossibleBuilds | None = None
+        self._failed_builds: FailedBuilds | None = None
+        self._annotations_bulk: AnnotationsBulk | None = None
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
 
@@ -412,50 +423,22 @@ require {self.module_path} {self.target_name}
             f.write('        self.copy("module_sources/*", dst=".", keep_path=True)\n')
             f.write('        self.copy("metadata.json", dst=".", keep_path=False)\n')
 
+    def _get_possible_builds(self) -> PossibleBuilds:
+        if self._possible_builds is None:
+            self._possible_builds = fetch_possible_builds(
+                self.libid,
+                self.target_name,
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._possible_builds
+
     def get_conan_hash(self, buildfolder: Path) -> str | None:
-        """Query Conan for package hash."""
-        if str(buildfolder) in self._conan_hash_cache:
-            return self._conan_hash_cache[str(buildfolder)]
-
-        if not self.install_context.dry_run:
-            try:
-                conaninfo = subprocess.check_output(
-                    ["conan", "info", "-r", "ceserver", "."] + self.current_buildparameters,
-                    cwd=buildfolder,
-                    timeout=_TIMEOUT,
-                ).decode("utf-8", "ignore")
-                match = CONANINFOHASH_RE.search(conaninfo)
-                if match:
-                    result = match[1]
-                    self._conan_hash_cache[str(buildfolder)] = result
-                    return result
-            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-                self.logger.debug("Conan info failed: %s", e)
-
-        self._conan_hash_cache[str(buildfolder)] = None
-        return None
-
-    def resil_post(self, url: str, json_data: str, headers: dict | None = None) -> requests.Response | dict:
-        """Resilient POST request with retries."""
-        request = None
-        retries = 3
-        last_error: str | Exception = ""
-        while retries > 0:
-            try:
-                if headers is not None:
-                    request = self.http_session.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
-                else:
-                    request = self.http_session.post(
-                        url, data=json_data, headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
-                    )
-                retries = 0
-            except ProtocolError as e:
-                last_error = e
-                retries -= 1
-
-        if request is None:
-            return {"ok": False, "text": str(last_error)}
-        return request
+        """Find the conan package_id matching the current build parameters, via the proxy search API."""
+        if self.install_context.dry_run:
+            return None
+        target = build_target_settings(self.current_buildparameters_obj)
+        return find_matching_package_id(self._get_possible_builds(), target)
 
     def conanproxy_login(self) -> None:
         """Login to Conan proxy server."""
@@ -464,7 +447,7 @@ require {self.module_path} {self.target_name}
         login_body["password"] = get_ssm_param("/compiler-explorer/conanpwd")
         req_data = json.dumps(login_body)
 
-        request = self.resil_post(url, req_data)
+        request = resil_post(self.http_session, url, req_data)
         if isinstance(request, dict) or not request.ok:
             error_text = request.get("text", "") if isinstance(request, dict) else request.text
             raise RuntimeError(f"Conan login failed: {error_text}")
@@ -505,23 +488,39 @@ require {self.module_path} {self.target_name}
         }
 
         req_data = json.dumps(buildparameters_copy)
-        request = self.resil_post(url, req_data, headers)
+        request = resil_post(self.http_session, url, req_data, headers)
         if isinstance(request, dict) or not request.ok:
             error_text = request.get("text", "") if isinstance(request, dict) else request.text
             raise PostFailure(f"Post failure for {url}: {error_text}")
 
+        # Failed/TimedOut add a failure row server-side; Ok deletes one. Either way the cache is stale.
+        self._failed_builds = None
+
+    def _get_failed_builds(self) -> FailedBuilds:
+        if self._failed_builds is None:
+            self._failed_builds = fetch_failed_builds(
+                self.libid,
+                self.target_name,
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._failed_builds
+
     def has_failed_before(self, build_method: str) -> bool:
         """Check if this build has failed before."""
-        url = f"{CONANSERVER_URL}/hasfailedbefore"
-        data = dict(self.current_buildparameters_obj)
-        data["flagcollection"] = build_method
+        params = dict(self.current_buildparameters_obj)
+        params["flagcollection"] = build_method
+        return match_failed_build(self._get_failed_builds(), params, None)
 
-        request = self.resil_post(url, json.dumps(data))
-        if isinstance(request, dict) or not request.ok:
-            return False
-
-        response = json.loads(request.content)
-        return response.get("response", False)
+    def _get_annotations_bulk(self) -> AnnotationsBulk:
+        if self._annotations_bulk is None:
+            self._annotations_bulk = fetch_all_annotations(
+                self.libid,
+                self.target_name,
+                lambda url: resil_get(self.http_session, url, stream=False, timeout=_TIMEOUT),
+                self.logger,
+            )
+        return self._annotations_bulk
 
     def get_build_annotations(self, buildfolder: Path) -> dict:
         """Get build annotations from Conan server."""
@@ -534,17 +533,8 @@ require {self.module_path} {self.target_name}
             self._annotations_cache[str(buildfolder)] = result
             return result
 
-        url = f"{CONANSERVER_URL}/annotations/{self.libid}/{self.target_name}/{conanhash}"
-        try:
-            request = self.http_session.get(url, timeout=_TIMEOUT)
-            if request.ok:
-                result = json.loads(request.content)
-                self._annotations_cache[str(buildfolder)] = result
-                return result
-        except (requests.RequestException, json.JSONDecodeError) as e:
-            self.logger.debug("Failed to get annotations: %s", e)
-
-        result = defaultdict(lambda: [])
+        bulk_entry = self._get_annotations_bulk().get(conanhash, {})
+        result = dict(bulk_entry) if bulk_entry else defaultdict(lambda: [])
         self._annotations_cache[str(buildfolder)] = result
         return result
 
@@ -557,15 +547,19 @@ require {self.module_path} {self.target_name}
 
     def set_as_uploaded(self, buildfolder: Path, build_method: str) -> None:
         """Mark build as uploaded in Conan server."""
+        # We need the conan package_id (a deterministic SHA from compiler+version+libcxx+arch+...)
+        # to PUT annotations against /annotations/{lib}/{ver}/{package_id}. get_conan_hash now
+        # derives the id by querying the server's /search index, which only lists packages
+        # already on the server -- so for a freshly built package, we must upload first.
+        annotations = self.get_build_annotations(buildfolder)
+        if "commithash" not in annotations:
+            self.upload_builds()
+
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
             raise RuntimeError(f"Error determining conan hash in {buildfolder}")
 
         self.logger.info("conanhash: %s", conanhash)
-
-        annotations = self.get_build_annotations(buildfolder)
-        if "commithash" not in annotations:
-            self.upload_builds()
         annotations["commithash"] = self.target_name
         annotations["build_method"] = build_method
 
@@ -575,10 +569,13 @@ require {self.module_path} {self.target_name}
         }
         url = f"{CONANSERVER_URL}/annotations/{self.libid}/{self.target_name}/{conanhash}"
 
-        request = self.resil_post(url, json.dumps(annotations), headers)
+        request = resil_post(self.http_session, url, json.dumps(annotations), headers)
         if isinstance(request, dict) or not request.ok:
             error_text = request.get("text", "") if isinstance(request, dict) else request.text
             raise RuntimeError(f"Post failure for {url}: {error_text}")
+
+        # Just wrote a new annotation server-side; bulk cache is stale.
+        self._annotations_bulk = None
 
     def executeconanscript(self, buildfolder: Path) -> BuildStatus:
         """Execute Conan export script."""
@@ -606,6 +603,7 @@ require {self.module_path} {self.target_name}
                 self.logger.debug("Clearing cache to speed up next upload")
                 subprocess.check_call(["conan", "remove", "-f", f"{self.libid}/{self.target_name}"])
             self.needs_uploading = 0
+            self._possible_builds = None
 
     def build_cleanup(self, buildfolder: Path) -> None:
         """Clean up build folder."""

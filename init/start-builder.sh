@@ -6,6 +6,7 @@ export CONAN_PASSWORD=$1
 LANGUAGE=$2
 LIBRARYTOBUILD=$3
 FORCECOMPILER=$4
+BRANCH=${5:-main}
 
 FORCECOMPILERPARAM=""
 if [ "$FORCECOMPILER" = "popular-compilers-only" ]; then
@@ -27,7 +28,7 @@ git config --global --add safe.directory '*'
 mkdir -p /tmp/build
 cd /tmp/build
 rm -rf infra
-git clone https://github.com/compiler-explorer/infra
+git clone --branch "$BRANCH" --single-branch https://github.com/compiler-explorer/infra
 
 cd /tmp/build/infra
 
