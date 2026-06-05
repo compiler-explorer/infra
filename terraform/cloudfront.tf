@@ -12,6 +12,41 @@ data "aws_acm_certificate" "static-ce-cdn-net" {
   most_recent = true
 }
 
+# Cache policy for the main app default behavior. Replaces the legacy
+# forwarded_values block (which only supported gzip at the edge) so CloudFront
+# can negotiate and serve brotli from the origin. The cache key and origin
+# forward-set are kept identical to the previous forwarded_values: all query
+# strings, the Accept/Host/CloudFront-Is-Mobile-Viewer headers, and no cookies.
+resource "aws_cloudfront_cache_policy" "ce-app" {
+  name        = "CompilerExplorerAppCachePolicy"
+  comment     = "Default CE app behavior with brotli + gzip negotiation"
+  min_ttl     = 0
+  default_ttl = 86400
+  max_ttl     = 31536000
+
+  parameters_in_cache_key_and_forwarded_to_origin {
+    enable_accept_encoding_brotli = true
+    enable_accept_encoding_gzip   = true
+
+    cookies_config {
+      cookie_behavior = "none"
+    }
+    headers_config {
+      header_behavior = "whitelist"
+      headers {
+        items = [
+          "Accept",
+          "Host",
+          "CloudFront-Is-Mobile-Viewer"
+        ]
+      }
+    }
+    query_strings_config {
+      query_string_behavior = "all"
+    }
+  }
+}
+
 resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   comment = "CE on godbolt.org"
   origin {
@@ -146,17 +181,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
       "HEAD",
       "GET"
     ]
-    forwarded_values {
-      cookies {
-        forward = "none"
-      }
-      query_string = true
-      headers = [
-        "Accept",
-        "Host",
-        "CloudFront-Is-Mobile-Viewer"
-      ]
-    }
+    cache_policy_id        = aws_cloudfront_cache_policy.ce-app.id
     target_origin_id       = "ALB-compiler-explorer"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
@@ -307,17 +332,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
       "HEAD",
       "GET"
     ]
-    forwarded_values {
-      cookies {
-        forward = "none"
-      }
-      query_string = true
-      headers = [
-        "Accept",
-        "Host",
-        "CloudFront-Is-Mobile-Viewer"
-      ]
-    }
+    cache_policy_id        = aws_cloudfront_cache_policy.ce-app.id
     target_origin_id       = "ALB-compiler-explorer"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
@@ -466,17 +481,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
       "HEAD",
       "GET"
     ]
-    forwarded_values {
-      cookies {
-        forward = "none"
-      }
-      query_string = true
-      headers = [
-        "Accept",
-        "Host",
-        "CloudFront-Is-Mobile-Viewer"
-      ]
-    }
+    cache_policy_id        = aws_cloudfront_cache_policy.ce-app.id
     target_origin_id       = "ALB-compiler-explorer"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
