@@ -27,6 +27,7 @@ apt-get install -y \
     libdatetime-perl \
     libelf-dev \
     libgmp3-dev \
+    libnginx-mod-http-brotli-filter \
     libnl-route-3-dev \
     libpciaccess0 \
     libprotobuf-dev \
