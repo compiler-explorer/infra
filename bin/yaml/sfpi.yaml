@@ -5,6 +5,7 @@ compilers:
     dir: sfpi-{{name}}
     untar_dir: sfpi
     check_exe: compiler/bin/riscv-tt-elf-g++ --version
+    url: https://github.com/tenstorrent/sfpi/releases/download/{{name}}/sfpi_{{name}}_x86_64_debian.txz
     targets:
-      - name: 7.55.0
-        url: https://github.com/tenstorrent/sfpi/releases/download/{{name}}/sfpi_{{name}}_x86_64_debian.txz
+      - 7.54.0
+      - 7.55.0
