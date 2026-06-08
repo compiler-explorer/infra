@@ -1,0 +1,10 @@
+compilers:
+  sfpi:
+    type: tarballs
+    compression: xz
+    dir: sfpi-{{name}}
+    untar_dir: sfpi
+    check_exe: compiler/bin/riscv-tt-elf-g++ --version
+    targets:
+      - name: 7.55.0
+        url: https://github.com/tenstorrent/sfpi/releases/download/{{name}}/sfpi_{{name}}_x86_64_debian.txz
