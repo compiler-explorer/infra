@@ -7,3 +7,4 @@ compilers:
     check_exe: bin/lean --version
     targets:
       - "4.29.1"
+      - "4.30.0"
