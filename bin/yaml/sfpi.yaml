@@ -9,19 +9,7 @@ compilers:
     depends:
       - tools/tt-metal-headers {{tt_metal_version}}
     after_stage_script:
-      - mkdir -p sfpi/build/sfpi sfpi/tt_metal
-      - cp -a sfpi/include sfpi/build/sfpi/
-      - mkdir -p sfpi/tt_metal/hw sfpi/tt_metal/tt-llk sfpi/tt_metal/hw/ckernels
-      - cp -a %DEP0%/tt_metal/hw/inc sfpi/tt_metal/hw/
-      - cp -a %DEP0%/tt_metal/tt-llk/common sfpi/tt_metal/tt-llk/
-      - mkdir -p sfpi/tt_metal/tt-llk/tests/helpers
-      - cp -a %DEP0%/tt_metal/tt-llk/tests/helpers/include sfpi/tt_metal/tt-llk/tests/helpers/
-      - cp -a %DEP0%/tt_metal/tt-llk/tt_llk_wormhole_b0 sfpi/tt_metal/tt-llk/
-      - cp -a %DEP0%/tt_metal/tt-llk/tt_llk_blackhole sfpi/tt_metal/tt-llk/
-      - mkdir -p sfpi/tt_metal/hw/ckernels/wormhole_b0/metal
-      - mkdir -p sfpi/tt_metal/hw/ckernels/blackhole/metal
-      - cp -a %DEP0%/tt_metal/hw/ckernels/wormhole_b0/metal/llk_api sfpi/tt_metal/hw/ckernels/wormhole_b0/metal/
-      - cp -a %DEP0%/tt_metal/hw/ckernels/blackhole/metal/llk_api sfpi/tt_metal/hw/ckernels/blackhole/metal/
+      - "{{yaml_dir}}/sfpi/prepare-headers.sh {{name}} %DEP0% sfpi"
     targets:
       - name: 7.54.0
         # Confirm the exact matching tt-metal tag if 7.54.0 needs a stricter pairing.
