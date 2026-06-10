@@ -3085,7 +3085,7 @@ libraries:
       targets:
       - 1.8.0
       type: github
-    kokkos_cuda:
+    kokkos-cuda:
       build_type: cmake
       lib_type: static
       make_targets:
