@@ -3085,6 +3085,24 @@ libraries:
       targets:
       - 1.8.0
       type: github
+    kokkos_cuda:
+      build_type: cmake
+      lib_type: static
+      make_targets:
+      - all
+      extra_cmake_arg:
+      - -DKokkos_ENABLE_CUDA=ON
+      - -DKokkos_ARCH_TURING75=ON
+      package_install: true
+      repo: kokkos/kokkos
+      staticliblink:
+      - kokkoscore
+      - kokkoscontainers
+      - kokkossimd
+      targets:
+      - 4.7.04
+      - 5.1.1
+      type: github
     matx:
       check_file: README.md
       method: clone_branch
@@ -3170,26 +3188,6 @@ libraries:
       - 1.15.0
       - 1.16.0
       - 1.17.0
-      type: github
-  gpu:
-    kokkos:
-      subdir: gpu/kokkos
-      build_type: cmake
-      lib_type: static
-      make_targets:
-      - all
-      extra_cmake_arg:
-      - -DKokkos_ENABLE_CUDA=ON
-      - -DKokkos_ARCH_TURING75=ON
-      package_install: true
-      repo: kokkos/kokkos
-      staticliblink:
-      - kokkoscore
-      - kokkoscontainers
-      - kokkossimd
-      targets:
-      - 4.7.04
-      - 5.1.1
       type: github
   d:
     mir-algorithm:
