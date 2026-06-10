@@ -21,7 +21,7 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
             ],
             notes=[
                 "+ RBX RCX RDX RSI RDI RBP RSP R8-R15",
-                "32-bit write zero-extends; 8/16 don't",
+                "EAX write zero-extends; AX/AL don't",
             ],
         )
 

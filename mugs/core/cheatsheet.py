@@ -24,7 +24,7 @@ CELL_PAD = 18  # horizontal padding between columns within a block
 ROW_LINE_MULT = 1.18  # row pitch as a multiple of body font size
 HEADING_LINE_MULT = 1.45  # heading pitch as a multiple of heading font size
 BLOCK_GAP = 20  # vertical gap between blocks in a column
-COLUMN_GUTTER = 56  # horizontal gap between columns
+COLUMN_GUTTER = 48  # horizontal gap between columns
 MARGIN = 44  # outer margin around all content
 TITLE_GAP = 28  # gap below the title band
 RULE_WIDTH = 3  # stroke width for heading underlines (sublimation-safe)
@@ -35,7 +35,9 @@ DIAGRAM_BAR_GAP = 8  # vertical gap between diagram bars
 DIAGRAM_GUTTER_PAD = 14  # gap between a bar's size label and the bar
 DIAGRAM_BORDER_WIDTH = 2  # stroke width for diagram boxes
 FOOTER_SIZE = 26  # font size for the optional footer line
-FOOTER_ALLOWANCE = 46  # vertical space reserved for the footer when present
+# The footer's baseline sits inside the bottom margin, so this only needs to
+# keep the last content row from crowding it, not hold the footer itself.
+FOOTER_ALLOWANCE = 24
 
 
 @dataclass

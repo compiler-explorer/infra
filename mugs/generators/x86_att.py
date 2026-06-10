@@ -21,7 +21,7 @@ class X86AttCheatSheetGenerator(CheatSheetGenerator):
             ],
             notes=[
                 "+ rbx rcx rdx rsi rdi rbp rsp r8-r15",
-                "32-bit write zero-extends; 8/16 don't",
+                "eax write zero-extends; ax/al don't",
             ],
         )
 
@@ -59,8 +59,9 @@ class X86AttCheatSheetGenerator(CheatSheetGenerator):
             ],
         )
 
+        # In AT&T operand order, cmp b,a computes a-b, so jl below means a<b.
         flags = Block(
-            heading="Flags & Jcc",
+            heading="Flags & Jcc (after cmp b,a)",
             rows=[
                 [green("ZF"), plain("zero"), green("CF"), plain("carry")],
                 [green("SF"), plain("sign"), green("OF"), plain("overflow")],
