@@ -8,7 +8,7 @@ counting log volume, or correlating events across the fleet.
 
 - Create an API token in SolarWinds Observability (Settings → API Tokens) and store it
   somewhere private, e.g. `~/.swo_token` (mode 0600).
-- Endpoint: `https://api.na-01.cloud.solarwinds.com/v1/logs`
+- Endpoint: `https://api.na-01.cloud.solarwinds.com/v1/logs` (`na-01` is our org's data cell; other SolarWinds accounts may be on `na-02`, `eu-01`, etc.)
 
 ## Basic query
 
