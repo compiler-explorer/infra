@@ -156,7 +156,7 @@ def runner_start():
 
     for _ in range(60):
         try:
-            r = exec_remote(instance, ["journalctl", "-u", "compiler-explorer", "-r", "-n", "5", "-q"])
+            r = exec_remote(instance, ["journalctl", "-b", "0", "-u", "compiler-explorer", "-r", "-n", "5", "-q"])
             if (
                 "compiler-explorer.service: Deactivated successfully." in r  # 22.04
                 or "compiler-explorer.service: Succeeded." in r  # 20.04
