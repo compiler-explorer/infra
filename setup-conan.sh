@@ -122,7 +122,7 @@ cat >"${PTRAIL}" <<RSYSLOG_EOF
 # failures they themselves cause), flooding the remote destination at hundreds
 # of thousands of messages per minute and exhausting the log quota.
 # See https://github.com/compiler-explorer/compiler-explorer/issues/8811
-if \$programname == 'rsyslogd' and (\$msg contains 'write error' or \$msg contains 'message lost') then stop
+if \$programname == 'rsyslogd' and (\$msg contains 'write error' or \$msg contains 'message lost' or \$msg contains 'messages lost') then stop
 *.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}
 RSYSLOG_EOF
 service rsyslog restart
