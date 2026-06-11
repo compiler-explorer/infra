@@ -116,7 +116,15 @@ get_conf() {
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
 LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
-echo "*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}" >"${PTRAIL}"
+cat >"${PTRAIL}" <<RSYSLOG_EOF
+# Don't forward rsyslog's own local-write-failure messages. With a full disk,
+# every failed write to /var/log/* generates more of them (including for the
+# failures they themselves cause), flooding the remote destination at hundreds
+# of thousands of messages per minute and exhausting the log quota.
+# See https://github.com/compiler-explorer/compiler-explorer/issues/8811
+if \$programname == 'rsyslogd' and (\$msg contains 'write error' or \$msg contains 'message lost' or \$msg contains 'messages lost') then stop
+*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}
+RSYSLOG_EOF
 service rsyslog restart
 
 # Install grafana-agent. Conan-node has a real data mount at
