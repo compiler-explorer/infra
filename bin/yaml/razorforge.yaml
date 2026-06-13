@@ -1,0 +1,11 @@
+compilers:
+  razorforge:
+    type: tarballs
+    compression: gz
+    dir: razorforge-{{name}}
+    strip_components: 1
+    create_untar_dir: true
+    check_exe: RazorForge version
+    url: https://github.com/dj-lumiere/razorforge-suflae/releases/download/v{{name}}/razorforge-v{{name}}-linux-x64.tar.gz
+    targets:
+      - 0.0.3-alpha
