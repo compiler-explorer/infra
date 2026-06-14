@@ -65,7 +65,9 @@ crontab -u ubuntu crontab.admin
 echo admin-node >/etc/hostname
 hostname admin-node
 sed -i "/127.0.0.1/c 127.0.0.1 localhost admin-node" /etc/hosts
+mkdir -p /etc/cloud/cloud.cfg.d
 echo "preserve_hostname: true" >/etc/cloud/cloud.cfg.d/99-ce.cfg
 
+mkdir -p /etc/sysctl.d
 echo "vm.min_free_kbytes=65536" >/etc/sysctl.d/99-ce.conf
-sysctl --system
+sysctl -p /etc/sysctl.d/99-ce.conf
