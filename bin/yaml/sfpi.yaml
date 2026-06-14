@@ -6,8 +6,8 @@ compilers:
     untar_dir: sfpi
     check_exe: compiler/bin/riscv-tt-elf-g++ --version
     url: https://github.com/tenstorrent/sfpi/releases/download/{{name}}/sfpi_{{name}}_x86_64_debian.txz
-    depends:
-      - tools/tt-metal-headers {{tt_metal_version}}
+#    depends:
+#      - tools/tt-metal-headers {{tt_metal_version}}
     after_stage_script:
       - "{{yaml_dir}}/sfpi/prepare-headers.sh {{name}} %DEP0% sfpi"
     targets:
