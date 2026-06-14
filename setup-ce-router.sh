@@ -52,13 +52,12 @@ echo -e "[default]\nregion=us-east-1" > /home/ce/.aws/config
 chown -R ce:ce /home/ce/.aws
 
 # Memory and network optimizations
-if ! grep vm.min_free_kbytes /etc/sysctl.conf; then
-  {
-    echo "vm.min_free_kbytes=65536"
-    echo "net.core.rmem_max=268435456"
-    echo "net.core.wmem_max=268435456"
-    echo "net.ipv4.tcp_rmem=4096 65536 268435456"
-    echo "net.ipv4.tcp_wmem=4096 65536 268435456"
-  } >>/etc/sysctl.conf
-  sysctl -p
-fi
+mkdir -p /etc/sysctl.d
+cat >/etc/sysctl.d/99-ce.conf <<EOF
+vm.min_free_kbytes=65536
+net.core.rmem_max=268435456
+net.core.wmem_max=268435456
+net.ipv4.tcp_rmem=4096 65536 268435456
+net.ipv4.tcp_wmem=4096 65536 268435456
+EOF
+sysctl -p /etc/sysctl.d/99-ce.conf

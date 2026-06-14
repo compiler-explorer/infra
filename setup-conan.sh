@@ -161,4 +161,5 @@ chown -R ubuntu:ubuntu /home/ubuntu/infra
 echo conan-node > /etc/hostname
 hostname conan-node
 sed -i "/127.0.0.1/c 127.0.0.1 localhost conan-node" /etc/hosts
-sed -i "/preserve_hostname/c preserve_hostname: true" /etc/cloud/cloud.cfg
+mkdir -p /etc/cloud/cloud.cfg.d
+echo "preserve_hostname: true" >/etc/cloud/cloud.cfg.d/99-ce.cfg

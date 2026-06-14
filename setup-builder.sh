@@ -23,7 +23,8 @@ crontab -u ubuntu crontab.builder
 echo builder >/etc/hostname
 hostname builder
 sed -i "/127.0.0.1/c 127.0.0.1 localhost builder" /etc/hosts
-sed -i "/preserve_hostname/c preserve_hostname: true" /etc/cloud/cloud.cfg
+mkdir -p /etc/cloud/cloud.cfg.d
+echo "preserve_hostname: true" >/etc/cloud/cloud.cfg.d/99-ce.cfg
 
 mv /infra /home/ubuntu/infra
 chown -R ubuntu:ubuntu /home/ubuntu/infra
