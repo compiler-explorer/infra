@@ -14,6 +14,11 @@ fi
 
 env EXTRA_NFS_ARGS="" INSTALL_TYPE="admin" "${DIR}/setup-common.sh"
 
+# python3.8 is not in noble's repos; deadsnakes provides it (as on the build/runner nodes).
+apt-get -y install software-properties-common
+add-apt-repository -y ppa:deadsnakes/ppa
+apt-get -y update
+
 apt -y install \
   autojump \
   bubblewrap \
