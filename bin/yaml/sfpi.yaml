@@ -8,12 +8,13 @@ compilers:
     url: https://github.com/tenstorrent/sfpi/releases/download/{{name}}/sfpi_{{name}}_x86_64_debian.txz
 #    depends:
 #      - tools/tt-metal-headers {{tt_metal_version}}
-    after_stage_script:
-      - "{{yaml_dir}}/sfpi/prepare-headers.sh {{name}} %DEP0% sfpi"
-    targets:
+#    after_stage_script:
+#      - "{{yaml_dir}}/sfpi/prepare-headers.sh {{name}} %DEP0% sfpi"
+#    targets:
         # Disabled as we get "Invalid version 7.54.0"
 #      - name: 7.54.0
 #        # Confirm the exact matching tt-metal tag if 7.54.0 needs a stricter pairing.
 #        tt_metal_version: v0.71.2
-      - name: 7.55.0
-        tt_metal_version: v0.71.2
+#      ... this one is fine but needs the tt-metal-headers which fail
+#      - name: 7.55.0
+#        tt_metal_version: v0.71.2
