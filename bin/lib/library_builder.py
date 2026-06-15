@@ -552,6 +552,12 @@ class LibraryBuilder:
             return match[1]
         return False
 
+    def getHostCompilerBindirFromOptions(self, options):
+        match = re.search(r"--compiler-bindir[= ](\S+)", options)
+        if match:
+            return match[1]
+        return False
+
     def getStdVerFromOptions(self, options):
         match = re.search(r"-std=(\S*)", options)
         if match:
@@ -767,7 +773,7 @@ class LibraryBuilder:
                     compilerexecc = f"{compilerexecc}"
                 elif compilerexe.endswith("g++"):
                     compilerexecc = f"{compilerexecc}cc"
-                elif compilerType in ("edg", "nvcc"):
+                elif compilerType == "edg":
                     compilerexecc = compilerexe
 
             elif self.platform == LibraryPlatform.Windows:
@@ -782,8 +788,18 @@ class LibraryBuilder:
                     if not compilerexecc.endswith(".exe"):
                         compilerexecc = compilerexecc + ".exe"
 
-            f.write(self.script_env("CC", compilerexecc))
-            f.write(self.script_env("CXX", compilerexe))
+            if compilerType == "nvcc":
+                # nvcc is not a drop-in C/C++ compiler for CMake's host-compiler probing, so
+                # expose it via CUDACXX and let CMake's native CUDA language pick it up. CC/CXX
+                # are pointed at the host gcc nvcc was configured against (--compiler-bindir).
+                host_bindir = self.getHostCompilerBindirFromOptions(compileroptions)
+                if host_bindir:
+                    f.write(self.script_env("CC", os.path.join(host_bindir, "gcc")))
+                    f.write(self.script_env("CXX", os.path.join(host_bindir, "g++")))
+                f.write(self.script_env("CUDACXX", compilerexe))
+            else:
+                f.write(self.script_env("CC", compilerexecc))
+                f.write(self.script_env("CXX", compilerexe))
 
             is_msvc = compilerType == "win32-vc"
 
@@ -893,8 +909,17 @@ class LibraryBuilder:
             if boosttarget == "i386":
                 compileroptions += " -latomic"
 
-            cxx_flags = f"{compileroptions} {archflag} {stdverflag} {stdlibflag} {extraflags}"
-            c_compileroptions = re.sub(r"-std=c\+\+\w+\s*", "", compileroptions).strip()
+            cuda_flags = ""
+            if compilerType == "nvcc":
+                # nvcc-only options (e.g. --compiler-bindir) belong to the CUDA flags; the host
+                # gcc used for CC/CXX would reject them.
+                cuda_flags = f"{compileroptions} {archflag} {stdverflag} {extraflags}"
+                host_compileroptions = re.sub(r"--compiler-bindir[= ]\S+", "", compileroptions).strip()
+            else:
+                host_compileroptions = compileroptions
+
+            cxx_flags = f"{host_compileroptions} {archflag} {stdverflag} {stdlibflag} {extraflags}"
+            c_compileroptions = re.sub(r"-std=c\+\+\w+\s*", "", host_compileroptions).strip()
             c_flags = f"{c_compileroptions} {archflag} {extraflags}"
             asm_flags = f"{archflag}"
 
@@ -960,11 +985,14 @@ class LibraryBuilder:
 
                 # Use appropriate CMAKE_*_FLAGS based on build type
                 cmake_flags_suffix = "_DEBUG" if buildtype == "Debug" else "_RELEASE"
+                cudaflagsparam = ""
+                if compilerType == "nvcc":
+                    cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}"'
                 cmakecmd = (
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
                     f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
                     f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
-                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {extracmakeargs} {sourcefolder}'
+                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'
                 )
                 cmakeline = self.script_run_logged(cmakecmd, "cecmakelog.txt", "cmake configure failed:")
                 self.logger.debug(cmakeline)
