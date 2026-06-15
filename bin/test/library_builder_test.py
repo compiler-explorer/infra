@@ -139,6 +139,8 @@ def create_test_build_config():
     config.make_utility = "make"
     config.skip_compilers = []
     config.use_compiler = ""
+    config.cxx_compiler_wrapper = ""
+    config.source_folder = ""
     return config
 
 
@@ -275,6 +277,132 @@ def test_get_toolchain_path_from_options_none(requests_mock):
     options = "-O2 -std=c++17"
     result = builder.getToolchainPathFromOptions(options)
     assert result is False
+
+
+def test_get_host_compiler_bindir_from_options(requests_mock):
+    requests_mock.get(f"{BASE}cuda.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    builder = LibraryBuilder(
+        logger,
+        "cuda",
+        "testlib",
+        "1.0.0",
+        "/tmp/source",
+        install_context,
+        create_test_build_config(),
+        False,
+        LibraryPlatform.Linux,
+    )
+
+    options = "--compiler-bindir /opt/compiler-explorer/gcc-14.1.0/bin /opt/compiler-explorer/cuda/13.3.0"
+    assert builder.getHostCompilerBindirFromOptions(options) == "/opt/compiler-explorer/gcc-14.1.0/bin"
+
+
+def test_get_host_compiler_bindir_from_options_none(requests_mock):
+    requests_mock.get(f"{BASE}cuda.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    builder = LibraryBuilder(
+        logger,
+        "cuda",
+        "testlib",
+        "1.0.0",
+        "/tmp/source",
+        install_context,
+        create_test_build_config(),
+        False,
+        LibraryPlatform.Linux,
+    )
+
+    assert builder.getHostCompilerBindirFromOptions("-O2") is False
+
+
+def test_conan_file_class_name_is_sanitized_for_hyphenated_library(requests_mock):
+    requests_mock.get(f"{BASE}lang.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_test_build_config()
+    build_config.package_install = True
+    lb = LibraryBuilder(
+        logger,
+        "lang",
+        "kokkos-cuda",
+        "5.1.1",
+        "src-folder",
+        install_context,
+        build_config,
+        False,
+        LibraryPlatform.Linux,
+    )
+    tio = io.StringIO()
+    lb.write_conan_file_to(tio)
+    conan_file = tio.getvalue()
+    assert_valid_python(conan_file)
+    # The class identifier must be valid Python, but the package name keeps the hyphen.
+    assert "class kokkos_cudaConan(ConanFile):" in conan_file
+    assert 'name = "kokkos-cuda"' in conan_file
+
+
+def _write_nvcc_buildscript(tmp_path, requests_mock, *, wrapper):
+    requests_mock.get(f"{BASE}cuda.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_test_build_config()
+    build_config.package_install = True
+    build_config.make_targets = ["all"]
+    build_config.staticliblink = ["kokkoscore"]
+    build_config.extra_cmake_arg = ["-DKokkos_ENABLE_CUDA=ON"]
+    build_config.cxx_compiler_wrapper = wrapper
+    builder = LibraryBuilder(
+        logger,
+        "cuda",
+        "kokkos-cuda",
+        "5.1.1",
+        "/src/kokkos",
+        install_context,
+        build_config,
+        False,
+        LibraryPlatform.Linux,
+    )
+    builder.writebuildscript(
+        str(tmp_path),
+        str(tmp_path / "install"),
+        "/src/kokkos",
+        "nvcc133",
+        "--compiler-bindir /opt/compiler-explorer/gcc-14.1.0/bin",
+        "/opt/compiler-explorer/cuda/13.3.0/bin/nvcc",
+        "nvcc",
+        "/opt/compiler-explorer/cuda/13.3.0",
+        "Linux",
+        "Debug",
+        "x86_64",
+        "",
+        "",
+        [""],
+        "/opt/compiler-explorer/cuda/13.3.0/lib64",
+        {},
+    )
+    return (tmp_path / "cebuild.sh").read_text(encoding="utf-8")
+
+
+def test_writebuildscript_nvcc_with_wrapper(tmp_path, requests_mock):
+    script = _write_nvcc_buildscript(tmp_path, requests_mock, wrapper="bin/nvcc_wrapper")
+    assert 'export PATH="/opt/compiler-explorer/cuda/13.3.0/bin:$PATH"' in script
+    assert 'export CXX="/src/kokkos/bin/nvcc_wrapper"' in script
+    assert 'export CC="/opt/compiler-explorer/gcc-14.1.0/bin/gcc"' in script
+    assert 'export NVCC_WRAPPER_DEFAULT_COMPILER="/opt/compiler-explorer/gcc-14.1.0/bin/g++"' in script
+    # Wrapper drives nvcc directly; CMake's native CUDA language is not used.
+    assert "CUDACXX" not in script
+
+
+def test_writebuildscript_nvcc_without_wrapper_uses_native_cuda(tmp_path, requests_mock):
+    script = _write_nvcc_buildscript(tmp_path, requests_mock, wrapper="")
+    assert 'export PATH="/opt/compiler-explorer/cuda/13.3.0/bin:$PATH"' in script
+    assert 'export CUDACXX="/opt/compiler-explorer/cuda/13.3.0/bin/nvcc"' in script
+    assert 'export CXX="/opt/compiler-explorer/gcc-14.1.0/bin/g++"' in script
+    assert "CMAKE_CUDA_FLAGS" in script
+    assert "nvcc_wrapper" not in script
 
 
 def test_get_sysroot_path_from_options(requests_mock):
