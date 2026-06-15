@@ -54,6 +54,9 @@ jobs:
           elif [[ "$LIBRARY" == libraries/go/* ]]; then
             LANGUAGE="go"
             LIBRARY_NAME="${LIBRARY#libraries/go/}"
+          elif [[ "$LIBRARY" == libraries/cuda/* ]]; then
+            LANGUAGE="cuda"
+            LIBRARY_NAME="${LIBRARY#libraries/cuda/}"
           elif [[ "$LIBRARY" == libraries/c++/* ]]; then
             LANGUAGE="c++"
             LIBRARY_NAME="${LIBRARY#libraries/c++/}"
