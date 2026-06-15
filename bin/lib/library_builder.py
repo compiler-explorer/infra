@@ -1205,7 +1205,9 @@ class LibraryBuilder:
         )
 
         f.write("from conans import ConanFile, tools\n")
-        f.write(f"class {self.libname}Conan(ConanFile):\n")
+        # The class name must be a valid Python identifier; library names may contain hyphens.
+        classname = re.sub(r"\W", "_", self.libname)
+        f.write(f"class {classname}Conan(ConanFile):\n")
         f.write(f'    name = "{self.libname}"\n')
         f.write(f'    version = "{self.target_name}"\n')
         f.write('    settings = "os", "compiler", "build_type", "arch", "stdver", "flagcollection"\n')
