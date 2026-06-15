@@ -789,14 +789,24 @@ class LibraryBuilder:
                         compilerexecc = compilerexecc + ".exe"
 
             if compilerType == "nvcc":
-                # nvcc is not a drop-in C/C++ compiler for CMake's host-compiler probing, so
-                # expose it via CUDACXX and let CMake's native CUDA language pick it up. CC/CXX
-                # are pointed at the host gcc nvcc was configured against (--compiler-bindir).
+                # nvcc rejects host-style flags and isn't a drop-in CMake CXX compiler. Make nvcc
+                # reachable on PATH, and point CC plus the host compiler at the gcc nvcc was built
+                # against (--compiler-bindir). A library can opt into its own compiler driver (e.g.
+                # Kokkos' nvcc_wrapper) via cxx_compiler_wrapper; otherwise expose nvcc through
+                # CUDACXX for CMake's native CUDA language.
                 host_bindir = self.getHostCompilerBindirFromOptions(compileroptions)
+                f.write(self.script_env("PATH", f"{os.path.dirname(compilerexe)}:$PATH"))
                 if host_bindir:
                     f.write(self.script_env("CC", os.path.join(host_bindir, "gcc")))
-                    f.write(self.script_env("CXX", os.path.join(host_bindir, "g++")))
-                f.write(self.script_env("CUDACXX", compilerexe))
+                if self.buildconfig.cxx_compiler_wrapper:
+                    wrapper = os.path.join(sourcefolder, self.buildconfig.cxx_compiler_wrapper)
+                    f.write(self.script_env("CXX", wrapper))
+                    if host_bindir:
+                        f.write(self.script_env("NVCC_WRAPPER_DEFAULT_COMPILER", os.path.join(host_bindir, "g++")))
+                else:
+                    if host_bindir:
+                        f.write(self.script_env("CXX", os.path.join(host_bindir, "g++")))
+                    f.write(self.script_env("CUDACXX", compilerexe))
             else:
                 f.write(self.script_env("CC", compilerexecc))
                 f.write(self.script_env("CXX", compilerexe))
@@ -986,7 +996,7 @@ class LibraryBuilder:
                 # Use appropriate CMAKE_*_FLAGS based on build type
                 cmake_flags_suffix = "_DEBUG" if buildtype == "Debug" else "_RELEASE"
                 cudaflagsparam = ""
-                if compilerType == "nvcc":
+                if compilerType == "nvcc" and not self.buildconfig.cxx_compiler_wrapper:
                     cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}"'
                 cmakecmd = (
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
