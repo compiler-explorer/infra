@@ -767,7 +767,7 @@ class LibraryBuilder:
                     compilerexecc = f"{compilerexecc}"
                 elif compilerexe.endswith("g++"):
                     compilerexecc = f"{compilerexecc}cc"
-                elif compilerType == "edg":
+                elif compilerType in ("edg", "nvcc"):
                     compilerexecc = compilerexe
 
             elif self.platform == LibraryPlatform.Windows:
@@ -811,7 +811,11 @@ class LibraryBuilder:
 
             rpathflags = ""
             ldflags = ""
-            if compilerType != "edg" and not is_msvc:
+            if compilerType == "nvcc":
+                # nvcc rejects raw -Wl, options, so forward rpath through -Xlinker.
+                for path in libparampaths:
+                    rpathflags += f"-Xlinker -rpath={path} "
+            elif compilerType != "edg" and not is_msvc:
                 for path in libparampaths:
                     rpathflags += f"-Wl,-rpath={path} "
 
