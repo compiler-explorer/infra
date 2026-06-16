@@ -9,4 +9,3 @@ compilers:
     check_exe: RazorForge version
     targets:
       - 0.0.4
-      
