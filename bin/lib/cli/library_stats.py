@@ -17,15 +17,17 @@ def library_stats_update():
     """Queries Athena for Library statistics and updates the public CSV."""
     client = boto3.client("athena")
 
-    fields = "count(*) as times_used, min(time) as first_used, max(time) as last_used, split_part(request_url, '/', 6) as library, split_part(request_url, '/', 7) as library_version"
-    server_url = "conan.compiler-explorer.com"
-    request_url = "https://conan.compiler-explorer.com:1443/v1/conans/%/download_urls"
-    where = f"WHERE domain_name='{server_url}' and request_url like '{request_url}'"
-    group_by = "GROUP BY split_part(request_url, '/', 6), split_part(request_url, '/', 7)"
+    # Conan traffic moved behind CloudFront (and a dedicated internal ALB) in #1868, so it no longer
+    # appears in alb_logs. CloudFront logs split the URL into host_header + a path-only uri, hence the
+    # split_part indices differ from the old full-URL query.
+    fields = "count(*) as times_used, min(date) as first_used, max(date) as last_used, split_part(uri, '/', 4) as library, split_part(uri, '/', 5) as library_version"
+    server_host = "conan.compiler-explorer.com"
+    where = f"WHERE host_header='{server_host}' and uri like '/v1/conans/%/download_urls'"
+    group_by = "GROUP BY split_part(uri, '/', 4), split_part(uri, '/', 5)"
     order_by = "ORDER BY count(*) DESC"
 
     response = client.start_query_execution(
-        QueryString=f"SELECT {fields} FROM alb_logs {where} {group_by} {order_by};",
+        QueryString=f"SELECT {fields} FROM cloudfront_logs {where} {group_by} {order_by};",
         QueryExecutionContext={"Database": "default"},
         ResultConfiguration={
             "OutputLocation": "s3://compiler-explorer/public/",
