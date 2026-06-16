@@ -61,6 +61,21 @@ mkdir -p /root/.aws /home/ubuntu/.aws
 echo -e "[default]\nregion=us-east-1" | tee /root/.aws/config /home/ubuntu/.aws/config
 chown -R ubuntu /home/ubuntu/.aws
 
+# GHC (8.6.1 and others) and some other legacy toolchains link against
+# libtinfo.so.5, which Ubuntu 24.04 no longer packages. Pull our mirror of the
+# jammy package and install it next to the v6 that ships by default. amd64 only
+# for now; revisit arm64 if a compiler there ends up needing it.
+if [ "$ARCH" == 'amd64' ]; then
+  mkdir -p /tmp/libtinfo5
+  pushd /tmp/libtinfo5
+  aws s3 cp s3://compiler-explorer/dependencies/libtinfo5_6.3-2ubuntu0.1_amd64.deb libtinfo5.deb
+  dpkg-deb -x libtinfo5.deb extracted
+  cp -a extracted/lib/x86_64-linux-gnu/libtinfo.so.5* /usr/lib/x86_64-linux-gnu/
+  ldconfig
+  popd
+  rm -rf /tmp/libtinfo5
+fi
+
 get_conf() {
   aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
 }
