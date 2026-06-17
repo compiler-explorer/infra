@@ -552,6 +552,12 @@ class LibraryBuilder:
             return match[1]
         return False
 
+    def getHostCompilerBindirFromOptions(self, options):
+        match = re.search(r"--compiler-bindir[= ](\S+)", options)
+        if match:
+            return match[1]
+        return False
+
     def getStdVerFromOptions(self, options):
         match = re.search(r"-std=(\S*)", options)
         if match:
@@ -782,8 +788,28 @@ class LibraryBuilder:
                     if not compilerexecc.endswith(".exe"):
                         compilerexecc = compilerexecc + ".exe"
 
-            f.write(self.script_env("CC", compilerexecc))
-            f.write(self.script_env("CXX", compilerexe))
+            if compilerType == "nvcc":
+                # nvcc rejects host-style flags and isn't a drop-in CMake CXX compiler. Make nvcc
+                # reachable on PATH, and point CC plus the host compiler at the gcc nvcc was built
+                # against (--compiler-bindir). A library can opt into its own compiler driver (e.g.
+                # Kokkos' nvcc_wrapper) via cxx_compiler_wrapper; otherwise expose nvcc through
+                # CUDACXX for CMake's native CUDA language.
+                host_bindir = self.getHostCompilerBindirFromOptions(compileroptions)
+                f.write(self.script_env("PATH", f"{os.path.dirname(compilerexe)}:$PATH"))
+                if host_bindir:
+                    f.write(self.script_env("CC", os.path.join(host_bindir, "gcc")))
+                if self.buildconfig.cxx_compiler_wrapper:
+                    wrapper = os.path.join(sourcefolder, self.buildconfig.cxx_compiler_wrapper)
+                    f.write(self.script_env("CXX", wrapper))
+                    if host_bindir:
+                        f.write(self.script_env("NVCC_WRAPPER_DEFAULT_COMPILER", os.path.join(host_bindir, "g++")))
+                else:
+                    if host_bindir:
+                        f.write(self.script_env("CXX", os.path.join(host_bindir, "g++")))
+                    f.write(self.script_env("CUDACXX", compilerexe))
+            else:
+                f.write(self.script_env("CC", compilerexecc))
+                f.write(self.script_env("CXX", compilerexe))
 
             is_msvc = compilerType == "win32-vc"
 
@@ -811,7 +837,11 @@ class LibraryBuilder:
 
             rpathflags = ""
             ldflags = ""
-            if compilerType != "edg" and not is_msvc:
+            if compilerType == "nvcc":
+                # nvcc rejects raw -Wl, options, so forward rpath through -Xlinker.
+                for path in libparampaths:
+                    rpathflags += f"-Xlinker -rpath={path} "
+            elif compilerType != "edg" and not is_msvc:
                 for path in libparampaths:
                     rpathflags += f"-Wl,-rpath={path} "
 
@@ -889,8 +919,17 @@ class LibraryBuilder:
             if boosttarget == "i386":
                 compileroptions += " -latomic"
 
-            cxx_flags = f"{compileroptions} {archflag} {stdverflag} {stdlibflag} {extraflags}"
-            c_compileroptions = re.sub(r"-std=c\+\+\w+\s*", "", compileroptions).strip()
+            cuda_flags = ""
+            if compilerType == "nvcc":
+                # nvcc-only options (e.g. --compiler-bindir) belong to the CUDA flags; the host
+                # gcc used for CC/CXX would reject them.
+                cuda_flags = f"{compileroptions} {archflag} {stdverflag} {extraflags}"
+                host_compileroptions = re.sub(r"--compiler-bindir[= ]\S+", "", compileroptions).strip()
+            else:
+                host_compileroptions = compileroptions
+
+            cxx_flags = f"{host_compileroptions} {archflag} {stdverflag} {stdlibflag} {extraflags}"
+            c_compileroptions = re.sub(r"-std=c\+\+\w+\s*", "", host_compileroptions).strip()
             c_flags = f"{c_compileroptions} {archflag} {extraflags}"
             asm_flags = f"{archflag}"
 
@@ -956,11 +995,14 @@ class LibraryBuilder:
 
                 # Use appropriate CMAKE_*_FLAGS based on build type
                 cmake_flags_suffix = "_DEBUG" if buildtype == "Debug" else "_RELEASE"
+                cudaflagsparam = ""
+                if compilerType == "nvcc" and not self.buildconfig.cxx_compiler_wrapper:
+                    cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}"'
                 cmakecmd = (
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
                     f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
                     f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
-                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {extracmakeargs} {sourcefolder}'
+                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'
                 )
                 cmakeline = self.script_run_logged(cmakecmd, "cecmakelog.txt", "cmake configure failed:")
                 self.logger.debug(cmakeline)
@@ -1163,7 +1205,9 @@ class LibraryBuilder:
         )
 
         f.write("from conans import ConanFile, tools\n")
-        f.write(f"class {self.libname}Conan(ConanFile):\n")
+        # The class name must be a valid Python identifier; library names may contain hyphens.
+        classname = re.sub(r"\W", "_", self.libname)
+        f.write(f"class {classname}Conan(ConanFile):\n")
         f.write(f'    name = "{self.libname}"\n')
         f.write(f'    version = "{self.target_name}"\n')
         f.write('    settings = "os", "compiler", "build_type", "arch", "stdver", "flagcollection"\n')
