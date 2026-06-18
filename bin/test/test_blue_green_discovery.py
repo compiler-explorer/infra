@@ -13,11 +13,15 @@ from lib.env import Config, Environment
 class TestDisplayDiscoveryStatus(unittest.TestCase):
     """Tests for _display_discovery_status."""
 
+    def _make_deployment(self, env=Environment.PROD):
+        with patch("lib.blue_green_deploy.ssm_client"), patch("lib.blue_green_deploy.is_running_on_admin_node"):
+            return BlueGreenDeployment(Config(env=env))
+
     @patch("lib.blue_green_deploy.discovery_exists")
     @patch("builtins.print")
     def test_all_found(self, mock_print, mock_exists):
         mock_exists.return_value = True
-        BlueGreenDeployment._display_discovery_status("gh-123")
+        self._make_deployment()._display_discovery_status("gh-123")
         calls = [call[0][0] for call in mock_print.call_args_list]
         assert any("prod:" in c and "found" in c for c in calls)
         assert any("staging:" in c and "found" in c for c in calls)
@@ -29,7 +33,7 @@ class TestDisplayDiscoveryStatus(unittest.TestCase):
     @patch("builtins.print")
     def test_none_found(self, mock_print, mock_exists):
         mock_exists.return_value = False
-        BlueGreenDeployment._display_discovery_status("gh-456")
+        self._make_deployment()._display_discovery_status("gh-456")
         calls = [call[0][0] for call in mock_print.call_args_list]
         assert all("not found" in c for c in calls if ":" in c and "status" not in c.lower())
 
@@ -37,7 +41,7 @@ class TestDisplayDiscoveryStatus(unittest.TestCase):
     @patch("builtins.print")
     def test_mixed_status(self, mock_print, mock_exists):
         mock_exists.side_effect = lambda env, _ver: env == "staging"
-        BlueGreenDeployment._display_discovery_status("gh-789")
+        self._make_deployment()._display_discovery_status("gh-789")
         calls = [call[0][0] for call in mock_print.call_args_list]
         # prod: not found, staging: found, beta: not found
         prod_line = next(c for c in calls if "prod:" in c)
@@ -46,6 +50,16 @@ class TestDisplayDiscoveryStatus(unittest.TestCase):
         assert "not found" in prod_line
         assert "found" in staging_line and "not found" not in staging_line
         assert "not found" in beta_line
+
+    @patch("lib.blue_green_deploy.discovery_exists")
+    @patch("builtins.print")
+    def test_includes_deployment_env(self, mock_print, mock_exists):
+        """When deploying to gpu, a gpu line appears reflecting its own discovery."""
+        mock_exists.side_effect = lambda env, _ver: env == "gpu"
+        self._make_deployment(Environment.GPU)._display_discovery_status("gh-18373")
+        calls = [call[0][0] for call in mock_print.call_args_list]
+        gpu_line = next(c for c in calls if "gpu:" in c)
+        assert "found" in gpu_line and "not found" not in gpu_line
 
 
 class TestHandleProdMissingDiscovery(unittest.TestCase):

@@ -221,11 +221,13 @@ class BlueGreenDeployment:
         asg_info = get_asg_info(asg_name)
         return asg_info["DesiredCapacity"] if asg_info else 0
 
-    @staticmethod
-    def _display_discovery_status(version: str) -> None:
+    def _display_discovery_status(self, version: str) -> None:
         """Display discovery status for the target version across environments."""
+        envs = ["prod", "staging", "beta"]
+        if self.env not in envs:
+            envs.append(self.env)
         print(f"\nDiscovery status for {version}:")
-        for env in ["prod", "staging", "beta"]:
+        for env in envs:
             exists = discovery_exists(env, version)
             label = "found" if exists else "not found"
             padded_env = f"{env}:"
