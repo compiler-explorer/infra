@@ -202,6 +202,8 @@ class TarballInstallable(Installable):
             decompress_flag = "j"
         elif self.config_get("compression") == "tar":
             decompress_flag = ""
+        elif self.config_get("compression") == "zstd":
+            decompress_flag = "--zstd"
         else:
             raise RuntimeError(f"Unknown compression {self.config_get('compression')}")
         self.configure_command = command_config(self.config_get("configure_command", []))
@@ -209,6 +211,10 @@ class TarballInstallable(Installable):
             self.tar_cmd = ["7z", "x"]
         elif is_windows() and decompress_flag == "j":
             self.tar_cmd = ["7z", "x"]
+        elif is_windows() and decompress_flag == "--zstd":
+            self.tar_cmd = ["7z", "x"]
+        elif decompress_flag == "--zstd":
+            self.tar_cmd = ["tar", "--zstd", "-xf", "-"]
         else:
             self.tar_cmd = ["tar", f"{decompress_flag}xf", "-"]
             strip_components = self.config_get("strip_components", 0)
