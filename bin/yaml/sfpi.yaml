@@ -4,7 +4,7 @@ compilers:
     compression: xz
     dir: sfpi-{{name}}
     untar_dir: sfpi
-    check_exe: compiler/libexec/gcc/riscv-tt-elf/15.1.0/cc1plus --version
+    check_exe: compiler/libexec/gcc/riscv-tt-elf/{{gcc_version}}/cc1plus --version
     url: https://github.com/tenstorrent/sfpi/releases/download/{{name}}/sfpi_{{name}}_x86_64_debian.txz
     depends:
       - tools/tt-metal-headers {{tt_metal_version}}
@@ -17,13 +17,14 @@ compilers:
       - curl -sLO https://archive.ubuntu.com/ubuntu/pool/main/m/mpclib3/{{mpc_package}}
       - dpkg-deb -x {{mpfr_package}} sfpi-mpfr
       - dpkg-deb -x {{mpc_package}} sfpi-mpc
-      - mkdir -p sfpi/compiler/libexec/gcc/riscv-tt-elf/15.1.0/ce-runtime
-      - cp -a sfpi-mpfr/usr/lib/x86_64-linux-gnu/libmpfr.so.6* sfpi/compiler/libexec/gcc/riscv-tt-elf/15.1.0/ce-runtime/
-      - cp -a sfpi-mpc/usr/lib/x86_64-linux-gnu/libmpc.so.3* sfpi/compiler/libexec/gcc/riscv-tt-elf/15.1.0/ce-runtime/
+      - mkdir -p sfpi/compiler/libexec/gcc/riscv-tt-elf/{{gcc_version}}/ce-runtime
+      - cp -a sfpi-mpfr/usr/lib/x86_64-linux-gnu/libmpfr.so.6* sfpi/compiler/libexec/gcc/riscv-tt-elf/{{gcc_version}}/ce-runtime/
+      - cp -a sfpi-mpc/usr/lib/x86_64-linux-gnu/libmpc.so.3* sfpi/compiler/libexec/gcc/riscv-tt-elf/{{gcc_version}}/ce-runtime/
       - rm -rf {{mpfr_package}} {{mpc_package}} sfpi-mpfr sfpi-mpc
-      - "%DEP1%/bin/patchelf --add-rpath '$ORIGIN/ce-runtime' sfpi/compiler/libexec/gcc/riscv-tt-elf/15.1.0/cc1plus"
+      - "%DEP1%/bin/patchelf --add-rpath '$ORIGIN/ce-runtime' sfpi/compiler/libexec/gcc/riscv-tt-elf/{{gcc_version}}/cc1plus"
     targets:
       - name: 7.55.0
+        gcc_version: 15.1.0
         tt_metal_version: v0.71.2
         mpfr_package: libmpfr6_4.2.1-1build1_amd64.deb
         mpc_package: libmpc3_1.3.1-1build1_amd64.deb
