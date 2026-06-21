@@ -40,6 +40,18 @@ def hash_file_for_s3(f):
         return dict(hash=sha256, **f)
 
 
+def is_source_map(name: str) -> bool:
+    """Source maps (``*.map``) are debug-only, not code.
+
+    Named after the asset's hash (``<asset>.map``), they can still change for
+    byte-identical JS/CSS (a toolchain bump regenerates the map), reusing a name
+    with new bytes. So we exempt them from the immutable-hash check (which guards
+    against publishing different *code* at one hash), overwrite them on deploy,
+    and serve them uncached so debugging always matches the deployed asset.
+    """
+    return name.endswith(".map")
+
+
 def get_directory_contents(basedir):
     for f in Path(basedir).rglob("*"):
         if not f.is_file():
@@ -215,7 +227,11 @@ class DeploymentJob:
         if guessed_type is not None:
             extra_args["ContentType"] = guessed_type
 
-        if self.cache_control is not None:
+        if is_source_map(file["name"]):
+            # Revalidate (cheap 304s) rather than cache for a year: a map's bytes
+            # can change under a stable name, and debugging must see the current one.
+            extra_args["CacheControl"] = "no-cache"
+        elif self.cache_control is not None:
             extra_args["CacheControl"] = self.cache_control
 
         # upload file to s3
@@ -254,7 +270,7 @@ class DeploymentJob:
             files_with_mismatch = []
             for f in executor.map(self._check_s3_hash, files):
                 if f["exists"]:
-                    if f["mismatch"]:
+                    if f["mismatch"] and not is_source_map(f["name"]):
                         files_with_mismatch.append(f)
 
             if files_with_mismatch:
@@ -285,7 +301,11 @@ class DeploymentJob:
             for f in executor.map(self._check_s3_hash, files):
                 if f["exists"]:
                     if f["mismatch"]:
-                        files_with_mismatch.append(f)
+                        if is_source_map(f["name"]):
+                            # Not a code collision: overwrite rather than abort.
+                            files_to_upload.append(f)
+                        else:
+                            files_with_mismatch.append(f)
                     else:
                         files_to_update.append(f)
                 else:
