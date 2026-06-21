@@ -41,14 +41,7 @@ def hash_file_for_s3(f):
 
 
 def is_source_map(name: str) -> bool:
-    """Source maps (``*.map``) are debug-only, not code.
-
-    Named after the asset's hash (``<asset>.map``), they can still change for
-    byte-identical JS/CSS (a toolchain bump regenerates the map), reusing a name
-    with new bytes. So we exempt them from the immutable-hash check (which guards
-    against publishing different *code* at one hash), overwrite them on deploy,
-    and serve them uncached so debugging always matches the deployed asset.
-    """
+    """True for source-map sidecar files (``*.map``)."""
     return name.endswith(".map")
 
 
@@ -270,6 +263,10 @@ class DeploymentJob:
             files_with_mismatch = []
             for f in executor.map(self._check_s3_hash, files):
                 if f["exists"]:
+                    # Source maps are exempt from the immutable-content guarantee:
+                    # unlike code, a map's bytes can change for a byte-identical
+                    # asset (a toolchain bump regenerates it), so its content-derived
+                    # name legitimately holds new bytes — not a collision.
                     if f["mismatch"] and not is_source_map(f["name"]):
                         files_with_mismatch.append(f)
 
