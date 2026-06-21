@@ -43,6 +43,7 @@ on:
         - rocm
         - ruby
         - rust-linux
+        - sfpi
         - vala
       version:
         description: The version to build (or architecture and version for cross)
