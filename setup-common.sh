@@ -38,6 +38,38 @@ apt-get -y install \
 
 locale-gen en_US.UTF-8
 
+# Install user-requested locales
+cat >> /etc/locale.gen << EOF
+cs_CZ.UTF-8 UTF-8
+cs_CZ ISO-8859-2
+en_GB ISO-8859-1
+de_DE.UTF-8 UTF-8
+en_GB.UTF-8 UTF-8
+en_US.UTF-8 UTF-8
+en_US ISO-8859-1
+en_US.ISO-8859-15 ISO-8859-15
+is_IS.UTF-8 UTF-8
+ja_JP.UTF-8 UTF-8
+ja_JP.EUC-JP EUC-JP
+ja_JP.SHIFT_JIS SHIFT_JIS
+lt_LT.UTF-8 UTF-8
+lt_LT ISO-8859-13
+ru_RU.UTF-8 UTF-8
+sv_SE.UTF-8 UTF-8
+th_TH.UTF-8 UTF-8
+th_TH TIS-620
+zh_CN.UTF-8 UTF-8
+zh_CN.GB18030 GB18030
+zh_CN.GBK GBK
+zh_CN GB2312
+zh_HK.UTF-8 UTF-8
+zh_HK BIG5-HKSCS
+zh_TW.UTF-8 UTF-8
+zh_TW.EUC-TW EUC-TW
+zh_TW BIG5
+EOF
+locale-gen
+
 apt-get autoremove --purge -y
 
 # This returns amd64 or arm64
