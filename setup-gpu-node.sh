@@ -22,8 +22,8 @@ popd
 
 apt-get -y update
 # Note the hyphen in the CUDA version number, not a period.
-DRIVER_VERSION=580
-CUDA_VERSION=13-0
+DRIVER_VERSION=595
+CUDA_VERSION=13-3
 apt install -y \
     nvidia-headless-${DRIVER_VERSION}-open \
     nvidia-driver-assistant \
