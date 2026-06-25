@@ -1739,6 +1739,7 @@ compilers:
           - contracts-GNUext-trunk
           - thomas-healy-trunk
           - trivial-relocation-trunk
+          - notadragon-contracts-p3850
           - thephd.dev
       clang:
         type: nightly
@@ -1786,6 +1787,7 @@ compilers:
           - dascandy-contracts-trunk
           - p1974-trunk
           - ericwf-contracts-trunk
+          - notadragon-contracts-p3850
           - chrisbazley-trunk
           - swiftlang-trunk
           - name: llvmflang-trunk
