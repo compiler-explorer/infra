@@ -1863,3 +1863,183 @@ compilers:
           vername: v1500
         - name: 15.0.7
           vername: v1507
+    mcst-lcc:
+      if: non-free
+      type: tarballs
+      compression: xz
+      # strip opt/mcst/
+      strip_components: 2
+      dir: "lcc-{{vername}}"
+      check_exe: bin/l++ --version
+      # Archive file name prefix, usually cross-sp or cross-sp-rel.
+      prefix: ""
+      # Host arch:
+      #   _32 - x86 (i686)
+      #   _64 - x86-64 (amd64)
+      suffix: _64
+      # A1batross's personal archive of MCST LCC compilers.
+      # See https://setwd.ws/sp/README.txt
+      url: "https://setwd.ws/sp/{{tree}}/{{name}}/{{prefix}}-{{vername}}{{suffix}}.tar.xz"
+      e2k:
+        # A default ISA target for compiling. The distributed minimal sysroot
+        # compiled for this target.
+        #
+        # Format:
+        #   generic - alias for v2
+        #   vN - ISA version (-march)
+        #   vN.CPU - CPU specific (-mtune)
+        #
+        # Examples:
+        #   v3 (any elbrus-v3 cpu)
+        #   v3.4c (only elbrus-4c cpu)
+        #   v4
+        #   v4.8c
+        #   v4.1c+
+        #   v5
+        #   v5.8c2
+        #   v6
+        #   v6.16c
+        #   v6.2c3
+        #
+        # Almost all available cross-compilers have v4 version with a few
+        # exceptions and it's a good choice for an emulator because
+        # sysroot libraries compiled for this target.
+        isa: v4
+        vername: "{{name}}.e2k-{{isa}}.{{kernel}}"
+        after_stage_script:
+          - "{{yaml_dir}}/mcst-lcc/setup.sh {{dir}}"
+        lcc119:
+          type: script
+          tree: "1.19"
+          kernel: "2.6.33"
+          isa: generic
+          fetch:
+            - https://setwd.ws/sp/{{tree}}/{{name}}/lcc-e2k-cross_1.1_i386.deb lcc-e2k-cross_1.1_i386.deb
+          script: |
+            dpkg-deb -x lcc-e2k-cross_1.1_i386.deb extracted
+            mv extracted/opt/mcst {{dir}}
+            {{yaml_dir}}/mcst-lcc/setup.sh {{dir}}
+          targets:
+            - 1.19.11
+        lcc120:
+          strip_components: 0
+          tree: "1.20"
+          kernel: "3.14"
+          isa: generic
+          prefix: lcc
+          suffix: ""
+          targets:
+            - 1.20.17
+        lcc123:
+          tree: "1.23"
+          kernel: "4.9"
+          prefix: cross-sp-rel
+          targets:
+            - name: 1.23.19
+              prefix: ed-cross-sp
+              after_stage_script:
+                - "{{yaml_dir}}/mcst-lcc/setup.sh {{dir}}"
+                - ln -srf {{dir}}/fs/lib/e2k-linux-gnu/ld-linux.so.2
+                          {{dir}}/fs/lib64/ld-linux.so.2
+            - name: 1.23.22
+            - name: 1.23.25
+              prefix: cross-sp
+            - name: 1.23.28
+              suffix: _32
+        lcc124:
+          tree: "1.24"
+          kernel: "4.19"
+          prefix: cross-sp
+          targets:
+            - 1.24.10
+        lcc125:
+          tree: "1.25"
+          kernel: "5.4"
+          prefix: cross-sp
+          targets:
+            - 1.25.12
+            - 1.25.14
+            - 1.25.15
+            - 1.25.16
+            - 1.25.17
+            - 1.25.18
+            - 1.25.19
+            - name: 1.25.20
+              prefix: cross-sp-rel
+            - 1.25.22
+            - name: 1.25.23
+              prefix: cross-sp-rel
+            - name: 1.25.24
+              prefix: cross-sp-rel
+            - name: 1.25.25
+              prefix: cross-sp-rel
+            - name: 1.25.26
+              prefix: cross-sp-rel
+            - name: 1.25.27
+              prefix: cross-sp-rel
+        lcc126:
+          tree: "1.26"
+          kernel: "5.4"
+          prefix: cross-sp-rel
+          targets:
+            - name: 1.26.04
+              prefix: cross-sp
+            - name: 1.26.06
+              isa: v5
+            - 1.26.09
+            - name: 1.26.10
+              prefix: cross-sp
+            - name: 1.26.11
+              prefix: cross-sp
+            - 1.26.12
+            - 1.26.14
+            - 1.26.15
+            - 1.26.16
+            - 1.26.17
+            - 1.26.18
+            - 1.26.19
+            - 1.26.20
+            - 1.26.21
+            - 1.26.22
+        lcc127:
+          tree: "1.27"
+          kernel: "5.10"
+          prefix: cross-sp-rel
+          targets:
+            - name: 1.27.04
+              kernel: "5.4"
+            - name: 1.27.05
+              kernel: "5.4"
+            - name: 1.27.06
+              kernel: "5.4"
+            - 1.27.08
+            - 1.27.09
+            - 1.27.10
+            - 1.27.11
+            - 1.27.12
+            - 1.27.14
+            - name: 1.27.17
+              prefix: cross-sp
+            - 1.27.21
+            - name: 1.27.23
+              # cross-sp-rel without fortran.
+              prefix: cross-sp
+        lcc128:
+          tree: "1.28"
+          kernel: "6.1"
+          prefix: cross-sp-rel
+          targets:
+            - 1.28.07
+            - 1.28.09
+        lcc129:
+          tree: "1.29"
+          kernel: linux-6.1
+          prefix: cross-sp
+          targets:
+            - name: 1.29.08
+              isa: v4.8c
+            - 1.29.11
+            - 1.29.12
+            - 1.29.14
+            - 1.29.15
+            - 1.29.16

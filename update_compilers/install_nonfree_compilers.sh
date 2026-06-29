@@ -133,3 +133,14 @@ install_cuda https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installer
 install_cuda https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.168_418.67_linux.run 10.1.168
 install_cuda https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_418.87.00_linux.run 10.1.243
 install_cuda https://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda_10.2.89_440.33.01_linux.run 10.2.89
+
+##################################
+# MCST LCC compilers for E2K
+ce_install compilers/c++/mcst-lcc/e2k
+
+# Fixed paths in lcc-1.19.11.
+ln -s "${OPT}"/lcc-1.19.11.e2k-generic.2.6.33/fs /opt/mcst/fs
+ln -s "${OPT}"/lcc-1.19.11.e2k-generic.2.6.33/lcc-home /opt/mcst/lcc-home
+
+# Fixed paths in lcc-1.20.17.
+ln -s "${OPT}"/lcc-1.20.17.e2k-generic.3.14 /opt/mcst/lcc-1.20.17.e2k-generic.3.14

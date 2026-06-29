@@ -37,6 +37,9 @@ mount_opt() {
 
     [ -f /opt/.health ] || touch /opt/.health
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
+
+    # Used only for symlinks if path cannot be changed.
+    mkdir -p /opt/mcst
 }
 
 get_discovered_compilers() {
