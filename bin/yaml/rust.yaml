@@ -139,3 +139,43 @@ compilers:
     check_file: rust/libkernel.rmeta
     targets:
     - '6.3'
+  e2k:
+    rust:
+      if: non-free
+      type: script
+      check_exe: "bin/rustc --version --verbose"
+      dir: e2k-rust-{{name}}
+      # rustc sources:
+      #   https://github.com/helce/rust
+      # llvm sources is not published, repo contains only binaries for e2k:
+      #   https://git.openelbrus.ru/unipro/llvm-e2k
+      fetch:
+        - https://setwd.ws/rust/{{date}}/rustc-{{vername}}-x86_64-unknown-linux-gnu.tar.xz rustc-{{vername}}-x86_64-unknown-linux-gnu.tar.xz
+        - https://setwd.ws/rust/{{date}}/rust-std-{{vername}}-e2kv3-unknown-linux-gnu.tar.xz rust-std-{{vername}}-e2kv3-unknown-linux-gnu.tar.xz
+        - https://setwd.ws/rust/{{date}}/rust-std-{{vername}}-e2kv4-unknown-linux-gnu.tar.xz rust-std-{{vername}}-e2kv4-unknown-linux-gnu.tar.xz
+        - https://setwd.ws/rust/{{date}}/rust-std-{{vername}}-e2kv5-unknown-linux-gnu.tar.xz rust-std-{{vername}}-e2kv5-unknown-linux-gnu.tar.xz
+        - https://setwd.ws/rust/{{date}}/rust-std-{{vername}}-e2kv6-unknown-linux-gnu.tar.xz rust-std-{{vername}}-e2kv6-unknown-linux-gnu.tar.xz
+      script: |
+        for archive in *.tar.*; do
+          echo "extracting $archive"
+          tar xf "$archive"
+        done
+        mkdir "{{dir}}"
+        for components in */components; do
+          root=$(dirname "$components")
+          for component in $(cat "$components"); do
+            echo "installing $component"
+            cp -a "$root/$component/." "{{dir}}/"
+          done
+        done
+        rm "{{dir}}/manifest.in"
+      depends:
+        - compilers/c++/mcst-lcc/e2k/lcc129 1.29.16
+      targets:
+        - name: 1.78.0
+          vername: 1.78.0
+          date: 2025-04-14
+        - name: 1.87.0
+          # rustc-1.87.0 archive is broken and cannot compile for e2k targets.
+          vername: nightly
+          date: 2025-06-16

@@ -144,3 +144,7 @@ ln -s "${OPT}"/lcc-1.19.11.e2k-generic.2.6.33/lcc-home /opt/mcst/lcc-home
 
 # Fixed paths in lcc-1.20.17.
 ln -s "${OPT}"/lcc-1.20.17.e2k-generic.3.14 /opt/mcst/lcc-1.20.17.e2k-generic.3.14
+
+##################################
+# Rust compilers for E2K
+ce_install compilers/e2k/rust
