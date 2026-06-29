@@ -102,7 +102,6 @@ tools:
     compression: gz
     create_untar_dir: true
     dir: pvs-studio-latest
-    strip_components: 1
     check_exe: bin/pvs-studio --version
     targets:
       - latest
