@@ -1,13 +1,5 @@
 compilers:
   c:
-    aburi:
-      type: s3tarballs
-      s3_path_prefix: aburi-{{name}}
-      path_name: aburi/{{name}}
-      untar_dir: aburi-{{name}}
-      check_exe: bin/aburi --version
-      targets:
-        - atta-mills
     cproc:
       if: nightly
       type: nightly
