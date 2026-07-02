@@ -17,6 +17,7 @@ on:
         - clang
         - misc
         # rest in alphabetical order
+        - aburi
         - archiesdk
         - bloaty
         - clad
