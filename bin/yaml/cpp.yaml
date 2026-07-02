@@ -1540,193 +1540,39 @@ compilers:
             -g77 %DEP1%/bin/aarch64-unknown-linux-gnu-gfortran \
             ;
         fi
+      # Everything below is derived from each target's `version` and `ctk_ver`
+      # (the CUDA toolkit the SDK bundles), so a new release is a one-line addition.
+      arch: x86_64
+      name: "{{ arch }}_{{ version | replace('.', '_') }}"
+      year: "20{{ version.split('.')[0] }}"
+      dot_removed_version: "{{ version | replace('.', '') }}"
+      fetch:
+        - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
       targets:
-        - name: x86_64_22_7
-          arch: x86_64
-          version: "22.7"
-          dot_removed_version: "227"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_2022_{{dot_removed_version}}_Linux_{{arch}}_cuda_11.7.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_22_9
-          arch: x86_64
-          version: "22.9"
-          dot_removed_version: "229"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_2022_{{dot_removed_version}}_Linux_{{arch}}_cuda_11.7.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_22_11
-          arch: x86_64
-          version: "22.11"
-          dot_removed_version: "2211"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_2022_{{dot_removed_version}}_Linux_{{arch}}_cuda_11.8.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_1
-          arch: x86_64
-          version: "23.1"
-          dot_removed_version: "231"
-          year: "2023"
-          ctk_ver: "12.0"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_3
-          arch: x86_64
-          version: "23.3"
-          dot_removed_version: "233"
-          year: "2023"
-          ctk_ver: "12.0"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_5
-          arch: x86_64
-          version: "23.5"
-          dot_removed_version: "235"
-          year: "2023"
-          ctk_ver: "12.1"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_7
-          arch: x86_64
-          version: "23.7"
-          dot_removed_version: "237"
-          year: "2023"
-          ctk_ver: "12.2"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_9
-          arch: x86_64
-          version: "23.9"
-          dot_removed_version: "239"
-          year: "2023"
-          ctk_ver: "12.2"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_11
-          arch: x86_64
-          version: "23.11"
-          dot_removed_version: "2311"
-          year: "2023"
-          ctk_ver: "12.3"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_1
-          arch: x86_64
-          version: "24.1"
-          dot_removed_version: "241"
-          year: "2024"
-          ctk_ver: "12.3"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_3
-          arch: x86_64
-          version: "24.3"
-          dot_removed_version: "243"
-          year: "2024"
-          ctk_ver: "12.3"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_5
-          arch: x86_64
-          version: "24.5"
-          dot_removed_version: "245"
-          year: "2024"
-          ctk_ver: "12.4"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_7
-          arch: x86_64
-          version: "24.7"
-          dot_removed_version: "247"
-          year: "2024"
-          ctk_ver: "12.5"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_9
-          arch: x86_64
-          version: "24.9"
-          dot_removed_version: "249"
-          year: "2024"
-          ctk_ver: "12.6"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_11
-          arch: x86_64
-          version: "24.11"
-          dot_removed_version: "2411"
-          year: "2024"
-          ctk_ver: "12.6"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_1
-          arch: x86_64
-          version: "25.1"
-          dot_removed_version: "251"
-          year: "2025"
-          ctk_ver: "12.6"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_3
-          arch: x86_64
-          version: "25.3"
-          dot_removed_version: "253"
-          year: "2025"
-          ctk_ver: "12.8"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_5
-          arch: x86_64
-          version: "25.5"
-          dot_removed_version: "255"
-          year: "2025"
-          ctk_ver: "12.9"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_7
-          arch: x86_64
-          version: "25.7"
-          dot_removed_version: "257"
-          year: "2025"
-          ctk_ver: "12.9"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_9
-          arch: x86_64
-          version: "25.9"
-          dot_removed_version: "259"
-          year: "2025"
-          ctk_ver: "13.0"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_11
-          arch: x86_64
-          version: "25.11"
-          dot_removed_version: "2511"
-          year: "2025"
-          ctk_ver: "13.0"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_26_1
-          arch: x86_64
-          version: "26.1"
-          dot_removed_version: "261"
-          year: "2026"
-          ctk_ver: "13.1"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_26_3
-          arch: x86_64
-          version: "26.3"
-          dot_removed_version: "263"
-          year: "2026"
-          ctk_ver: "13.1"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_26_5
-          arch: x86_64
-          version: "26.5"
-          dot_removed_version: "265"
-          year: "2026"
-          ctk_ver: "13.2"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
+        - {version: "22.7", ctk_ver: "11.7"}
+        - {version: "22.9", ctk_ver: "11.7"}
+        - {version: "22.11", ctk_ver: "11.8"}
+        - {version: "23.1", ctk_ver: "12.0"}
+        - {version: "23.3", ctk_ver: "12.0"}
+        - {version: "23.5", ctk_ver: "12.1"}
+        - {version: "23.7", ctk_ver: "12.2"}
+        - {version: "23.9", ctk_ver: "12.2"}
+        - {version: "23.11", ctk_ver: "12.3"}
+        - {version: "24.1", ctk_ver: "12.3"}
+        - {version: "24.3", ctk_ver: "12.3"}
+        - {version: "24.5", ctk_ver: "12.4"}
+        - {version: "24.7", ctk_ver: "12.5"}
+        - {version: "24.9", ctk_ver: "12.6"}
+        - {version: "24.11", ctk_ver: "12.6"}
+        - {version: "25.1", ctk_ver: "12.6"}
+        - {version: "25.3", ctk_ver: "12.8"}
+        - {version: "25.5", ctk_ver: "12.9"}
+        - {version: "25.7", ctk_ver: "12.9"}
+        - {version: "25.9", ctk_ver: "13.0"}
+        - {version: "25.11", ctk_ver: "13.0"}
+        - {version: "26.1", ctk_ver: "13.1"}
+        - {version: "26.3", ctk_ver: "13.1"}
+        - {version: "26.5", ctk_ver: "13.2"}
     nightly:
       if: nightly
       gcc:
