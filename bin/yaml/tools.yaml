@@ -135,16 +135,16 @@ tools:
         url: https://github.com/rust-lang/rustfmt/releases/download/v1.4.36/rustfmt_linux-x86_64_v1.4.36.tar.gz
         strip_components: 1
         create_untar_dir: true
-  #tt-metal-headers:
-  #  type: tarballs
-  #  compression: gz
-  #  url: https://github.com/tenstorrent/tt-metal/archive/refs/tags/{{name}}.tar.gz
-  #  dir: tt-metal-headers-{{name}}
-  #  create_untar_dir: true
-  #  strip_components: 1
-  #  check_file: tt_metal/tt-llk/tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpu_math.h
-  #  targets:
-  #    - v0.71.2
+  tt-metal-headers:
+    type: tarballs
+    compression: gz
+    url: https://github.com/tenstorrent/tt-metal/archive/refs/tags/{{name}}.tar.gz
+    dir: tt-metal-headers-{{name}}
+    create_untar_dir: true
+    strip_components: 1
+    check_file: tt_metal/tt-llk/tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpu.h
+    targets:
+      - v0.71.2
   mmbutils:
     if: nightly
     type: github
