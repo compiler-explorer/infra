@@ -103,11 +103,15 @@ compilers:
           - assertions-14.2.0
           - 14.3.0
           - assertions-14.3.0
+          - 14.4.0
+          - assertions-14.4.0
           - 15.1.0
           - assertions-15.1.0
           - 15.2.0
-          - 16.1.0
           - assertions-15.2.0
+          - 15.3.0
+          - assertions-15.3.0
+          - 16.1.0
           - assertions-16.1.0
     cross:
       type: s3tarballs
