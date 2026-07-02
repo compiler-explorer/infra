@@ -7,6 +7,7 @@ CE to build artifacts before they can be deployed.
 from __future__ import annotations
 
 import re
+import shlex
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -170,9 +171,16 @@ class Addition:
         if not params:
             return None
 
-        return (
-            f"gh workflow run bespoke-build.yaml "
-            f"-f image={params.image} -f version={params.version} -f command={params.command}"
+        # Quote each -f argument: cross-compiler versions contain a space (e.g.
+        # "msp430 14.4.0"), which would otherwise be word-split by the shell so
+        # only the architecture reaches the workflow.
+        return "gh workflow run bespoke-build.yaml " + " ".join(
+            f"-f {shlex.quote(f'{key}={value}')}"
+            for key, value in (
+                ("image", params.image),
+                ("version", params.version),
+                ("command", params.command),
+            )
         )
 
 
