@@ -2553,10 +2553,12 @@ libraries:
     proxy:
       build_type: cmake
       check_file: README.md
+      subdir: proxy
       ngcpp:
         repo: ngcpp/proxy
         targets:
         - 4.0.2
+        - 4.1.0
       microsoft:
         repo: microsoft/proxy
         targets:
