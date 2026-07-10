@@ -38,7 +38,7 @@ data "amazon-ami" "ubuntu" {
 locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
 source "amazon-ebs" "ubuntu" {
-  access_key = "${var.MY_ACCESS_KEY}"
+  access_key                  = "${var.MY_ACCESS_KEY}"
   ami_name                    = "compiler-explorer builder packer @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
@@ -59,7 +59,8 @@ source "amazon-ebs" "ubuntu" {
   ssh_username      = "ubuntu"
   subnet_id         = "subnet-1df1e135"
   tags = {
-    Site = "CompilerExplorer"
+    Site       = "CompilerExplorer"
+    AmiCleanup = "auto"
   }
   vpc_id = "vpc-17209172"
 }
