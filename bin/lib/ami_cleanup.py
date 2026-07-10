@@ -101,6 +101,14 @@ def is_ami_debris_snapshot(snapshot: dict) -> bool:
     return snapshot.get("Description", "").startswith("Created by CreateImage")
 
 
+def is_recent_snapshot(snapshot: dict, now: datetime.datetime, minimum_age: datetime.timedelta) -> bool:
+    """A snapshot from an in-flight CreateImage can exist before the pending AMI exposes
+    it in BlockDeviceMappings, so it briefly looks like unreferenced debris. Packer can
+    run at any time, so never touch young snapshots; real debris is old by definition
+    (its StartTime is when its long-gone AMI was built)."""
+    return now - snapshot["StartTime"] < minimum_age
+
+
 _AMI_ID_RE = re.compile(r"\bami-[0-9a-f]{8,17}\b")
 
 
@@ -110,14 +118,27 @@ def find_terraform_mentioned_image_ids(repo_root: Path | None = None) -> set[str
     singleton instance: launch-template/instance checks only protect it while the instance
     exists. Grepping can only over-protect (the checks are unioned), and it makes the
     "no stale AMI ids in terraform source, even in comments" rule self-enforcing:
-    writing an id down keeps the image alive; deleting the mention releases it."""
+    writing an id down keeps the image alive; deleting the mention releases it.
+
+    The admin node's checkout is pulled nightly at 00:00 and cleanup runs at 09:10, so a
+    pin committed mid-day isn't seen until the next run; accepted, since a freshly pinned
+    AMI is normally young or instance-referenced anyway."""
     if repo_root is None:
         repo_root = Path(__file__).resolve().parent.parent.parent
+    tf_files = [
+        tf_file
+        for tf_file in repo_root.rglob("*.tf")
+        # skip .terraform module/provider caches
+        if not any(part.startswith(".") for part in tf_file.relative_to(repo_root).parts)
+    ]
+    if not tf_files:
+        # This repo always contains terraform with AMI pins: finding none means we're
+        # looking in the wrong place, and returning an empty set would silently drop
+        # this protection. Fail closed instead (before anything gets deleted).
+        raise RuntimeError(f"no *.tf files found under {repo_root}; refusing to continue")
     mentioned = set()
-    for tf_file in repo_root.rglob("*.tf"):
-        if any(part.startswith(".") for part in tf_file.relative_to(repo_root).parts):
-            continue  # skip .terraform module/provider caches
-        mentioned.update(_AMI_ID_RE.findall(tf_file.read_text(encoding="utf-8")))
+    for tf_file in tf_files:
+        mentioned.update(_AMI_ID_RE.findall(tf_file.read_text(encoding="utf-8", errors="replace")))
     return mentioned
 
 

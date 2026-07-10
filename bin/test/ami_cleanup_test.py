@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import datetime
 
+import pytest
 from lib.ami_cleanup import (
     ami_info_from_image,
     find_terraform_mentioned_image_ids,
     is_ami_debris_snapshot,
     is_backup_snapshot,
+    is_recent_snapshot,
     plan_ami_cleanup,
 )
 
@@ -19,7 +21,7 @@ def make_image(
     age_days: int,
     opted_in: bool = True,
     snapshot_ids: tuple[str, ...] = (),
-    size_gb: int = 8,
+    size_gb_per_snapshot: int = 8,
 ):
     created = NOW - datetime.timedelta(days=age_days)
     return ami_info_from_image({
@@ -28,7 +30,7 @@ def make_image(
         "CreationDate": created.isoformat(),
         "Tags": [{"Key": "AmiCleanup", "Value": "auto"}] if opted_in else [{"Key": "Site", "Value": "CE"}],
         "BlockDeviceMappings": [
-            {"Ebs": {"SnapshotId": snapshot_id, "VolumeSize": size_gb}} for snapshot_id in snapshot_ids
+            {"Ebs": {"SnapshotId": snapshot_id, "VolumeSize": size_gb_per_snapshot}} for snapshot_id in snapshot_ids
         ],
     })
 
@@ -113,6 +115,18 @@ def test_terraform_scan_finds_ami_ids_even_in_comments(tmp_path):
         "ami-00000000000000002",
         "ami-0000000000000000f",
     }
+
+
+def test_terraform_scan_fails_closed_when_no_tf_files_found(tmp_path):
+    with pytest.raises(RuntimeError, match="no .*tf files found"):
+        find_terraform_mentioned_image_ids(tmp_path)
+
+
+def test_recent_snapshots_are_recognised():
+    fresh = {"StartTime": NOW - datetime.timedelta(hours=2)}
+    old = {"StartTime": NOW - datetime.timedelta(days=400)}
+    assert is_recent_snapshot(fresh, NOW, minimum_age=datetime.timedelta(days=1))
+    assert not is_recent_snapshot(old, NOW, minimum_age=datetime.timedelta(days=1))
 
 
 def test_backup_snapshots_are_recognised():

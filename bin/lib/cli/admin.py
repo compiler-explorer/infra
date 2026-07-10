@@ -55,17 +55,25 @@ def admin_gotty():
 _GONE_ERROR_CODES = {"InvalidAMIID.Unavailable", "InvalidAMIID.NotFound", "InvalidSnapshot.NotFound"}
 
 
-def _delete_ignoring_failures(what: str, delete: Callable[..., object], **kwargs: str) -> int:
+def delete_ignoring_failures(what: str, delete: Callable[..., object], in_use_ok: bool = False, **kwargs: str) -> int:
     """Runs a deletion, tolerating already-gone errors; returns the number of failures (0 or 1).
 
     A persistent per-item failure must not abort the whole run (the cron would then wedge
-    at the same point every day), so failures are reported to stderr and counted instead."""
+    at the same point every day), so failures are reported to stderr and counted instead.
+    in_use_ok treats InvalidSnapshot.InUse as benign: right after a deregister_image the
+    snapshot delete can transiently see the AMI as still registered; the next run's orphan
+    sweep mops it up, so it shouldn't fail the run (and mail) in the meantime."""
     try:
         delete(**kwargs)
     except ClientError as e:
-        if e.response["Error"]["Code"] not in _GONE_ERROR_CODES:
-            click.echo(f"Failed to remove {what}: {e}", err=True)
-            return 1
+        code = e.response["Error"]["Code"]
+        if code in _GONE_ERROR_CODES:
+            return 0
+        if in_use_ok and code == "InvalidSnapshot.InUse":
+            click.echo(f"Skipping {what}: still in use; a later orphan sweep will retry")
+            return 0
+        click.echo(f"Failed to remove {what}: {e}", err=True)
+        return 1
     return 0
 
 
@@ -108,12 +116,19 @@ def admin_cleanup(dry_run: bool, min_age_days: int):
         click.echo(f"Keeping {image_id}: {reason}")
     total_gb = 0
     for image in plan.to_delete:
-        click.echo(f"{would} {image.image_id} ({image.name}, {image.creation_date:%Y-%m-%d}, {image.size_gb} GB)")
+        click.echo(
+            f"{would} {image.image_id} ({image.name}, {image.creation_date:%Y-%m-%d}, {image.size_gb} GB, "
+            f"snapshots: {', '.join(image.snapshot_ids) or 'none'})"
+        )
         total_gb += image.size_gb
         if not dry_run:
-            failures += _delete_ignoring_failures(image.image_id, ec2_client.deregister_image, ImageId=image.image_id)
+            if delete_ignoring_failures(image.image_id, ec2_client.deregister_image, ImageId=image.image_id):
+                failures += 1
+                continue  # a registered AMI's snapshots can't be deleted; don't compound the failure
             for snapshot_id in image.snapshot_ids:
-                failures += _delete_ignoring_failures(snapshot_id, ec2_client.delete_snapshot, SnapshotId=snapshot_id)
+                failures += delete_ignoring_failures(
+                    snapshot_id, ec2_client.delete_snapshot, in_use_ok=True, SnapshotId=snapshot_id
+                )
     not_opted_in = len(images) - len(plan.to_delete) - len(plan.kept)
     click.echo(
         f"AMI summary: {len(plan.to_delete)} removed ({total_gb} GB of snapshots), "
@@ -135,12 +150,16 @@ def admin_cleanup(dry_run: bool, min_age_days: int):
             snapshot_id = snapshot["SnapshotId"]
             if ami_cleanup.is_backup_snapshot(snapshot) or snapshot_id in snapshots_in_use:
                 continue
+            if ami_cleanup.is_recent_snapshot(
+                snapshot, datetime.datetime.now(datetime.UTC), minimum_age=datetime.timedelta(days=1)
+            ):
+                continue  # may belong to an in-flight CreateImage (packer can run at any time)
             if not ami_cleanup.is_ami_debris_snapshot(snapshot):
                 click.echo(f"Keeping unreferenced snapshot {snapshot_id}: not AMI debris, assumed deliberate")
                 continue
             click.echo(f"{would} orphaned snapshot {snapshot_id}")
             if not dry_run:
-                failures += _delete_ignoring_failures(snapshot_id, ec2_client.delete_snapshot, SnapshotId=snapshot_id)
+                failures += delete_ignoring_failures(snapshot_id, ec2_client.delete_snapshot, SnapshotId=snapshot_id)
     if failures:
         click.echo(f"{failures} deletions failed", err=True)
         sys.exit(1)
