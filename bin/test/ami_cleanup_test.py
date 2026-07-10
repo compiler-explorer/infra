@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import datetime
 
-from lib.ami_cleanup import ami_info_from_image, is_ami_debris_snapshot, is_backup_snapshot, plan_ami_cleanup
+from lib.ami_cleanup import (
+    ami_info_from_image,
+    find_terraform_mentioned_image_ids,
+    is_ami_debris_snapshot,
+    is_backup_snapshot,
+    plan_ami_cleanup,
+)
 
 NOW = datetime.datetime(2026, 7, 10, tzinfo=datetime.UTC)
 
@@ -83,6 +89,30 @@ def test_deletions_are_oldest_first():
     ]
     plan = plan_ami_cleanup(images, set(), NOW)
     assert [image.image_id for image in plan.to_delete] == ["ami-a", "ami-b", "ami-c"]
+
+
+def test_terraform_mentioned_images_are_kept():
+    images = [make_image("ami-00000000000000001", "fam @ 1", 400), make_image("ami-00000000000000002", "fam @ 2", 400)]
+    plan = plan_ami_cleanup(images, set(), NOW, terraform_mentioned_image_ids={"ami-00000000000000001"})
+    assert plan.kept["ami-00000000000000001"] == "mentioned in terraform source"
+    assert [image.image_id for image in plan.to_delete] == ["ami-00000000000000002"]
+
+
+def test_terraform_scan_finds_ami_ids_even_in_comments(tmp_path):
+    (tmp_path / "ec2.tf").write_text(
+        'locals { runner_image_id = "ami-00000000000000001" }\n'
+        '//  ami = "ami-00000000000000002"  # commented-out resources still protect\n'
+    )
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "more.tf").write_text('image_id = "ami-0000000000000000f"')
+    (tmp_path / "README.md").write_text("ami-000000000000000aa not a tf file")
+    (tmp_path / ".terraform").mkdir()
+    (tmp_path / ".terraform" / "cached.tf").write_text('ami = "ami-000000000000000bb"')
+    assert find_terraform_mentioned_image_ids(tmp_path) == {
+        "ami-00000000000000001",
+        "ami-00000000000000002",
+        "ami-0000000000000000f",
+    }
 
 
 def test_backup_snapshots_are_recognised():

@@ -94,9 +94,15 @@ def admin_cleanup(dry_run: bool, min_age_days: int):
     click.echo("Finding image ids referenced by launch templates and instances...")
     referenced = ami_cleanup.find_referenced_image_ids(ec2_client)
     click.echo(f"Found {len(referenced)} referenced image ids")
+    tf_mentioned = ami_cleanup.find_terraform_mentioned_image_ids()
+    click.echo(f"Found {len(tf_mentioned)} image ids mentioned in terraform source")
     images = [ami_cleanup.ami_info_from_image(image) for image in ami_cleanup.describe_own_images(ec2_client)]
     plan = ami_cleanup.plan_ami_cleanup(
-        images, referenced, now=datetime.datetime.now(datetime.UTC), minimum_age_days=min_age_days
+        images,
+        referenced,
+        now=datetime.datetime.now(datetime.UTC),
+        minimum_age_days=min_age_days,
+        terraform_mentioned_image_ids=tf_mentioned,
     )
     for image_id, reason in sorted(plan.kept.items()):
         click.echo(f"Keeping {image_id}: {reason}")

@@ -11,7 +11,9 @@ roll back to; beyond that, rollback means rebuilding from packer.
 from __future__ import annotations
 
 import datetime
+import re
 from dataclasses import dataclass, field
+from pathlib import Path
 
 CLEANUP_TAG_KEY = "AmiCleanup"
 CLEANUP_TAG_VALUE = "auto"
@@ -70,6 +72,7 @@ def plan_ami_cleanup(
     referenced_image_ids: set[str],
     now: datetime.datetime,
     minimum_age_days: int = DEFAULT_MINIMUM_AGE_DAYS,
+    terraform_mentioned_image_ids: set[str] | None = None,
 ) -> CleanupPlan:
     plan = CleanupPlan()
     for image in sorted(images, key=lambda image: (image.creation_date, image.image_id)):
@@ -78,6 +81,8 @@ def plan_ami_cleanup(
         age = now - image.creation_date
         if image.image_id in referenced_image_ids:
             plan.kept[image.image_id] = "referenced by a launch template or live instance"
+        elif terraform_mentioned_image_ids and image.image_id in terraform_mentioned_image_ids:
+            plan.kept[image.image_id] = "mentioned in terraform source"
         elif age < datetime.timedelta(days=minimum_age_days):
             plan.kept[image.image_id] = f"only {age.days} days old (minimum {minimum_age_days})"
         else:
@@ -96,15 +101,30 @@ def is_ami_debris_snapshot(snapshot: dict) -> bool:
     return snapshot.get("Description", "").startswith("Created by CreateImage")
 
 
+_AMI_ID_RE = re.compile(r"\bami-[0-9a-f]{8,17}\b")
+
+
+def find_terraform_mentioned_image_ids(repo_root: Path | None = None) -> set[str]:
+    """Any AMI id literally written in a *.tf file in this repo is treated as referenced,
+    comments included. This closes the gap where terraform/ec2.tf pins an image id for a
+    singleton instance: launch-template/instance checks only protect it while the instance
+    exists. Grepping can only over-protect (the checks are unioned), and it makes the
+    "no stale AMI ids in terraform source, even in comments" rule self-enforcing:
+    writing an id down keeps the image alive; deleting the mention releases it."""
+    if repo_root is None:
+        repo_root = Path(__file__).resolve().parent.parent.parent
+    mentioned = set()
+    for tf_file in repo_root.rglob("*.tf"):
+        if any(part.startswith(".") for part in tf_file.relative_to(repo_root).parts):
+            continue  # skip .terraform module/provider caches
+        mentioned.update(_AMI_ID_RE.findall(tf_file.read_text(encoding="utf-8")))
+    return mentioned
+
+
 def find_referenced_image_ids(ec2_client) -> set[str]:
     """Image ids we must never delete: those a launch template's $Latest/$Default version
     points at (all our ASGs track $Latest), and those any non-terminated instance was
-    launched from.
-
-    Known gap, accepted: terraform/ec2.tf pins image ids for singleton instances. Those
-    are only protected here while their instance exists; if one were terminated and its
-    AMI aged past the minimum, we could delete an AMI terraform still references. Deemed
-    too narrow a window to justify querying terraform state from the cleanup cron."""
+    launched from. See also find_terraform_mentioned_image_ids."""
     referenced = set()
     paginator = ec2_client.get_paginator("describe_launch_templates")
     for page in paginator.paginate():
