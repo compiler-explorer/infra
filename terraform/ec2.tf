@@ -1,10 +1,9 @@
 locals {
-  runner_image_id        = "ami-05d4fb32368117b54"
-  gpu_runner_image_id    = "ami-05df317ba6d2893be"
-  conan_image_id         = "ami-0c7129c233b1564dd"
-  smbserver_image_id     = "ami-01e7c7963a9c4755d"
-  smbtestserver_image_id = "ami-0284c821376912369"
-  admin_subnet           = module.ce_network.subnet["1a"].id
+  runner_image_id     = "ami-05d4fb32368117b54"
+  gpu_runner_image_id = "ami-05df317ba6d2893be"
+  conan_image_id      = "ami-0c7129c233b1564dd"
+  smbserver_image_id  = "ami-01e7c7963a9c4755d"
+  admin_subnet        = module.ce_network.subnet["1a"].id
 }
 
 resource "aws_instance" "AdminNode" {
@@ -226,7 +225,7 @@ resource "aws_instance" "CESMBServer" {
 }
 
 //resource "aws_instance" "CESMBTestServer" {
-//  ami                         = local.smbtestserver_image_id
+//  ami                         = "<build a fresh smb AMI (make packer-smb) and put its id here>"
 //  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
 //  ebs_optimized               = false
 //  instance_type               = "t4g.micro"
