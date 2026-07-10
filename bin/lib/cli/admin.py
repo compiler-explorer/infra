@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import datetime
 import os
 import subprocess
+import sys
+from collections.abc import Callable
 
 import click
+from botocore.exceptions import ClientError
 
+from lib import ami_cleanup
 from lib.amazon import ec2_client
 from lib.cli import cli
 from lib.instance import AdminInstance
@@ -47,23 +52,73 @@ def admin_gotty():
     exec_remote_to_stdout(instance, ["./gotty", "--port", str(port), "tmux", "attach"])
 
 
-def _is_backup(snapshot: dict) -> bool:
-    if "Tags" not in snapshot:
-        return False
-    for tag in snapshot["Tags"]:
-        if tag["Key"] == "aws:backup:source-resource":
-            return True
-    return False
+_GONE_ERROR_CODES = {"InvalidAMIID.Unavailable", "InvalidAMIID.NotFound", "InvalidSnapshot.NotFound"}
+
+
+def _delete_ignoring_failures(what: str, delete: Callable[..., object], **kwargs: str) -> int:
+    """Runs a deletion, tolerating already-gone errors; returns the number of failures (0 or 1).
+
+    A persistent per-item failure must not abort the whole run (the cron would then wedge
+    at the same point every day), so failures are reported to stderr and counted instead."""
+    try:
+        delete(**kwargs)
+    except ClientError as e:
+        if e.response["Error"]["Code"] not in _GONE_ERROR_CODES:
+            click.echo(f"Failed to remove {what}: {e}", err=True)
+            return 1
+    return 0
 
 
 @admin.command(name="cleanup")
-def admin_cleanup():
-    """Runs a bunch of cleanup tasks."""
+@click.option(
+    "--dry-run/--no-dry-run",
+    default=True,
+    show_default=True,
+    help="print what would be deleted without deleting anything",
+)
+@click.option(
+    "--min-age-days",
+    default=ami_cleanup.DEFAULT_MINIMUM_AGE_DAYS,
+    show_default=True,
+    help="never delete AMIs younger than this",
+)
+def admin_cleanup(dry_run: bool, min_age_days: int):
+    """Runs a bunch of cleanup tasks: old opted-in AMIs, then orphaned snapshots.
+
+    Only AMIs tagged AmiCleanup=auto are considered for deregistration; see
+    https://github.com/compiler-explorer/infra/issues/2220 for the policy.
+    """
+    would = "Would remove" if dry_run else "Removing"
+    failures = 0
+
+    click.echo("Finding image ids referenced by launch templates and instances...")
+    referenced = ami_cleanup.find_referenced_image_ids(ec2_client)
+    click.echo(f"Found {len(referenced)} referenced image ids")
+    images = [ami_cleanup.ami_info_from_image(image) for image in ami_cleanup.describe_own_images(ec2_client)]
+    plan = ami_cleanup.plan_ami_cleanup(
+        images, referenced, now=datetime.datetime.now(datetime.UTC), minimum_age_days=min_age_days
+    )
+    for image_id, reason in sorted(plan.kept.items()):
+        click.echo(f"Keeping {image_id}: {reason}")
+    total_gb = 0
+    for image in plan.to_delete:
+        click.echo(f"{would} {image.image_id} ({image.name}, {image.creation_date:%Y-%m-%d}, {image.size_gb} GB)")
+        total_gb += image.size_gb
+        if not dry_run:
+            failures += _delete_ignoring_failures(image.image_id, ec2_client.deregister_image, ImageId=image.image_id)
+            for snapshot_id in image.snapshot_ids:
+                failures += _delete_ignoring_failures(snapshot_id, ec2_client.delete_snapshot, SnapshotId=snapshot_id)
+    not_opted_in = len(images) - len(plan.to_delete) - len(plan.kept)
+    click.echo(
+        f"AMI summary: {len(plan.to_delete)} removed ({total_gb} GB of snapshots), "
+        f"{len(plan.kept)} kept, {not_opted_in} not opted in (no {ami_cleanup.CLEANUP_TAG_KEY} tag)"
+        f"{' [dry run: nothing deleted]' if dry_run else ''}"
+    )
+
     snapshots_in_use = set()
-    # todo fold in the AMI deregistration
     click.echo("Listing AMIs to find in-use snapshots")
-    for image in ec2_client.describe_images(Owners=["self"])["Images"]:
-        for mapping in image["BlockDeviceMappings"]:
+    for raw_image in ami_cleanup.describe_own_images(ec2_client):
+        for mapping in raw_image["BlockDeviceMappings"]:
             if "Ebs" in mapping and "SnapshotId" in mapping["Ebs"]:
                 snapshots_in_use.add(mapping["Ebs"]["SnapshotId"])
     click.echo(f"Found {len(snapshots_in_use)} snapshots in use")
@@ -72,10 +127,17 @@ def admin_cleanup():
     for page in paginator.paginate(OwnerIds=["self"]):
         for snapshot in page["Snapshots"]:
             snapshot_id = snapshot["SnapshotId"]
-            if _is_backup(snapshot) or snapshot_id in snapshots_in_use:
+            if ami_cleanup.is_backup_snapshot(snapshot) or snapshot_id in snapshots_in_use:
                 continue
-            click.echo(f"Snapshot {snapshot} not in use: removing")
-            ec2_client.delete_snapshot(SnapshotId=snapshot_id)
+            if not ami_cleanup.is_ami_debris_snapshot(snapshot):
+                click.echo(f"Keeping unreferenced snapshot {snapshot_id}: not AMI debris, assumed deliberate")
+                continue
+            click.echo(f"{would} orphaned snapshot {snapshot_id}")
+            if not dry_run:
+                failures += _delete_ignoring_failures(snapshot_id, ec2_client.delete_snapshot, SnapshotId=snapshot_id)
+    if failures:
+        click.echo(f"{failures} deletions failed", err=True)
+        sys.exit(1)
     click.echo("done")
 
 
