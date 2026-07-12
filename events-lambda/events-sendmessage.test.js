@@ -52,6 +52,20 @@ test('an object message with no subscribers returns 501', async t => {
     assert.equal(res.statusCode, 501);
 });
 
+test('a ping message replies with pong to the sender', async t => {
+    const posted = [];
+    t.mock.method(DynamoDBClient.prototype, 'send', async () => ({}));
+    t.mock.method(ApiGatewayManagementApiClient.prototype, 'send', async cmd => {
+        posted.push(cmd);
+        return {};
+    });
+    const res = await handler(event('ping'));
+    assert.equal(res.statusCode, 200);
+    assert.equal(posted.length, 1);
+    assert.equal(posted[0].input.ConnectionId, 'sender-conn');
+    assert.equal(posted[0].input.Data, 'pong');
+});
+
 test('an unknown text message is echoed back to the sender', async t => {
     const posted = [];
     t.mock.method(DynamoDBClient.prototype, 'send', async () => ({}));
