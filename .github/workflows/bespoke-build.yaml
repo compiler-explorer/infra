@@ -76,7 +76,7 @@ jobs:
           mkdir dist
           chmod og+w dist # some builds don't run as root, so let anyone write here
           echo ::group::Docker build
-          docker run -v$(pwd)/dist:/dist --rm compilerexplorer/${{ github.event.inputs.image }}-builder \
+          docker run -v"$(pwd)/dist:/dist" --rm compilerexplorer/${{ github.event.inputs.image }}-builder \
             bash ${{ github.event.inputs.command }} ${{ github.event.inputs.version }} \
             /dist | tee output.log
           echo ::endgroup::
@@ -88,8 +88,8 @@ jobs:
         if: ${{ steps.build.outputs.status == 'OK' }}
         id: filenames
         run: |
-          echo source=$(pwd)/dist/$(basename ${{ steps.build.outputs.output }}) >> "${GITHUB_OUTPUT}"
-          echo s3dest=s3://compiler-explorer/opt/$(basename ${{ steps.build.outputs.output }}) >> "${GITHUB_OUTPUT}"
+          echo "source=$(pwd)/dist/$(basename ${{ steps.build.outputs.output }})" >> "${GITHUB_OUTPUT}"
+          echo "s3dest=s3://compiler-explorer/opt/$(basename ${{ steps.build.outputs.output }})" >> "${GITHUB_OUTPUT}"
       - name: Copy output to S3
         if: ${{ steps.build.outputs.status == 'OK' }}
         run: aws s3 cp "${{ steps.filenames.outputs.source }}" "${{ steps.filenames.outputs.s3dest }}" --no-progress

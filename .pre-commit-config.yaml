@@ -37,6 +37,10 @@ repos:
       - id: shellcheck
         # severity is CLI-only (not a valid .shellcheckrc directive); gate on errors.
         args: ["--severity=error"]
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
   - repo: https://github.com/antonbabenko/pre-commit-terraform
     rev: v1.106.0
     hooks:
