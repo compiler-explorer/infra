@@ -1521,7 +1521,16 @@ libraries:
         beman_any_view:
           targets:
           - main
+        beman_at_most:
+          targets:
+          - main
+        beman_bounds_test:
+          targets:
+          - main
         beman_cache_latest:
+          targets:
+          - main
+        beman_closed_view:
           targets:
           - main
         beman_copyable_function:
@@ -1530,16 +1539,31 @@ libraries:
         beman_cstring_view:
           targets:
           - main
+        beman_cycle:
+          targets:
+          - main
+        beman_elide:
+          targets:
+          - main
         beman_execution:
           targets:
           - main
         beman_exemplar:
           targets:
           - main
+        beman_gates:
+          targets:
+          - main
         beman_indices_view:
           targets:
           - main
+        beman_indirect:
+          targets:
+          - main
         beman_inplace_vector:
+          targets:
+          - main
+        beman_integer_division:
           targets:
           - main
         beman_iterator_interface:
@@ -1566,6 +1590,9 @@ libraries:
         beman_optional:
           targets:
           - main
+        beman_range_searcher:
+          targets:
+          - main
         beman_scan_view:
           targets:
           - main
@@ -1573,6 +1600,9 @@ libraries:
           targets:
           - main
         beman_span:
+          targets:
+          - main
+        beman_str_split:
           targets:
           - main
         beman_take_before:
