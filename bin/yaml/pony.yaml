@@ -9,8 +9,12 @@ compilers:
     create_untar_dir: true
     targets:
       # 0.54.0 onward dropped the generic "-gnu" build; the Linux x86_64 artifact is now
-      # OS-specific. CE nodes run Ubuntu 22.04, so use the ubuntu22.04 build for these.
-      # (0.66.0+ only ship an ubuntu24.04 build needing GLIBC_2.38, unavailable on 22.04 — omitted.)
+      # OS-specific, so pin the per-target Ubuntu build. 0.54.0-0.65.0 ship an ubuntu22.04
+      # build; 0.66.0+ only ship ubuntu24.04 (GLIBC_2.38), which CE nodes now run.
+      - name: 0.67.0
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu24.04.tar.gz
+      - name: 0.66.0
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu24.04.tar.gz
       - name: 0.65.0
         url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
       - name: 0.64.0
