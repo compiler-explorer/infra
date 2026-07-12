@@ -8,5 +8,8 @@ compilers:
     strip_components: 1
     create_untar_dir: true
     targets:
+      - 0.71.2
+      - 0.70.3
+      - 0.69.6
       - 0.66.7
       - 0.68.9
