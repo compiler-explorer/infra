@@ -8,6 +8,35 @@ compilers:
     strip_components: 1
     create_untar_dir: true
     targets:
+      # 0.54.0 onward dropped the generic "-gnu" build; the Linux x86_64 artifact is now
+      # OS-specific. CE nodes run Ubuntu 22.04, so use the ubuntu22.04 build for these.
+      # (0.66.0+ only ship an ubuntu24.04 build needing GLIBC_2.38, unavailable on 22.04 — omitted.)
+      - name: 0.65.0
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - name: 0.64.0
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - name: 0.63.4
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - name: 0.62.1
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - name: 0.61.1
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - name: 0.60.6
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - name: 0.59.0
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - name: 0.58.13
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - name: 0.57.1
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - name: 0.56.2
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - name: 0.55.1
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - name: 0.54.1
+        url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-ubuntu22.04.tar.gz
+      - 0.53.0
+      - 0.52.5
       - 0.51.1
       - 0.50.0
       - 0.49.1

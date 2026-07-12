@@ -49,6 +49,7 @@ compilers:
         - "0.38.0"
         - "0.39.0"
         - "0.40.1"
+        - "0.41.1"
     nightly:
       if: nightly
       type: nightly
