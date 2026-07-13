@@ -93,4 +93,4 @@ cp /infra/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.s
 systemctl daemon-reload
 systemctl enable compiler-explorer
 
-adduser --system --group ce
+adduser --system --group --home /home/ce ce
