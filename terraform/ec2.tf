@@ -1,6 +1,6 @@
 locals {
-  runner_image_id     = "ami-05d4fb32368117b54"
-  gpu_runner_image_id = "ami-05df317ba6d2893be"
+  runner_image_id     = local.staging_image_id
+  gpu_runner_image_id = local.gpu_image_id
   conan_image_id      = "ami-0c7129c233b1564dd"
   smbserver_image_id  = "ami-01e7c7963a9c4755d"
   admin_subnet        = module.ce_network.subnet["1a"].id
