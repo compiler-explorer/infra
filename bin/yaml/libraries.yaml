@@ -2680,6 +2680,7 @@ libraries:
       - v11.0.2
       - v11.1.0
       - v12.0.0
+      - v12.1.0
       type: github
     raberu:
       check_file: README.md
