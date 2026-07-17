@@ -1368,6 +1368,7 @@ compilers:
       type: script
       dir: "ti-cgt-msp430_{{name}}"
       check_exe: bin/cl430 -version
+      fetch_user_agent: "curl/8.0.1"
       targets:
         - name: 21.6.1.LTS
           fetch:
