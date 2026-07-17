@@ -9,8 +9,12 @@ compilers:
         - 2.13.03
         - 2.14.02
         - 2.16.01
+        - "3.00"
+        - "3.01"
     beebasm:
       type: s3tarballs
       targets:
         - "1.09"
+        - "1.10"
+        - "1.11"
       check_exe: beebasm --help

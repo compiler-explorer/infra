@@ -16,7 +16,8 @@ tools:
       - 3.28.4
       - 3.29.2
       - 3.30.7
-      - name: 3.31.5
+      - 3.31.5
+      - name: 4.1.2
         symlink: cmake  # The one distinguished cmake we use for "cmake" on the site
     experimental:
       type: tarballs
@@ -101,7 +102,6 @@ tools:
     compression: gz
     create_untar_dir: true
     dir: pvs-studio-latest
-    strip_components: 1
     check_exe: bin/pvs-studio --version
     targets:
       - latest
@@ -114,7 +114,17 @@ tools:
     package: osaca=={{name}}
     check_exe: bin/osaca --version
     targets:
-      - 0.7.0
+      - 0.7.1
+  uica:
+    type: uv
+    dir: uica-{{name}}
+    script:
+      - git clone --branch {{name}} --recursive https://github.com/compiler-explorer/uiCA.git uica-src
+      - cd uica-src && "${UV}" run --with setuptools python build.py
+    package: ./uica-src
+    check_exe: bin/uica --help
+    targets:
+      - ce
   rustfmt:
     type: tarballs
     dir: rustfmt-{{name}}
@@ -125,6 +135,16 @@ tools:
         url: https://github.com/rust-lang/rustfmt/releases/download/v1.4.36/rustfmt_linux-x86_64_v1.4.36.tar.gz
         strip_components: 1
         create_untar_dir: true
+  tt-metal-headers:
+    type: tarballs
+    compression: gz
+    url: https://github.com/tenstorrent/tt-metal/archive/refs/tags/{{name}}.tar.gz
+    dir: tt-metal-headers-{{name}}
+    create_untar_dir: true
+    strip_components: 1
+    check_file: tt_metal/tt-llk/tt_llk_wormhole_b0/llk_lib/llk_math_eltwise_unary_sfpu.h
+    targets:
+      - v0.71.2
   mmbutils:
     if: nightly
     type: github
@@ -226,3 +246,16 @@ tools:
     targets:
       - name: bronto-refactor-ubuntu-22.04-x86-64
         install_always: true
+  sonar:
+    if:
+      - non-free
+      - nightly
+    install_always: true
+    type: non-free-s3tarballs
+    compression: xz
+    s3_path_prefix: sonar/sonar
+    path_name: sonar
+    strip_components: 1
+    check_file: sonar.sh
+    targets:
+      - latest

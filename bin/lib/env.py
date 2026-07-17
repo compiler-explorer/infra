@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 
@@ -20,6 +22,7 @@ class Environment(Enum):
     BETA = "beta"
     STAGING = "staging"
     GPU = "gpu"
+    GPU_RUNNER = "gpu-runner"
     RUNNER = "runner"
     WINPROD = "winprod"
     WINSTAGING = "winstaging"

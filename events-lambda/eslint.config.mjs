@@ -1,0 +1,110 @@
+import js from '@eslint/js';
+import jsdoc from 'eslint-plugin-jsdoc';
+import n from 'eslint-plugin-n';
+import promise from 'eslint-plugin-promise';
+import sonarjs from 'eslint-plugin-sonarjs';
+import unicorn from 'eslint-plugin-unicorn';
+import prettierRecommended from 'eslint-plugin-prettier/recommended';
+import globals from 'globals';
+
+// Flat-config port of the previous .eslintrc.yml. Rule choices are kept as-is;
+// this migration is about eslint 9 / flat config, not a rules overhaul.
+export default [
+    js.configs.recommended,
+    n.configs['flat/recommended'],
+    unicorn.configs['flat/recommended'],
+    prettierRecommended,
+    {
+        plugins: {jsdoc, promise, sonarjs},
+        languageOptions: {
+            ecmaVersion: 2024,
+            sourceType: 'module',
+            globals: {...globals.node},
+        },
+        rules: {
+            'comma-dangle': [
+                'error',
+                {
+                    arrays: 'always-multiline',
+                    objects: 'always-multiline',
+                    imports: 'always-multiline',
+                    exports: 'always-multiline',
+                    functions: 'always-multiline',
+                },
+            ],
+            'eol-last': ['error', 'always'],
+            eqeqeq: ['error', 'smart'],
+            'max-len': ['error', 120, {ignoreRegExpLiterals: true}],
+            'max-statements': ['error', 100],
+            'no-console': 'error',
+            'no-control-regex': 'off',
+            'no-duplicate-imports': 'error',
+            'no-useless-call': 'error',
+            'no-useless-computed-key': 'error',
+            'no-useless-concat': 'error',
+            'no-useless-escape': 'error',
+            'no-useless-rename': 'error',
+            'no-useless-return': 'error',
+            'no-empty': ['error', {allowEmptyCatch: true}],
+            'quote-props': ['error', 'as-needed'],
+            quotes: ['error', 'single', {allowTemplateLiterals: true, avoidEscape: true}],
+            semi: ['error', 'always'],
+            'space-before-function-paren': ['error', {anonymous: 'always', asyncArrow: 'always', named: 'never'}],
+            'keyword-spacing': ['error', {after: true}],
+            yoda: ['error', 'never', {onlyEquality: true}],
+            'prefer-const': ['error', {destructuring: 'all'}],
+            'jsdoc/check-alignment': 'error',
+            'jsdoc/check-param-names': 'error',
+            'jsdoc/check-syntax': 'error',
+            'jsdoc/check-tag-names': 'off',
+            'jsdoc/check-types': 'error',
+            'jsdoc/empty-tags': 'error',
+            'jsdoc/require-hyphen-before-param-description': 'error',
+            'jsdoc/valid-types': 'error',
+            'no-multiple-empty-lines': ['error', {max: 1, maxBOF: 0, maxEOF: 0}],
+            'n/no-process-exit': 'off',
+            'promise/catch-or-return': 'error',
+            'promise/no-new-statics': 'error',
+            'promise/no-return-wrap': 'error',
+            'promise/param-names': 'error',
+            'promise/valid-params': 'error',
+            'sonarjs/no-collection-size-mischeck': 'error',
+            'sonarjs/no-redundant-boolean': 'error',
+            'sonarjs/no-unused-collection': 'error',
+            'sonarjs/prefer-immediate-return': 'error',
+            'sonarjs/prefer-object-literal': 'error',
+            'sonarjs/prefer-single-boolean-return': 'error',
+            'sort-imports': ['error', {ignoreCase: true, ignoreDeclarationSort: true}],
+            'unicorn/catch-error-name': 'off',
+            'unicorn/consistent-function-scoping': 'off',
+            'unicorn/empty-brace-spaces': 'off',
+            'unicorn/no-hex-escape': 'off',
+            'unicorn/no-null': 'off',
+            'unicorn/numeric-separators-style': 'off',
+            'unicorn/prefer-add-event-listener': 'off',
+            'unicorn/prefer-optional-catch-binding': 'off',
+            'unicorn/prefer-node-protocol': 'off', // until we get node 16+
+            'unicorn/prefer-number-properties': 'off',
+            'unicorn/prefer-string-slice': 'off',
+            'unicorn/prevent-abbreviations': 'off',
+            'unicorn/prefer-ternary': 'off',
+            'unicorn/prefer-array-some': 'off',
+            'unicorn/prefer-spread': 'off',
+            'unicorn/no-lonely-if': 'off',
+            'unicorn/no-array-reduce': 'off',
+            'unicorn/prefer-array-flat': 'off',
+            'unicorn/no-array-callback-reference': 'off',
+            'unicorn/prefer-switch': 'off',
+            'unicorn/no-static-only-class': 'off',
+            'unicorn/no-process-exit': 'off',
+            'unicorn/no-useless-undefined': ['error', {checkArguments: false}],
+            'unicorn/prefer-at': 'off',
+            'unicorn/prefer-negative-index': 'off',
+        },
+    },
+    {
+        // The flat config legitimately imports the dev-only eslint plugins.
+        files: ['eslint.config.mjs'],
+        rules: {'n/no-unpublished-import': 'off'},
+    },
+];

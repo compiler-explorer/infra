@@ -18,7 +18,6 @@ fi
 # C++
 
 ce_install 'libraries'
-ce_squash 'libraries'
 
 #########################
 # cs50

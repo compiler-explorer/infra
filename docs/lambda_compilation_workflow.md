@@ -1,50 +1,150 @@
-# Lambda-Based Compilation Workflow and Architecture
+# CE Router Compilation Workflow and Architecture
 
 ## Overview
 
-Compiler Explorer has implemented a **Lambda-based compilation endpoint system** that intercepts compilation requests and routes them through an asynchronous queue-based workflow. This new architecture replaces direct ALB-to-instance routing for compilation endpoints, enabling better scalability, reliability, and workload distribution.
+Compiler Explorer has implemented a **CE Router-based compilation endpoint system** with **hybrid routing architecture** that intelligently routes compilation requests based on environment-specific strategies. This system replaces direct ALB-to-instance routing for compilation endpoints, enabling better scalability, reliability, and workload distribution.
 
-Unlike the traditional model where compilation requests hit instances directly, the Lambda system creates a **buffer layer** that queues compilation requests and waits for results via WebSocket connections, providing more resilient request handling.
+The new architecture supports two routing strategies:
+- **Queue-based routing**: For standard environments (prod, staging, beta) using SQS queues with WebSocket result delivery
+- **Direct URL forwarding**: For specialized environments (gpu, winprod, winstaging, wintest, aarch64prod, aarch64staging, runner) that forward requests directly to environment URLs
 
-This document describes the complete workflow, architecture, and operational model for Lambda-based compilation in Compiler Explorer.
+Unlike the traditional model where compilation requests hit instances directly, the CE Router system creates a **smart routing layer** that uses a DynamoDB routing table with environment-isolated composite keys to make routing decisions, preventing cross-environment conflicts while supporting diverse deployment architectures.
 
-## Simplified Use-Case Flow
+This document describes the complete workflow, hybrid routing architecture, and operational model for CE Router-based compilation in Compiler Explorer.
+
+## Hybrid Routing Architecture Flow
+
+### Queue-Based Routing (Most Environments)
 
 ```mermaid
 sequenceDiagram
     participant User
     participant ALB as Application Load Balancer
-    participant Lambda as Compilation Lambda
+    participant Router as CE Router
+    participant DDB as DynamoDB<br/>CompilerRouting
     participant SQS as SQS FIFO Queue<br/>compilation-queue
     participant WS as WebSocket API<br/>Events System
     participant Instance as Compiler Instance<br/>(Backend Worker)
 
     User->>ALB: 1. POST /api/compiler/gcc/compile
-    ALB->>Lambda: 2. Route to compilation endpoint
-    Lambda->>Lambda: 3. Parse request & generate GUID
-    Lambda->>WS: 4. Subscribe to GUID for results
-    Lambda->>SQS: 5. Queue compilation request<br/>{guid, compilerid, source, options}
+    ALB->>Router: 2. Route to compilation endpoint
+    Router->>Router: 3. Parse request & generate GUID
+    Router->>DDB: 4. Lookup routing: prod#gcc
+    DDB->>Router: 5. Return: {type: "queue", target: "prod-compilation-queue"}
+    Router->>WS: 6. Subscribe to GUID for results
+    Router->>SQS: 7. Queue compilation request<br/>{guid, compilerid, source, options}
 
-    Instance->>SQS: 6. Poll for compilation work
-    SQS->>Instance: 7. Return compilation message
-    Instance->>Instance: 8. Execute compilation
-    Instance->>WS: 9. Send results with GUID
-    WS->>Lambda: 10. Route results to subscriber
-    Lambda->>ALB: 11. Return compilation response
-    ALB->>User: 12. Display compilation output
+    Instance->>SQS: 8. Poll for compilation work
+    SQS->>Instance: 9. Return compilation message
+    Instance->>Instance: 10. Execute compilation
+    Instance->>WS: 11. Send results with GUID
+    WS->>Router: 12. Route results to subscriber
+    Router->>ALB: 13. Return compilation response
+    ALB->>User: 14. Display compilation output
+```
+
+### Direct URL Forwarding (Windows Environments)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant ALB as Application Load Balancer
+    participant Router as CE Router
+    participant DDB as DynamoDB<br/>CompilerRouting
+    participant ENV as Environment URL<br/>godbolt.org/winprod
+
+    User->>ALB: 1. POST /api/compiler/msvc/compile
+    ALB->>Router: 2. Route to compilation endpoint
+    Router->>Router: 3. Parse request (no GUID needed)
+    Router->>DDB: 4. Lookup routing: winprod#msvc
+    DDB->>Router: 5. Return: {type: "url", target: "https://godbolt.org/winprod/api/compiler/msvc/compile"}
+    Router->>ENV: 6. Forward request directly
+    ENV->>Router: 7. Return compilation response
+    Router->>ALB: 8. Return response with CORS headers
+    ALB->>User: 9. Display compilation output
+
+    Note over Router,ENV: No WebSocket or SQS involved<br/>Direct HTTP forwarding for performance
 ```
 
 ### Key Interactions Explained
 
+#### Queue-Based Routing Flow:
 1. **User → ALB**: User submits code for compilation via standard REST API
-2. **ALB → Lambda**: Load balancer routes compilation requests to Lambda function
-3. **Lambda → WebSocket**: Subscribes to unique GUID to receive compilation results (BEFORE sending to SQS)
-4. **Lambda → SQS**: Queues compilation request with GUID and all necessary context
-5. **Instance → SQS**: Backend instances poll queue for compilation work
-6. **Instance → Local**: Executes compilation using existing compiler infrastructure
-7. **Instance → WebSocket**: Sends compilation results with GUID
-8. **WebSocket → Lambda**: Routes results back to waiting Lambda function
-9. **Lambda → User**: Returns compilation output in expected format
+2. **ALB → CE Router**: Load balancer routes compilation requests to CE Router service
+3. **CE Router → DynamoDB**: Looks up routing strategy using environment-prefixed composite key (e.g., `prod#gcc`)
+4. **DynamoDB → CE Router**: Returns routing decision: `{type: "queue", target: "prod-compilation-queue"}`
+5. **CE Router → WebSocket**: Subscribes to unique GUID to receive compilation results (BEFORE sending to SQS)
+6. **CE Router → SQS**: Queues compilation request with GUID and all necessary context
+7. **Instance → SQS**: Backend instances poll queue for compilation work
+8. **Instance → Local**: Executes compilation using existing compiler infrastructure
+9. **Instance → WebSocket**: Sends compilation results with GUID
+10. **WebSocket → CE Router**: Routes results back to waiting CE Router service
+11. **CE Router → User**: Returns compilation output in expected format
+
+#### Direct URL Forwarding Flow:
+1. **User → ALB**: User submits code for compilation via standard REST API
+2. **ALB → CE Router**: Load balancer routes compilation requests to CE Router service
+3. **CE Router → DynamoDB**: Looks up routing strategy using environment-prefixed composite key (e.g., `winprod#msvc`)
+4. **DynamoDB → CE Router**: Returns routing decision: `{type: "url", target: "https://godbolt.org/winprod/api/compiler/msvc/compile"}`
+5. **CE Router → Environment URL**: Forwards request directly to target environment with original headers and body
+6. **Environment URL → CE Router**: Returns compilation response (success or error)
+7. **CE Router → User**: Returns response with appropriate CORS headers and formatting
+
+## Routing Decision System
+
+### DynamoDB CompilerRouting Table
+
+The CE Router uses a DynamoDB table to determine how to route each compilation request. This table provides environment isolation and supports hybrid routing strategies.
+
+**Table Structure:**
+- **Primary Key**: `compilerId` (composite key format: `environment#compiler_id`)
+- **Attributes**: `queueName`, `environment`, `routingType`, `targetUrl`, `lastUpdated`
+
+**Composite Key Benefits:**
+- **Environment Isolation**: Prevents cross-environment routing conflicts
+- **Multi-Environment Support**: Single table serves all environments (prod, staging, beta, winprod, etc.)
+- **Backward Compatibility**: Legacy entries (without environment prefix) are supported during migration
+
+**Example Entries:**
+
+| compilerId | queueName | environment | routingType | targetUrl |
+|------------|-----------|-------------|-------------|-----------|
+| `prod#gcc-trunk` | `prod-compilation-queue` | `prod` | `queue` | `` |
+| `winprod#msvc-19` | `` | `winprod` | `url` | `https://godbolt.org/winprod/api/compiler/msvc-19/compile` |
+| `gpu#nvcc-12` | `` | `gpu` | `url` | `https://godbolt.org/gpu/api/compiler/nvcc-12/compile` |
+
+### Environment Routing Strategies
+
+The system supports different routing strategies based on environment characteristics:
+
+**Queue Environments** (SQS + WebSocket):
+- `prod`, `staging`, `beta` → Standard compilation queue routing
+
+**URL Environments** (Direct HTTP forwarding):
+- `winprod`, `winstaging`, `wintest` → Windows-specific direct forwarding
+- `gpu` → GPU compilation environment forwarding
+- `aarch64prod`, `aarch64staging` → ARM64-specific direct forwarding
+- `runner` → CI/testing environment forwarding
+
+**Routing Decision Logic:**
+```
+if (routingType === "url") {
+    // Direct URL forwarding - no WebSocket/SQS needed
+    forward_to_environment_url(targetUrl)
+} else {
+    // Queue-based routing - use WebSocket for results
+    subscribe_to_websocket(guid)
+    send_to_sqs_queue(queueName, compilation_request)
+    wait_for_websocket_result(guid)
+}
+```
+
+### Environment Context in CE Router
+
+Each CE Router deployment includes `ENVIRONMENT_NAME` to provide routing context:
+- **Environment Variable**: `ENVIRONMENT_NAME=prod|staging|beta|winprod|gpu|etc.`
+- **Composite Key Construction**: `${ENVIRONMENT_NAME}#${compiler_id}`
+- **Fallback Strategy**: If composite key not found, try legacy format for backward compatibility
 
 ## Architecture Comparison
 
@@ -63,28 +163,46 @@ sequenceDiagram
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Lambda-Based Queue Model
+### Hybrid CE Router Routing Model
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                      Lambda-Based Queue Architecture                    │
+│                      Hybrid CE Router Routing Architecture              │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│ ┌─────────────────────┐                    ┌─────────────────────┐      │
-│ │   Lambda Layer      │                    │ Compiler Instances  │      │
-│ │  (Request Buffer)   │                    │   (Workers)         │      │
-│ ├─────────────────────┤                    ├─────────────────────┤      │
-│ │ • Request Parsing   │                    │ • Traditional Setup │      │
-│ │ • GUID Generation   │                    │ • Queue Polling     │      │
-│ │ • Response Waiting  │◄────WebSocket─────►│ • Result Publishing │      │
-│ │ • Content Negotiation│                   │ • Compilation Logic │      │
-│ └─────────────────────┘                    └─────────────────────┘      │
-│           │                                           ▲                 │
-│           ▼                                           │                 │
+│ ┌─────────────────────┐     ┌─────────────────────┐                     │
+│ │   CE Router Layer   │     │   DynamoDB Table    │                     │
+│ │  (Smart Router)     │────►│  CompilerRouting    │                     │
+│ ├─────────────────────┤     ├─────────────────────┤                     │
+│ │ • Request Parsing   │     │ • Composite Keys    │                     │
+│ │ • Environment Lookup│     │ • Environment Isolation                   │
+│ │ • Routing Decision  │     │ • Hybrid Strategies │                     │
+│ │ • Response Handling │     │ • Legacy Support    │                     │
+│ └─────────────┬───────┘     └─────────────────────┘                     │
+│               │                                                         │
+│               ▼                                                         │
 │ ┌─────────────────────────────────────────────────────────────────────┐ │
-│ │                      SQS FIFO Queue                                 │ │
-│ │                  compilation-queue-{env}                            │ │
-│ └─────────────────────────────────────────────────────────────────────┘ │
+│ │                    ROUTING DECISION                                 │ │
+│ └─────────────┬───────────────────────────────────┬───────────────────┘ │
+│               │                                   │                     │
+│               ▼                                   ▼                     │
+│ ┌─────────────────────┐                 ┌─────────────────────┐         │
+│ │   Queue Routing     │                 │   URL Routing       │         │
+│ │  (prod, staging,    │                 │  (winprod, wintest) │         │
+│ │   beta, gpu)        │                 │                     │         │
+│ ├─────────────────────┤                 ├─────────────────────┤         │
+│ │ • WebSocket Setup   │                 │ • Direct Forward    │         │
+│ │ • SQS Queue Send    │                 │ • HTTP Proxy        │         │
+│ │ • Result Waiting    │                 │ • CORS Headers      │         │
+│ │ • Backend Workers   │                 │ • Error Passthrough │         │
+│ └─────────────────────┘                 └─────────────────────┘         │
+│           │                                           │                 │
+│           ▼                                           ▼                 │
+│ ┌─────────────────────┐                 ┌─────────────────────┐         │
+│ │   SQS FIFO Queue    │                 │  Environment URLs   │         │
+│ │ {env}-compilation-  │                 │ godbolt.org/winprod │         │
+│ │       queue         │                 │ godbolt.org/wintest │         │
+│ └─────────────────────┘                 └─────────────────────┘         │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -92,58 +210,103 @@ sequenceDiagram
 ## Detailed Component Interactions
 
 ```mermaid
-graph LR
-    subgraph lambda [Lambda Layer]
-        LF[Compilation Lambda]
+graph TB
+    subgraph router [CE Router Layer]
+        LF[CE Router<br/>Smart Router]
     end
 
-    subgraph instances [Compiler Instances]
-        CI[Queue Consumer]
+    subgraph routing [Routing Infrastructure]
+        RT[DynamoDB<br/>CompilerRouting]
     end
 
-    subgraph infra [Infrastructure]
+    subgraph queue_path [Queue-Based Path]
+        SQS[SQS FIFO Queue<br/>compilation-queue]
+        WS[WebSocket API<br/>Results Channel]
+        CI[Queue Consumer<br/>Backend Instances]
+    end
+
+    subgraph url_path [URL-Based Path]
+        ENV[Environment URLs<br/>godbolt.org/winprod]
+    end
+
+    subgraph infra [Supporting Infrastructure]
+        ALB[Application<br/>Load Balancer]
         S3[S3 Packages]
-        SQS[SQS Queue]
-        WS[WebSocket API]
-        ALB[Load Balancer]
-        DDB[DynamoDB]
-        LMB[Lambda Functions]
+        CW[CloudWatch<br/>Logs & Metrics]
     end
 
-    ALB -->|1 Route request| LF
-    LF -->|2 Subscribe GUID| WS
-    LF -->|3 Queue compilation| SQS
+    %% Main flow
+    ALB -->|1. Route request| LF
+    LF -->|2. Lookup routing| RT
+    RT -->|3. Return strategy| LF
 
-    CI -->|4 Poll work| SQS
-    CI -->|5 Execute compilation| CI
-    CI -->|6 Send results| WS
+    %% Queue routing path
+    LF -->|4a. Queue route| WS
+    LF -->|5a. Send message| SQS
+    CI -->|6a. Poll work| SQS
+    CI -->|7a. Execute| CI
+    CI -->|8a. Send results| WS
+    WS -->|9a. Route to subscriber| LF
 
-    WS -->|7 Route to subscriber| LF
-    LF -->|8 Return response| ALB
+    %% URL routing path
+    LF -->|4b. URL route| ENV
+    ENV -->|5b. Return response| LF
 
-    WS <--> DDB
-    WS <--> LMB
+    %% Response
+    LF -->|6. Return response| ALB
 
-    classDef lambda fill:#fff3e0,stroke:#ff8f00,color:#000
-    classDef instance fill:#e1f5fe,stroke:#0277bd,color:#000
-    classDef service fill:#c8e6c9,stroke:#388e3c,color:#000
+    %% Supporting connections
+    LF -.->|Logs| CW
+    CI -.->|Logs| CW
+    S3 -.->|CE Router packages| LF
 
-    class LF lambda
-    class CI instance
-    class S3,SQS,WS,DDB,LMB,ALB service
+    classDef router fill:#fff3e0,stroke:#ff8f00,color:#000
+    classDef routing fill:#f3e5f5,stroke:#7b1fa2,color:#000
+    classDef queue fill:#e8f5e8,stroke:#2e7d32,color:#000
+    classDef url fill:#e3f2fd,stroke:#1565c0,color:#000
+    classDef infra fill:#fafafa,stroke:#424242,color:#000
+
+    class LF router
+    class RT routing
+    class SQS,WS,CI queue
+    class ENV url
+    class ALB,S3,CW infra
 ```
 
 ## Configuration Details
 
-### Lambda Function Environment Variables
+### CE Router Environment Variables
+
+The CE Router now includes `ENVIRONMENT_NAME` for routing context and DynamoDB integration:
 
 ```properties
-# Beta Environment Lambda (Currently Active)
+# Production Environment CE Router
+SQS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/account/prod-compilation-queue.fifo
+WEBSOCKET_URL=wss://events.godbolt.org/
+ENVIRONMENT_NAME=prod
+RETRY_COUNT=2
+TIMEOUT_SECONDS=90
+
+# Windows Production Environment CE Router
+SQS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/account/winprod-compilation-queue.fifo
+WEBSOCKET_URL=wss://events.godbolt.org/winprod
+ENVIRONMENT_NAME=winprod
+RETRY_COUNT=2
+TIMEOUT_SECONDS=90
+
+# Beta Environment CE Router (Testing)
 SQS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/account/beta-compilation-queue.fifo
 WEBSOCKET_URL=wss://events.godbolt.org/beta
+ENVIRONMENT_NAME=beta
 RETRY_COUNT=2
 TIMEOUT_SECONDS=90
 ```
+
+**Key Changes:**
+- **`ENVIRONMENT_NAME`**: Used to construct composite keys for DynamoDB routing lookups (e.g., `prod#gcc-trunk`)
+- **Environment-Specific URLs**: Each environment has its own SQS queue and WebSocket endpoint
+- **Routing Context**: CE Router uses environment name to determine correct routing strategy
+- **Hybrid Support**: Same CE Router code supports both queue-based and URL-based routing
 
 ### ALB Listener Rules
 
@@ -163,7 +326,7 @@ resource "aws_alb_listener_rule" "compilation_beta" {
 
   action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.compilation_lambda_beta.arn
+    target_group_arn = module.ce_router_beta.target_group_arn
   }
 }
 
@@ -179,6 +342,88 @@ compilation.queue_url=https://sqs.us-east-1.amazonaws.com/account/beta-compilati
 compilation.consumer_enabled=true
 compilation.polling_interval=100ms
 compilation.concurrent_workers=2
+```
+
+## Routing Management CLI Tools
+
+The system includes comprehensive CLI tools for managing the compiler routing table:
+
+### Available Commands
+
+```bash
+# Update routing table for specific environment from live API data
+ce --env prod compiler-routing update --dry-run
+ce --env winprod compiler-routing update --skip-confirmation
+
+# Show current routing statistics across all environments
+ce compiler-routing status
+
+# Look up routing for specific compiler in environment context
+ce --env prod compiler-routing lookup gcc-trunk
+ce --env winprod compiler-routing lookup msvc-19
+
+# Validate routing table consistency against live API
+ce compiler-routing validate --env prod
+ce compiler-routing validate  # validates all environments
+
+# Clear routing entries for specific environment
+ce compiler-routing clear --env staging --skip-confirmation
+```
+
+### Management Workflow
+
+**Daily Operations:**
+1. **Monitor Status**: `ce compiler-routing status` to check table health
+2. **Validate Consistency**: `ce compiler-routing validate` to identify drift
+3. **Update from API**: `ce --env prod compiler-routing update` after compiler deployments
+
+**Environment Setup:**
+1. **Clear Old Data**: `ce compiler-routing clear --env staging`
+2. **Populate Fresh**: `ce --env staging compiler-routing update`
+3. **Verify Setup**: `ce compiler-routing validate --env staging`
+
+
+### Routing Table Statistics
+
+Current production deployment (as of documentation update):
+- **Total Compilers**: 5,156 entries across 3 environments
+- **prod**: 4,915 compilers → queue routing (`prod-compilation-queue`)
+- **winprod**: 180 compilers → URL routing (`https://godbolt.org/winprod/api/compiler/{id}/compile`)
+- **gpu**: 61 compilers → URL routing (`https://godbolt.org/gpu/api/compiler/{id}/compile`)
+
+## Hybrid Routing Decision Visualization
+
+```mermaid
+flowchart TD
+    Start([Compilation Request]) --> Parse[Parse Request<br/>Extract compiler_id]
+    Parse --> Lookup[DynamoDB Lookup<br/>env#compiler_id]
+
+    Lookup --> Found{Entry Found?}
+    Found -->|No| Default[Use Default<br/>SQS Queue]
+    Found -->|Yes| CheckType{routingType?}
+
+    CheckType -->|queue| Queue[Queue-Based Routing]
+    CheckType -->|url| URL[URL-Based Routing]
+
+    Queue --> WebSocket[Setup WebSocket<br/>Subscription]
+    WebSocket --> SQS[Send to SQS<br/>Queue]
+    SQS --> Wait[Wait for WebSocket<br/>Result]
+    Wait --> QueueResponse[Return Queue<br/>Response]
+
+    URL --> Forward[Forward to<br/>Environment URL]
+    Forward --> URLResponse[Return Direct<br/>Response]
+
+    Default --> Queue
+
+    classDef decision fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef queue fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef url fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    classDef start fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
+
+    class Found,CheckType decision
+    class Queue,WebSocket,SQS,Wait,QueueResponse,Default queue
+    class URL,Forward,URLResponse url
+    class Start,Parse,Lookup start
 ```
 
 ## Complete Compilation Workflow
@@ -197,19 +442,19 @@ compilation.concurrent_workers=2
 │  • Body: {"source": "int main(){}", "options": {...}}                   │
 │                                                                         │
 │  Request routed by: ALB listener rule (priority 10)                     │
-│  Target: Lambda function (compilation-beta)                             │
+│  Target: CE Router target group (ce-router-beta)                        │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Lambda Request Processing
+### 2. CE Router Request Processing
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    Step 2: Lambda Request Handling                      │
+│                    Step 2: CE Router Request Handling                   │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  Lambda function execution:                                             │
+│  CE Router service execution:                                           │
 │  1. Parse ALB event to extract request details                          │
 │  2. Extract compiler ID from path: /api/compiler/{gcc}/compile          │
 │  3. Parse request body (JSON or plain text)                             │
@@ -236,7 +481,7 @@ compilation.concurrent_workers=2
 │                  Step 3: WebSocket Result Subscription                  │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  Lambda establishes WebSocket connection:                               │
+│  CE Router establishes WebSocket connection:                            │
 │                                                                         │
 │  1. Connect to: wss://events.godbolt.org/beta                           │
 │  2. Send subscription message:                                          │
@@ -348,21 +593,21 @@ compilation.concurrent_workers=2
 │     }                                                                   │
 │                                                                         │
 │  WebSocket infrastructure:                                              │
-│  • AWS API Gateway + Lambda routing                                     │
+│  • AWS API Gateway + DynamoDB routing                                   │
 │  • DynamoDB subscription tracking                                       │
 │  • Automatic message delivery to subscribers                            │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 7. Lambda Response Processing
+### 7. CE Router Response Processing
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    Step 7: Lambda Response Handling                     │
+│                    Step 7: CE Router Response Handling                  │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  Lambda receives and processes results:                                 │
+│  CE Router receives and processes results:                              │
 │                                                                         │
 │  1. WebSocket client receives message with matching GUID                │
 │  2. Parse compilation result JSON                                       │
@@ -428,11 +673,11 @@ compilation.concurrent_workers=2
 
 ## Component Deep Dive
 
-### Lambda Function Architecture
+### CE Router Service Architecture
 
 **Request Processing Pipeline:**
 
-The Lambda function implements a sophisticated request handling pipeline:
+The CE Router service implements a sophisticated request handling pipeline:
 
 1. **ALB Event Parsing**: Extracts HTTP method, path, headers, and body from ALB event
 2. **Compiler ID Extraction**: Uses regex to extract compiler identifier from URL path
@@ -442,11 +687,11 @@ The Lambda function implements a sophisticated request handling pipeline:
 
 **Environment-Specific Configuration:**
 
-| Environment | Lambda Function | SQS Queue | WebSocket URL | Status |
+| Environment | CE Router Instance | SQS Queue | WebSocket URL | Status |
 |-------------|-----------------|-----------|---------------|--------|
-| **Beta** | `compilation-beta` | `beta-compilation-queue.fifo` | `wss://events.godbolt.org/beta` | **Active** |
-| **Staging** | `compilation-staging` | `staging-compilation-queue.fifo` | `wss://events.godbolt.org/staging` | *Provisioned (Inactive)* |
-| **Production** | `compilation-prod` | `prod-compilation-queue.fifo` | `wss://events.godbolt.org/` | *Provisioned (Inactive)* |
+| **Beta** | `ce-router-beta` | `beta-compilation-queue.fifo` | `wss://events.godbolt.org/beta` | **Active** |
+| **Staging** | `ce-router-staging` | `staging-compilation-queue.fifo` | `wss://events.godbolt.org/staging` | *Provisioned (Inactive)* |
+| **Production** | `ce-router-prod` | `prod-compilation-queue.fifo` | `wss://events.godbolt.org/` | *Provisioned (Inactive)* |
 
 ### SQS Queue Architecture
 
@@ -483,9 +728,9 @@ All compilation messages follow a consistent schema:
 
 **Bidirectional Communication Model:**
 
-1. **Lambda → WebSocket**: Subscribes to GUID, waits for results
+1. **CE Router → WebSocket**: Subscribes to GUID, waits for results
 2. **Instance → WebSocket**: Publishes compilation results with GUID
-3. **WebSocket → Lambda**: Routes results to appropriate subscribers
+3. **WebSocket → CE Router**: Routes results to appropriate subscribers
 
 **Connection Management:**
 
@@ -511,13 +756,67 @@ All compilation messages follow a consistent schema:
 | `text/plain` | Assembly text only |
 | *Missing/Other* | Default to JSON |
 
+## Emergency Management CLI Commands
+
+The system includes emergency functionality to immediately disable CE Router routing and fall back to instance-based routing:
+
+### Available Commands
+
+```bash
+# Disable CE Router ALB routing for an environment
+ce ce-router disable beta
+ce ce-router disable prod --skip-confirmation
+
+# Re-enable CE Router ALB routing after emergency
+ce ce-router enable beta
+ce ce-router enable prod --skip-confirmation
+
+# Check current ALB routing status (not Terraform config)
+ce ce-router status        # Shows all environments
+ce ce-router status beta   # Shows specific environment
+```
+
+### Emergency Operation
+
+The disable command modifies ALB listener rules directly (bypassing Terraform) for immediate effect:
+
+1. **Disable**: Changes path pattern to `/killswitch-disabled-*` (never matches)
+2. **Enable**: Restores original path patterns (`/api/compiler/*/compile`, `/api/compiler/*/cmake`)
+3. **Status**: Shows actual ALB rule state with indicators:
+   - 🟢 ENABLED: CE Router routing active
+   - 🚨 DISABLED: Using instance routing
+   - 🔴 NOT_FOUND: No ALB rule exists
+
+### Emergency Response Workflow
+
+```bash
+# 1. Detect CE Router compilation issues
+# 2. Disable CE Router for affected environment
+ce ce-router disable prod
+
+# 3. Traffic immediately falls back to instance routing
+# 4. Investigate and fix CE Router issues
+# 5. Re-enable when resolved
+ce ce-router enable prod
+
+# 6. Verify status
+ce ce-router status
+```
+
+### Important Notes
+
+- Changes take effect **immediately** without deployment
+- Bypasses Terraform configuration (manual ALB rule modification)
+- Works independently of blue-green deployments
+- No impact on other environments when targeting specific environment
+
 ## Operational Characteristics
 
 ### Performance Benefits
 
 **Improved Scalability:**
 
-- **Request Buffering**: Lambda handles traffic spikes through queue buffering
+- **Request Buffering**: CE Router handles traffic spikes through queue buffering
 - **Worker Isolation**: Compilation instances focus solely on compilation work
 - **Horizontal Scaling**: Independent scaling of request handling and compilation
 - **Load Distribution**: Even workload distribution across available instances
@@ -547,19 +846,19 @@ All compilation messages follow a consistent schema:
 
 **CloudWatch Metrics:**
 
-- **Lambda Metrics**: Invocation count, duration, error rate, timeout rate
+- **CE Router Metrics**: Request count, processing time, error rate, timeout rate
 - **SQS Metrics**: Message count, age of oldest message, receive count
 - **WebSocket Metrics**: Connection count, message delivery success rate
 
 **Log Aggregation:**
 
-- **Lambda Logs**: Error details, warnings, and critical issues only (WARNING level for performance)
+- **CE Router Logs**: Error details, warnings, and critical issues only (WARNING level for performance)
 - **Instance Logs**: Queue polling, compilation execution, result publishing
 - **WebSocket Logs**: Connection lifecycle, message routing, subscription management
 
 **Performance Logging:**
 
-The Lambda function uses WARNING level logging by default to optimize performance:
+The CE Router uses WARNING level logging by default to optimize performance:
 - Only errors, warnings, and critical issues are logged to CloudWatch
 - Verbose request/response details are excluded for faster execution
 - Timeout and error conditions are still fully logged for debugging
@@ -568,7 +867,7 @@ The Lambda function uses WARNING level logging by default to optimize performanc
 
 ### Failure Scenarios
 
-**Lambda Function Failures:**
+**CE Router Service Failures:**
 
 1. **Timeout During Compilation**: Return 408 Request Timeout with descriptive message
 2. **WebSocket Connection Failure**: Retry with exponential backoff, eventual 503 error
@@ -584,7 +883,7 @@ The Lambda function uses WARNING level logging by default to optimize performanc
 
 **Network and Infrastructure Failures:**
 
-1. **WebSocket Infrastructure Outage**: Lambda timeouts, return 503 to users
+1. **WebSocket Infrastructure Outage**: CE Router timeouts, return 503 to users
 2. **SQS Service Degradation**: Request queuing delays, eventual timeout
 3. **Instance Connectivity Issues**: Message visibility timeout, automatic retry
 4. **Cross-AZ Communication Latency**: Increased end-to-end response times
@@ -594,15 +893,15 @@ The Lambda function uses WARNING level logging by default to optimize performanc
 **Automatic Recovery:**
 
 - **Queue Message Redelivery**: Unprocessed messages automatically redelivered
-- **Lambda Auto-Retry**: Built-in retry for transient Lambda failures
+- **CE Router Auto-Retry**: Built-in retry for transient CE Router failures
 - **WebSocket Reconnection**: Automatic reconnection on connection drops
 - **Instance Auto-Scaling**: Failed instances replaced automatically
 
 **Operational Recovery:**
 
 - **Manual Queue Purging**: Clear stuck messages during maintenance
-- **Lambda Function Restart**: Redeploy function for persistent issues
-- **Traffic Routing**: Disable Lambda rules, revert to direct routing
+- **CE Router Service Restart**: Restart service for persistent issues
+- **Traffic Routing**: Disable CE Router rules, revert to direct routing
 - **Queue Drain Mode**: Process existing messages without accepting new ones
 
 ## Integration with Existing Systems
@@ -655,6 +954,6 @@ Backend instances implement queue consumers alongside existing HTTP handlers:
 1. **Dynamic Timeout Adjustment**: Adaptive timeouts based on queue depth
 2. **Predictive Scaling**: Scale instances based on queue growth trends
 3. **Cost Optimization**: Spot instance integration for cost-effective compilation
-4. **Resource Right-Sizing**: Optimize Lambda memory and timeout based on usage patterns
+4. **Resource Right-Sizing**: Optimize CE Router instance types and scaling based on usage patterns
 
-This Lambda-based compilation architecture provides a more robust, scalable, and maintainable approach to handling compilation requests while maintaining full compatibility with existing Compiler Explorer functionality and user experience.
+This CE Router-based compilation architecture provides a more robust, scalable, and maintainable approach to handling compilation requests while maintaining full compatibility with existing Compiler Explorer functionality and user experience.

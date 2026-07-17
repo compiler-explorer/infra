@@ -1,5 +1,5 @@
 import json
-from typing import Dict
+from datetime import datetime
 
 import boto3
 
@@ -36,19 +36,23 @@ def lambda_handler(event, _context):
     return respond_with_version(item["Item"], jsonp)
 
 
-def respond_with_version(version: Dict, jsonp: str):
+def respond_with_version(version: dict, jsonp: str):
+    modified_iso = None
+    if "modified" in version:
+        timestamp = float(version["modified"]["N"])
+        modified_iso = datetime.fromtimestamp(timestamp).isoformat()
+
     if jsonp:
         return dict(
             statusCode=200,
             headers={"content-type": "application/javascript"},
             body=jsonp
             + "("
-            + json.dumps(
-                {
-                    "version": version["version"]["S"],
-                    "full_version": version["full_version"]["S"],
-                }
-            )
+            + json.dumps({
+                "version": version["version"]["S"],
+                "full_version": version["full_version"]["S"],
+                "modified": modified_iso,
+            })
             + ");",
         )
     else:
@@ -60,12 +64,11 @@ def respond_with_version(version: Dict, jsonp: str):
                 "max-age": "3600",
                 "s-maxage": "3600",
             },
-            body=json.dumps(
-                {
-                    "version": version["version"]["S"],
-                    "full_version": version["full_version"]["S"],
-                }
-            ),
+            body=json.dumps({
+                "version": version["version"]["S"],
+                "full_version": version["full_version"]["S"],
+                "modified": modified_iso,
+            }),
         )
 
 

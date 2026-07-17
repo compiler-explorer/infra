@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
 
 import click
 
@@ -28,7 +29,7 @@ def tools():
     metavar="BRANCH",
     multiple=True,
 )
-def tools_list(destination: str, branch: List[str]):
+def tools_list(destination: str, branch: list[str]):
     current_version = Hash("")
     hash_file = Path(destination) / "git_hash"
     if hash_file.exists():

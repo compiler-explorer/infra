@@ -1,12 +1,14 @@
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from lib.installation_context import is_windows
 
-valid_lib_types = ["static", "shared", "cshared", "headeronly"]
+valid_lib_types = ["static", "shared", "cshared", "headeronly", "cmake_built_headeronly"]
 
 
 class LibraryBuildConfig:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         self.config = config
         self.build_type = self.config_get("build_type", "none")
         self.build_fixed_arch = self.config_get("build_fixed_arch", "")
@@ -20,9 +22,23 @@ class LibraryBuildConfig:
             raise RuntimeError(
                 f"Header-only libraries should not have staticliblink or sharedliblink {self.staticliblink} {self.sharedliblink}"
             )
+        if self.lib_type == "cmake_built_headeronly":
+            if self.staticliblink != [] or self.sharedliblink != []:
+                raise RuntimeError(
+                    "cmake_built_headeronly libraries should not have staticliblink or sharedliblink "
+                    f"{self.staticliblink} {self.sharedliblink}"
+                )
+            if self.build_type != "cmake":
+                raise RuntimeError(f"cmake_built_headeronly requires build_type: cmake (got {self.build_type})")
+            if not self.config_get("package_install", False):
+                raise RuntimeError(
+                    "cmake_built_headeronly requires package_install: true so the configured "
+                    "headers from `cmake --install` land in the install tree."
+                )
         self.url = "None"
         self.description = ""
         self.configure_flags = self.config_get("configure_flags", [])
+        self.source_folder = self.config_get("source_folder", "")
         self.prebuild_script = self.config_get("prebuild_script", [])
         if is_windows():
             self.prebuild_script = self.config_get("prebuild_script_pwsh", self.prebuild_script)
@@ -37,7 +53,8 @@ class LibraryBuildConfig:
         self.copy_files = self.config_get("copy_files", [])
         self.package_install = self.config_get("package_install", False)
         self.use_compiler = self.config_get("use_compiler", "")
-        if self.lib_type == "cshared" and self.use_compiler == "":
+        self.cxx_compiler_wrapper = self.config_get("cxx_compiler_wrapper", "")
+        if self.lib_type == "cshared" and not self.use_compiler:
             raise RuntimeError(
                 "When lib_type is cshared, it is required to supply a (cross)compiler with property use_compiler"
             )
@@ -46,7 +63,7 @@ class LibraryBuildConfig:
             self.domainurl = self.config_get("domainurl", "https://github.com")
             self.repo = self.config_get("repo", "")
 
-    def config_get(self, config_key: str, default: Optional[Any] = None) -> Any:
+    def config_get(self, config_key: str, default: Any | None = None) -> Any:
         if config_key not in self.config and default is None:
             raise RuntimeError(f"Missing required key '{config_key}'")
         return self.config.get(config_key, default)

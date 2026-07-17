@@ -47,6 +47,7 @@ build_cpp_libraries() {
     ce builder exec -- sudo docker run --rm --name "${BUILD_NAME}.build" \
         -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
         -v/opt:/opt:ro \
+        -v/cefs:/cefs:ro,rslave \
         -e "CONAN_PASSWORD=${CONAN_PASSWORD}" \
         "compilerexplorer/library-builder" \
         bash "${COMMAND}" "c++" "all" "${COMPILERS}" || true
@@ -68,6 +69,7 @@ build_rust_libraries() {
     ce builder exec -- sudo docker run --rm --name "${BUILD_NAME}.build" \
         -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
         -v/opt:/opt:ro \
+        -v/cefs:/cefs:ro,rslave \
         -e "CONAN_PASSWORD=${CONAN_PASSWORD}" \
         "compilerexplorer/library-builder" \
         bash "${COMMAND}" "rust" "all" "${COMPILERS}" || true
@@ -89,6 +91,7 @@ build_fortran_libraries() {
     ce builder exec -- sudo docker run --rm --name "${BUILD_NAME}.build" \
         -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
         -v/opt:/opt:ro \
+        -v/cefs:/cefs:ro,rslave \
         -e "CONAN_PASSWORD=${CONAN_PASSWORD}" \
         "compilerexplorer/library-builder" \
         bash "${COMMAND}" "fortran" "all" "${COMPILERS}" || true

@@ -38,7 +38,7 @@ data "amazon-ami" "jammy" {
 locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
 source "amazon-ebs" "jammy" {
-  access_key = "${var.MY_ACCESS_KEY}"
+  access_key                  = "${var.MY_ACCESS_KEY}"
   ami_name                    = "ce-smb arm packer 22.04 @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
@@ -59,7 +59,8 @@ source "amazon-ebs" "jammy" {
   ssh_username      = "ubuntu"
   subnet_id         = "subnet-1df1e135"
   tags = {
-    Site = "CompilerExplorer"
+    Site       = "CompilerExplorer"
+    AmiCleanup = "auto"
   }
   vpc_id = "vpc-17209172"
 }
@@ -76,7 +77,7 @@ build {
     execute_command = "{{ .Vars }} sudo -E bash '{{ .Path }}'"
     inline = [
       "set -euo pipefail",
-      "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
+      "cloud-init status --wait",
       "export DEBIAN_FRONTEND=noninteractive", "mkdir -p /root/.ssh",
       "cp /home/ubuntu/packer/known_hosts /root/.ssh/", "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
       "rm -rf /home/ubuntu/packer", "apt-get -y update", "apt-get -y install git",

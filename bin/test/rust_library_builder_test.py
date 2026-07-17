@@ -1,0 +1,423 @@
+from __future__ import annotations
+
+from logging import Logger
+from subprocess import TimeoutExpired
+from unittest import mock
+from unittest.mock import patch
+
+from lib.installation_context import InstallationContext
+from lib.library_build_config import LibraryBuildConfig
+from lib.rust_library_builder import BuildStatus, RustLibraryBuilder
+
+BASE = "https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/"
+
+
+def create_rust_test_build_config():
+    """Create a properly configured LibraryBuildConfig mock for Rust testing."""
+    config = mock.Mock(spec=LibraryBuildConfig)
+    config.lib_type = "static"
+    config.staticliblink = ["rustlib"]
+    config.sharedliblink = []
+    config.description = "Rust test library"
+    config.url = "https://rust.test.url"
+    config.build_type = "cargo"
+    config.build_fixed_arch = ""
+    config.build_fixed_stdlib = ""
+    config.package_install = False
+    config.copy_files = []
+    config.prebuild_script = ["echo 'rust prebuild'"]
+    config.postbuild_script = ["echo 'rust postbuild'"]
+    config.configure_flags = []
+    config.extra_cmake_arg = []
+    config.extra_make_arg = []
+    config.make_targets = []
+    config.make_utility = "make"
+    config.skip_compilers = []
+    config.use_compiler = ""
+    config.domainurl = "https://github.com"
+    config.repo = "test/rust-lib"
+    return config
+
+
+def test_makebuildhash(requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    result = builder.makebuildhash(
+        "rustc-1.70", "-O", "/opt/rust", "Linux", "Debug", "x86_64", "", "", ["flag1", "flag2"]
+    )
+
+    assert result.startswith("rustc-1.70_")
+    assert len(result) > len("rustc-1.70_")
+
+
+def test_get_conan_hash_success(requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = False
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    builder.current_buildparameters_obj["os"] = "Linux"
+    builder.current_buildparameters_obj["buildtype"] = "Debug"
+    builder.current_buildparameters_obj["compiler"] = "rustc"
+    builder.current_buildparameters_obj["compiler_version"] = "rustc-1.70"
+    builder.current_buildparameters_obj["libcxx"] = ""
+    builder.current_buildparameters_obj["arch"] = "x86_64"
+    builder.current_buildparameters_obj["stdver"] = ""
+    builder.current_buildparameters_obj["flagcollection"] = ""
+
+    requests_mock.get(
+        "https://conan.compiler-explorer.com/v1/conans/rustlib/1.0.0/rustlib/1.0.0/search",
+        json={
+            "rust123456": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "rustc",
+                    "compiler.version": "rustc-1.70",
+                    "compiler.libcxx": "",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
+
+    result = builder.get_conan_hash("/tmp/buildfolder")
+
+    assert result == "rust123456"
+
+
+_RUST_FAILED_URL = "https://conan.compiler-explorer.com/failedbuilds/rustlib/1.0.0"
+
+
+def _make_rust_builder(requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = False
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder.current_buildparameters_obj["compiler"] = "rustc"
+    builder.current_buildparameters_obj["compiler_version"] = "rustc-1.70"
+    builder.current_buildparameters_obj["arch"] = "x86_64"
+    builder.current_buildparameters_obj["libcxx"] = ""
+    return builder
+
+
+def _rust_failed_record(**overrides):
+    base = {
+        "compiler": "rustc",
+        "compiler_version": "rustc-1.70",
+        "arch": "x86_64",
+        "libcxx": "",
+        "compiler_flags": "release",
+        "commithash": "any",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_rust_has_failed_before_overrides_flagcollection_from_build_method(requests_mock):
+    builder = _make_rust_builder(requests_mock)
+    requests_mock.get(_RUST_FAILED_URL, json=[_rust_failed_record(compiler_flags="release")])
+    assert builder.has_failed_before({"build_method": "release"}) is True
+    assert builder.has_failed_before({"build_method": "debug"}) is False
+
+
+def test_rust_has_failed_before_caches_response(requests_mock):
+    builder = _make_rust_builder(requests_mock)
+    matcher = requests_mock.get(_RUST_FAILED_URL, json=[_rust_failed_record(compiler_flags="release")])
+    builder.has_failed_before({"build_method": "release"})
+    builder.has_failed_before({"build_method": "release"})
+    assert matcher.call_count == 1
+
+
+def test_rust_has_failed_before_matches_regardless_of_commithash(requests_mock):
+    builder = _make_rust_builder(requests_mock)
+    requests_mock.get(_RUST_FAILED_URL, json=[_rust_failed_record(compiler_flags="release", commithash="ancient")])
+    assert builder.has_failed_before({"build_method": "release"}) is True
+
+
+_RUST_SEARCH_URL = "https://conan.compiler-explorer.com/v1/conans/rustlib/1.0.0/rustlib/1.0.0/search"
+_RUST_ANNOTATIONS_URL = "https://conan.compiler-explorer.com/annotations/rustlib/1.0.0"
+
+
+def test_rust_is_already_uploaded_uses_bulk_annotations(requests_mock):
+    builder = _make_rust_builder(requests_mock)
+    builder.current_buildparameters_obj["os"] = "Linux"
+    builder.current_buildparameters_obj["buildtype"] = "Debug"
+    builder.current_buildparameters_obj["stdver"] = ""
+    requests_mock.get(
+        _RUST_SEARCH_URL,
+        json={
+            "rhash": {
+                "settings": {
+                    "os": "Linux",
+                    "build_type": "Debug",
+                    "compiler": "rustc",
+                    "compiler.version": "rustc-1.70",
+                    "compiler.libcxx": "",
+                    "arch": "x86_64",
+                    "stdver": "",
+                    "flagcollection": "",
+                }
+            }
+        },
+    )
+    matcher = requests_mock.get(
+        _RUST_ANNOTATIONS_URL,
+        json=[{"buildhash": "rhash", "annotation": {"commithash": "1.0.0"}, "buildinfo": {}}],
+    )
+    # Rust uses target_name as commit_hash, so 1.0.0 matches
+    assert builder.is_already_uploaded("/tmp/buildfolder1", "/tmp/source") is True
+    assert builder.is_already_uploaded("/tmp/buildfolder2", "/tmp/source") is True
+    assert matcher.call_count == 1
+
+
+@patch("subprocess.call")
+def test_execute_build_script_success(mock_subprocess, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    mock_subprocess.return_value = 0
+
+    result = builder.executebuildscript("/tmp/buildfolder")
+
+    assert result == BuildStatus.Ok
+    mock_subprocess.assert_called_once_with(["./build.sh"], cwd="/tmp/buildfolder", timeout=600)
+
+
+@patch("subprocess.call")
+def test_execute_build_script_timeout(mock_subprocess, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    mock_subprocess.side_effect = TimeoutExpired("cmd", 600)
+
+    result = builder.executebuildscript("/tmp/buildfolder")
+
+    assert result == BuildStatus.TimedOut
+
+
+@patch("lib.rust_library_builder.get_ssm_param")
+def test_conanproxy_login_success(mock_get_ssm, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    mock_get_ssm.return_value = "rust_password"
+
+    mock_response = mock.Mock()
+    mock_response.ok = True
+    mock_response.content = b'{"token": "rust_token"}'
+
+    with patch.object(builder.http_session, "post", return_value=mock_response):
+        builder.conanproxy_login()
+
+    assert builder.conanserverproxy_token == "rust_token"
+    mock_get_ssm.assert_called_once_with("/compiler-explorer/conanpwd")
+
+
+def test_get_commit_hash(requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    result = builder.get_commit_hash()
+    assert result == "1.0.0"  # target_name
+
+
+@patch("subprocess.call")
+def test_execute_conan_script_success(mock_subprocess, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    mock_subprocess.return_value = 0
+
+    result = builder.executeconanscript("/tmp/buildfolder", "x86_64", "")
+
+    assert result == BuildStatus.Ok
+    mock_subprocess.assert_called_once_with(["./conanexport.sh"], cwd="/tmp/buildfolder")
+
+
+@patch("subprocess.call")
+def test_execute_conan_script_failure(mock_subprocess, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    mock_subprocess.return_value = 1
+
+    result = builder.executeconanscript("/tmp/buildfolder", "x86_64", "")
+
+    assert result == BuildStatus.Failed
+
+
+def test_count_valid_library_binaries(requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    result = builder.countValidLibraryBinaries("/tmp/buildfolder", "x86_64", "")
+    assert result == 1
+
+
+@patch("os.path.exists")
+@patch("os.mkdir")
+def test_get_source_folder(mock_mkdir, mock_exists, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    mock_staging = mock.Mock()
+    mock_staging.path = "/tmp/staging"
+    mock_exists.return_value = False
+
+    result = builder.get_source_folder(mock_staging)
+
+    expected_path = "/tmp/staging/crate_rustlib_1.0.0"
+    assert result == expected_path
+    mock_mkdir.assert_called_once_with(expected_path)
+    assert expected_path in builder.cached_source_folders
+
+
+@patch("shutil.rmtree")
+def test_build_cleanup_normal(mock_rmtree, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = False
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    builder.build_cleanup("/tmp/buildfolder")
+
+    mock_rmtree.assert_called_once_with("/tmp/buildfolder", ignore_errors=True)
+
+
+@patch("shutil.rmtree")
+def test_build_cleanup_dry_run(mock_rmtree, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = True
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    builder.build_cleanup("/tmp/buildfolder")
+
+    mock_rmtree.assert_not_called()
+
+
+@patch("shutil.rmtree")
+def test_cache_cleanup_normal(mock_rmtree, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = False
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    builder.cached_source_folders = ["/tmp/folder1", "/tmp/folder2"]
+    builder.cache_cleanup()
+
+    assert mock_rmtree.call_count == 2
+    mock_rmtree.assert_any_call("/tmp/folder1", ignore_errors=True)
+    mock_rmtree.assert_any_call("/tmp/folder2", ignore_errors=True)
+
+
+@patch("shutil.rmtree")
+def test_cache_cleanup_dry_run(mock_rmtree, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = True
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    builder.cached_source_folders = ["/tmp/folder1", "/tmp/folder2"]
+    builder.cache_cleanup()
+
+    mock_rmtree.assert_not_called()
+
+
+@patch("subprocess.check_call")
+def test_upload_builds_with_uploads(mock_subprocess, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = False
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    builder.needs_uploading = 2
+    builder.upload_builds()
+
+    assert builder.needs_uploading == 0
+    assert mock_subprocess.call_count == 2
+
+
+@patch("subprocess.check_call")
+def test_upload_builds_dry_run(mock_subprocess, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock()
+    install_context.dry_run = True
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    builder.needs_uploading = 2
+    builder.upload_builds()
+
+    assert builder.needs_uploading == 0
+    mock_subprocess.assert_not_called()
+
+
+@patch("subprocess.check_call")
+def test_clone_branch(mock_subprocess, requests_mock):
+    requests_mock.get(f"{BASE}rust.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_rust_test_build_config()
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+
+    mock_staging = mock.Mock()
+    mock_staging.path = "/tmp/staging"
+
+    builder.clone_branch("/tmp/dest", mock_staging)
+
+    assert mock_subprocess.call_count == 2
+    mock_subprocess.assert_any_call(
+        ["git", "clone", "-q", "https://github.com/test/rust-lib.git", "/tmp/dest"],
+        cwd="/tmp/staging",
+    )
+    mock_subprocess.assert_any_call(
+        ["git", "-C", "/tmp/dest", "checkout", "-q", "1.0.0"],
+        cwd="/tmp/staging",
+    )

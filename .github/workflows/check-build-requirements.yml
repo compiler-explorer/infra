@@ -1,0 +1,51 @@
+name: Check Build Requirements
+
+on:
+  pull_request:
+    paths:
+      - 'bin/yaml/*.yaml'
+      - '!bin/yaml/libraries.yaml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml
+
+      - name: Check for build requirements
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python bin/check_build_requirements.py --base-ref origin/${{ github.base_ref }} > build_check_output.txt 2>&1
+          cat build_check_output.txt
+          if grep -q "Build Required" build_check_output.txt; then
+            echo "has_requirements=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_requirements=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Save PR number
+        if: steps.check.outputs.has_requirements == 'true'
+        run: echo "${{ github.event.pull_request.number }}" > pr_number.txt
+
+      - name: Upload build check results
+        if: steps.check.outputs.has_requirements == 'true'
+        uses: actions/upload-artifact@v5
+        with:
+          name: build-check-results
+          path: |
+            build_check_output.txt
+            pr_number.txt
+          retention-days: 1

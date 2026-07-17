@@ -11,7 +11,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from lib import amazon
 from lib.amazon import list_compilers
@@ -30,7 +30,7 @@ nightlies: NightlyVersions = NightlyVersions(_LOGGER)
 
 
 class S3TarballInstallable(Installable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
         self.subdir = self.config_get("subdir", "")
         last_context = self.context[-1]
@@ -87,19 +87,14 @@ class S3TarballInstallable(Installable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            if self.subdir:
-                self.install_context.make_subdir(self.subdir)
-            elif self.install_path:
-                self.install_context.make_subdir(self.install_path)
-
-            self.install_context.move_from_staging(staging, self.untar_dir, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.untar_dir, self.install_path)
 
     def __repr__(self) -> str:
         return f"S3TarballInstallable({self.name}, {self.install_path})"
 
 
 class NightlyInstallable(Installable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
         self.subdir = self.config_get("subdir", "")
         self.strip = self.config_get("strip", False)
@@ -147,7 +142,7 @@ class NightlyInstallable(Installable):
 
         destination = self.install_context.destination
         if self.subdir:
-            if exe.split("/")[0] == self.subdir:
+            if exe.split("/", maxsplit=1)[0] == self.subdir:
                 destination = destination / self.subdir
                 relative_exe = "/".join(exe.split("/")[2:])
             else:
@@ -182,7 +177,7 @@ class NightlyInstallable(Installable):
             for to_remove in all_versions[:-num_to_keep]:
                 self.install_context.remove_dir(to_remove)
 
-            self.install_context.move_from_staging(staging, self.local_path, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.local_path, self.install_path)
             self.install_context.set_link(Path(self.install_path), self.path_name_symlink)
 
     def __repr__(self) -> str:
@@ -190,7 +185,7 @@ class NightlyInstallable(Installable):
 
 
 class TarballInstallable(Installable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
         self.untar_path = self.config_get("untar_dir", self.install_path)
@@ -207,6 +202,8 @@ class TarballInstallable(Installable):
             decompress_flag = "j"
         elif self.config_get("compression") == "tar":
             decompress_flag = ""
+        elif self.config_get("compression") == "zstd":
+            decompress_flag = "--zstd"
         else:
             raise RuntimeError(f"Unknown compression {self.config_get('compression')}")
         self.configure_command = command_config(self.config_get("configure_command", []))
@@ -214,6 +211,10 @@ class TarballInstallable(Installable):
             self.tar_cmd = ["7z", "x"]
         elif is_windows() and decompress_flag == "j":
             self.tar_cmd = ["7z", "x"]
+        elif is_windows() and decompress_flag == "--zstd":
+            self.tar_cmd = ["7z", "x"]
+        elif decompress_flag == "--zstd":
+            self.tar_cmd = ["tar", "--zstd", "-xf", "-"]
         else:
             self.tar_cmd = ["tar", f"{decompress_flag}xf", "-"]
             strip_components = self.config_get("strip_components", 0)
@@ -262,7 +263,7 @@ class TarballInstallable(Installable):
                 for to_remove in all_versions[:-num_to_keep]:
                     self.install_context.remove_dir(to_remove)
 
-            self.install_context.move_from_staging(staging, self.untar_path, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.untar_path, self.install_path)
             if self.install_path_symlink:
                 self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
 
@@ -271,7 +272,7 @@ class TarballInstallable(Installable):
 
 
 class NightlyTarballInstallable(TarballInstallable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
 
         if not self.install_path_symlink:
@@ -295,7 +296,7 @@ class NightlyTarballInstallable(TarballInstallable):
 
 
 class ZipArchiveInstallable(Installable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
         self.url = self.config_get("url")
         self.install_path = self.config_get("dir")
@@ -346,7 +347,7 @@ class ZipArchiveInstallable(Installable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            self.install_context.move_from_staging(staging, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.install_path)
             if self.install_path_symlink:
                 self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
 
@@ -365,19 +366,33 @@ def s3_available_compilers():
 
 
 class RestQueryTarballInstallable(TarballInstallable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
-        document = self.install_context.fetch_rest_query(self.config_get("url"))
-        query = self.config_get("query")
+        self._rest_query_url = self.config_get("url")
+        self._rest_query = self.config_get("query")
+        # TarballInstallable.__init__ stored the query URL in self.url; drop it so the
+        # cached_property below resolves lazily — the REST fetch is only needed at install time.
+        del self.url
+
+    @functools.cached_property
+    def url(self) -> str:  # type: ignore[override]
+        document = self.install_context.fetch_rest_query(self._rest_query_url)
         try:
-            self.url = eval(query, {}, dict(document=document))
-        except Exception:
-            self._logger.exception("Exception evaluating query '%s' for %s", query, self)
+            resolved = eval(self._rest_query, {}, dict(document=document))
+        except Exception:  # noqa: BLE001
+            self._logger.exception("Exception evaluating query '%s' for %s", self._rest_query, self)
             raise
-        if not self.url:
+        if not resolved:
             self._logger.warning("No installation candidate found")
         else:
-            self._logger.info("resolved to %s", self.url)
+            self._logger.info("resolved to %s", resolved)
+        return resolved or ""
+
+    def to_json_dict(self) -> dict[str, Any]:
+        # Force url resolution so JSON consumers see the same schema as before the
+        # cached_property change; lazy resolution would otherwise omit it entirely.
+        _ = self.url
+        return super().to_json_dict()
 
     def should_install(self) -> bool:
         if not self.url:

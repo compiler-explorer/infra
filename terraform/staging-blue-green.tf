@@ -6,7 +6,7 @@ module "staging_blue_green" {
 
   environment               = "staging"
   vpc_id                    = module.ce_network.vpc.id
-  launch_template_id        = aws_launch_template.CompilerExplorer-staging.id
+  launch_template_id        = aws_launch_template.ce["staging"].id
   subnets                   = local.subnets
   asg_max_size              = 4
   initial_desired_capacity  = 0

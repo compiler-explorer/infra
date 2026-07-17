@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import ChainMap
 from datetime import datetime
 
@@ -15,11 +16,15 @@ from lib.installable.archives import (
 )
 from lib.installable.edg import EdgCompilerInstallable
 from lib.installable.git import BitbucketInstallable, GitHubInstallable, GitLabInstallable
+from lib.installable.go import GoInstallable
+from lib.installable.go_module import GoModuleInstallable
 from lib.installable.installable import SingleFileInstallable
-from lib.installable.python import PipInstallable
+from lib.installable.python import PipInstallable, UvInstallable
 from lib.installable.rust import CratesIOInstallable, RustInstallable
 from lib.installable.script import ScriptInstallable
 from lib.installable.solidity import SolidityInstallable
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def targets_from(node, enabled, base_config=None):
@@ -92,14 +97,17 @@ _INSTALLER_TYPES = {
     "bitbucket": BitbucketInstallable,
     "rust": RustInstallable,
     "pip": PipInstallable,
+    "uv": UvInstallable,
     "ziparchive": ZipArchiveInstallable,
     "cratesio": CratesIOInstallable,
     "non-free-s3tarballs": NonFreeS3TarballInstallable,
     "edg": EdgCompilerInstallable,
+    "go": GoInstallable,
+    "gomod": GoModuleInstallable,
 }
 
 
-def installers_for(install_context, nodes, enabled):
+def installers_for(install_context, nodes, enabled, validate_only=False):
     for target in targets_from(
         nodes,
         enabled,
@@ -110,9 +118,17 @@ def installers_for(install_context, nodes, enabled):
             now=datetime.now(),
         ),
     ):
-        assert "type" in target
+        context = "/".join(target.get("context", []))
+        name = target.get("name", "<unnamed>")
+        assert "type" in target, f"Missing 'type' in {context} {name}"
         target_type = target["type"]
         if target_type not in _INSTALLER_TYPES:
             raise RuntimeError(f"Unknown installer type {target_type}")
+        if validate_only:
+            yield target
+            continue
         installer_type = _INSTALLER_TYPES[target_type]
-        yield installer_type(install_context, target)
+        try:
+            yield installer_type(install_context, target)
+        except RuntimeError as e:
+            _LOGGER.warn(f"{e}, skipping.")

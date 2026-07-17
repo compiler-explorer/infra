@@ -11,11 +11,13 @@ Each distribution configuration should include:
 - paths: List of paths to invalidate (["/*"] for all content)
 """
 
-from typing import Any, Dict, List
+from __future__ import annotations
+
+from typing import Any
 
 from lib.env import Environment
 
-CLOUDFRONT_INVALIDATION_CONFIG: Dict[Environment, List[Dict[str, Any]]] = {
+CLOUDFRONT_INVALIDATION_CONFIG: dict[Environment, list[dict[str, Any]]] = {
     Environment.PROD: [
         {
             "distribution_id": "EFCZGUFIBB1UY",

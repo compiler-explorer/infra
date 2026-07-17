@@ -1,3 +1,6 @@
+# Fail the build on any error instead of silently shipping a half-installed AMI.
+$ErrorActionPreference = 'Stop'
+
 New-Item /tmp -ItemType Directory -Force
 Set-Location -Path /tmp
 
@@ -22,8 +25,11 @@ function InstallGIT {
 }
 
 function InstallNodeJS {
-    Write-Host "Downloading NodeJS"
-    Invoke-WebRequest -Uri "https://nodejs.org/download/release/v22.13.1/node-v22.13.1-x64.msi" -OutFile "C:\tmp\node-installer.msi"
+    # packer sets NODE_VERSION from the repo-root node-version file (see win.pkr.hcl).
+    $nodeVersion = $env:NODE_VERSION
+    if (-not $nodeVersion) { throw "NODE_VERSION not set" }
+    Write-Host "Downloading NodeJS v$nodeVersion"
+    Invoke-WebRequest -Uri "https://nodejs.org/download/release/v$nodeVersion/node-v$nodeVersion-x64.msi" -OutFile "C:\tmp\node-installer.msi"
     Write-Host "Installing Node"
     Start-Process "msiexec" -argumentlist "/quiet ALLUSERS=1 /i node-installer.msi" -wait
     Write-Host "Deleting tmp files"
@@ -48,11 +54,25 @@ function InstallExporter {
 }
 
 function InstallNssm {
+    $url = "https://nssm.cc/ci/nssm-2.24-103-gdee49fc.zip"
+    $extracted = "/tmp/nssm-2.24-103-gdee49fc"
     Write-Host "Downloading nssm"
-    Invoke-WebRequest -Uri "https://nssm.cc/ci/nssm-2.24-103-gdee49fc.zip" -OutFile "/tmp/nssm.zip"
+    # nssm.cc is flaky and can serve truncated zips; retry and verify before continuing.
+    for ($attempt = 1; $attempt -le 5; $attempt++) {
+        try {
+            Remove-Item -Recurse -Force "/tmp/nssm.zip", $extracted -ErrorAction SilentlyContinue
+            Invoke-WebRequest -Uri $url -OutFile "/tmp/nssm.zip"
+            Expand-Archive -Path "/tmp/nssm.zip" -DestinationPath "/tmp" -Force
+            if (Test-Path "$extracted/win64/nssm.exe") { break }
+            throw "nssm archive missing win64/nssm.exe"
+        } catch {
+            Write-Host "nssm download attempt $attempt failed: $_"
+            if ($attempt -eq 5) { throw "Failed to install nssm after 5 attempts" }
+            Start-Sleep -Seconds 5
+        }
+    }
     Write-Host "Installing nssm"
-    Expand-Archive -Path "/tmp/nssm.zip" -DestinationPath "/tmp"
-    Move-Item -Path "/tmp/nssm-2.24-103-gdee49fc" -Destination "/nssm"
+    Move-Item -Path $extracted -Destination "/nssm"
     Remove-Item -Force -Path "/tmp/nssm.zip"
 }
 
@@ -136,9 +156,9 @@ function InstallBuildTools {
     New-Item -Path "/BuildTools" -ItemType Directory
 
     Write-Host "Installing CMake"
-    Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v3.31.5/cmake-3.31.5-windows-x86_64.zip" -OutFile "/tmp/cmake-win.zip"
+    Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v4.1.2/cmake-4.1.2-windows-x86_64.zip" -OutFile "/tmp/cmake-win.zip"
     Expand-Archive -Path "/tmp/cmake-win.zip" -DestinationPath "/BuildTools"
-    Rename-Item -Path "/BuildTools/cmake-3.31.5-windows-x86_64" -NewName "CMake"
+    Rename-Item -Path "/BuildTools/cmake-4.1.2-windows-x86_64" -NewName "CMake"
     Remove-Item -Path "/tmp/cmake-win.zip"
 
     AllowAppContainerRXAccess -Path "C:\BuildTools\CMake"
@@ -167,6 +187,13 @@ function Disable-WindowsDefenderPermanent {
     }
     Set-ItemProperty -Path $defenderKey -Name "DisableAntiSpyware" -Value 1
 }
+
+function InstallWinFsp {
+    Invoke-WebRequest -Uri "https://github.com/winfsp/winfsp/releases/download/v2.0/winfsp-2.0.23075.msi" -OutFile "C:\tmp\winfsp.msi"
+    Start-Process "msiexec" -argumentlist "/i winfsp.msi /quiet ALLUSERS=1" -wait
+}
+
+InstallWinFsp
 
 Disable-WindowsUpdatePermanent
 Disable-WindowsDefenderPermanent

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import json
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 import click
 import dateutil.parser
@@ -18,7 +20,7 @@ def format_ad(ad):
     return ADS_FORMAT.format(ad["id"], str(ad["filter"]), f"{valid_from} - {valid_until}", ad["html"])
 
 
-def parse_valid_ranges(valid_from: Optional[str], valid_until: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
+def parse_valid_ranges(valid_from: str | None, valid_until: str | None) -> tuple[str | None, str | None]:
     from_date = None
     until_date = None
     if valid_from is not None:
@@ -61,7 +63,7 @@ def ads_list(cfg: Config):
 @click.option("--from", "valid_from", help="Ad valid from this date", default=None)
 @click.option("--until", "valid_until", help="Ad valid until this date", default=None)
 @click.argument("html")
-def ads_add(cfg: Config, lang_filter: Sequence[str], valid_from: Optional[str], valid_until: Optional[str], html: str):
+def ads_add(cfg: Config, lang_filter: Sequence[str], valid_from: str | None, valid_until: str | None, html: str):
     """Add a community advert with HTML."""
     events = get_events(cfg)
     new_ad = {
@@ -74,7 +76,7 @@ def ads_add(cfg: Config, lang_filter: Sequence[str], valid_from: Optional[str], 
         new_ad["valid_from"] = from_date
     if until_date is not None:
         new_ad["valid_until"] = until_date
-    if are_you_sure("add ad: {}".format(format_ad(new_ad)), cfg):
+    if are_you_sure(f"add ad: {format_ad(new_ad)}", cfg):
         events["ads"].append(new_ad)
         save_event_file(cfg, json.dumps(events))
 
@@ -88,7 +90,7 @@ def ads_remove(cfg: Config, ad_id: int, force: bool):
     events = get_events(cfg)
     for i, ad in enumerate(events["ads"]):
         if ad["id"] == ad_id:
-            if force or are_you_sure("remove ad: {}".format(format_ad(ad)), cfg):
+            if force or are_you_sure(f"remove ad: {format_ad(ad)}", cfg):
                 del events["ads"][i]
                 save_event_file(cfg, json.dumps(events))
             break
@@ -116,8 +118,8 @@ def ads_edit(
     ad_id: int,
     html: str,
     lang_filter: Sequence[str],
-    valid_from: Optional[str],
-    valid_until: Optional[str],
+    valid_from: str | None,
+    valid_until: str | None,
 ):
     """Edit community ad AD_ID."""
     events = get_events(cfg)

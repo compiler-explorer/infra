@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from botocore.exceptions import ClientError
 from lib.cloudfront_config import CLOUDFRONT_INVALIDATION_CONFIG
 from lib.cloudfront_utils import (
     create_cloudfront_invalidation,
@@ -123,7 +124,7 @@ class TestCloudFrontUtils(unittest.TestCase):
     @patch("builtins.print")
     def test_invalidate_cloudfront_distributions_error_handling(self, mock_print, mock_logger, mock_create):
         """Test error handling when creating invalidation fails."""
-        mock_create.side_effect = Exception("AWS error")
+        mock_create.side_effect = ClientError({"Error": {"Code": "Test", "Message": "AWS error"}}, "CreateInvalidation")
 
         cfg = Config(env=Environment.PROD)
 
@@ -140,7 +141,7 @@ class TestCloudFrontUtils(unittest.TestCase):
             invalidate_cloudfront_distributions(cfg)
 
             print_calls = [call[0][0] for call in mock_print.call_args_list]
-            assert any("Failed to create invalidation: AWS error" in call for call in print_calls)
+            assert any("Failed to create invalidation:" in call for call in print_calls)
             mock_logger.error.assert_called_once()
         finally:
             CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = original_config

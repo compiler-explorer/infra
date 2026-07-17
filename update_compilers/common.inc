@@ -52,11 +52,3 @@ fi
 ce_install() {
     "${SCRIPT_DIR}/../bin/ce_install" ${CE_INSTALL_ARG} --check-user nobody install "$@"
 }
-
-ce_squash() {
-    if [[ -d /opt/squash-images ]]; then
-        "${SCRIPT_DIR}/../bin/ce_install" squash "$@"
-    else
-        echo "Skipping ce squash of $@ as target directory doesn't exist"
-    fi
-}

@@ -6,6 +6,18 @@ compilers:
     folder: v
     check_exe: v --version
     check_env:
+      # V always initialises its module cache ($VMODULES/cache/) on startup, even for
+      # `v --version`. The install runs as root, which creates /tmp/.vmodules/cache/
+      # owned by root with drwx------ permissions. Subsequent check_exe runs as a
+      # non-root user then panic with "Permission denied".
+      #
+      # The after_stage_script (below) runs as root immediately after extraction and
+      # ensures the cache directory is world-writable so non-root checks succeed.
       - VMODULES=/tmp/.vmodules
+    after_stage_script:
+      # Ensure V's module cache directory is accessible by all users.
+      # Without this, the root-owned cache from the install blocks non-root check_exe.
+      - mkdir -p /tmp/.vmodules/cache
+      - chmod 777 /tmp/.vmodules /tmp/.vmodules/cache
     targets:
       - '2023.30'

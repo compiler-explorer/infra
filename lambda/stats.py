@@ -3,12 +3,10 @@ import json
 import logging
 import os
 import urllib.parse
-from typing import Any, Dict, Optional
+from typing import Any
 
-import aws_embedded_metrics
 import boto3
 import botocore.client
-from aws_embedded_metrics.logger.metrics_logger import MetricsLogger
 
 STATIC_HEADERS = {
     "Content-Type": "text/plain; charset=utf-8",
@@ -17,28 +15,64 @@ STATIC_HEADERS = {
 }
 
 RECORD_KEY = "Records"
+METRICS_NAMESPACE = "CompilerExplorer"
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-@aws_embedded_metrics.metric_scope
-def lambda_handler(event, context, metrics):
-    metrics.set_namespace("CompilerExplorer")
+def emit_metric(
+    name: str,
+    value: float,
+    properties: dict[str, Any] | None = None,
+    unit: str = "None",
+    now: datetime.datetime | None = None,
+) -> None:
+    # CloudWatch derives metrics from Embedded Metric Format records in the logs.
+    # The record must be a bare JSON line on stdout: routing it through `logger`
+    # would prefix the line and stop CloudWatch from parsing it.
+    now = now or datetime.datetime.now(datetime.UTC)
+    # Reproduce the default dimensions aws-embedded-metrics attached so the metric
+    # stays the same stream (CompilerExplorer/PageLoad keyed on ServiceName=stats
+    # etc.) consumers have always seen.
+    service = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "stats")
+    dimensions = {"LogGroup": service, "ServiceName": service, "ServiceType": "AWS::Lambda::Function"}
+    record: dict[str, Any] = {
+        "_aws": {
+            "Timestamp": int(now.timestamp() * 1000),
+            "CloudWatchMetrics": [
+                {
+                    "Namespace": METRICS_NAMESPACE,
+                    "Dimensions": [list(dimensions)],
+                    "Metrics": [{"Name": name, "Unit": unit}],
+                }
+            ],
+        },
+        **dimensions,
+        name: value,
+    }
+    if properties:
+        record.update(properties)
+    # flush: Lambda's stdout is block-buffered, so without this the EMF line can
+    # be delayed past the invocation (or dropped on recycle) and the metric lost.
+    print(json.dumps(record), flush=True)
+
+
+def lambda_handler(event, context):
     logger.info("Received new lambda event %s", event)
     if RECORD_KEY in event:
         return handle_sqs(event, context)
-    return handle_http(event, metrics)
+    return handle_http(event)
 
 
 def handle_sqs(
-    event: Dict,
+    event: dict,
     context,
-    s3_client: Optional[botocore.client.BaseClient] = None,
-    now: Optional[datetime.datetime] = None,
+    s3_client: botocore.client.BaseClient | None = None,
+    now: datetime.datetime | None = None,
 ):
     s3_client = s3_client or boto3.client("s3")
-    now = now or datetime.datetime.utcnow()
+    now = now or datetime.datetime.now(datetime.UTC)
 
     logger.info("Handling %d messages", len(event[RECORD_KEY]))
     key = f"stats/{context.function_name}-{now.strftime('%Y-%m-%d-%H:%M:%S.%f')}.log"
@@ -49,20 +83,19 @@ def handle_sqs(
 
 
 def handle_http(
-    event: Dict,
-    metrics: MetricsLogger,
-    sqs_client: Optional[botocore.client.BaseClient] = None,
-    dynamo_client: Optional[botocore.client.BaseClient] = None,
-    now: Optional[datetime.datetime] = None,
+    event: dict,
+    sqs_client: botocore.client.BaseClient | None = None,
+    dynamo_client: botocore.client.BaseClient | None = None,
+    now: datetime.datetime | None = None,
 ):
     sqs_client = sqs_client or boto3.client("sqs")
     dynamo_client = dynamo_client or boto3.client("dynamodb")
-    now = now or datetime.datetime.utcnow()
+    now = now or datetime.datetime.now(datetime.UTC)
 
     path = event["path"].split("/")[1:]
     method = event["httpMethod"]
     if path == ["pageload"] and method == "POST":
-        return handle_pageload(event, metrics, now, os.environ["SQS_STATS_QUEUE"], sqs_client)
+        return handle_pageload(event, now, os.environ["SQS_STATS_QUEUE"], sqs_client)
 
     if len(path) == 2 and path[0] == "compiler-build" and method == "GET":
         return handle_compiler_stats(path[1], os.environ["COMPILER_BUILD_TABLE"], dynamo_client)
@@ -76,9 +109,7 @@ def handle_http(
     )
 
 
-def handle_pageload(
-    event: Dict, metrics: MetricsLogger, now: datetime.datetime, queue_url: str, sqs_client: botocore.client.BaseClient
-):
+def handle_pageload(event: dict, now: datetime.datetime, queue_url: str, sqs_client: botocore.client.BaseClient):
     date = now.strftime("%Y-%m-%d")
     time = now.strftime("%H:%M:%S")
     sqs_client.send_message(
@@ -92,8 +123,7 @@ def handle_pageload(
             QueueUrl=queue_url,
             MessageBody=json.dumps(dict(type="SponsorView", date=date, time=time, value=sponsor), sort_keys=True),
         )
-    metrics.set_property("sponsors", sponsors)
-    metrics.put_metric("PageLoad", 1)
+    emit_metric("PageLoad", 1, properties={"sponsors": sponsors}, now=now)
 
     return dict(statusCode=200, statusDescription="200 OK", isBase64Encoded=False, headers=STATIC_HEADERS, body="Ok")
 
@@ -107,9 +137,9 @@ def handle_pageload(
 
 
 def _do_one_query(
-    compiler: str, table: str, dynamo_client: botocore.client.BaseClient, status: Optional[str]
-) -> Optional[Dict]:
-    params: Dict[str, Any] = dict(
+    compiler: str, table: str, dynamo_client: botocore.client.BaseClient, status: str | None
+) -> dict | None:
+    params: dict[str, Any] = dict(
         TableName=table,
         Limit=100,  # NB limit to _evaluate_ not the limit of matches
         ScanIndexForward=False,  # items in reverse order (by time)
@@ -134,7 +164,7 @@ def _do_one_query(
     return None
 
 
-def handle_compiler_stats(compiler: str, table: str, dynamo_client: botocore.client.BaseClient) -> Dict:
+def handle_compiler_stats(compiler: str, table: str, dynamo_client: botocore.client.BaseClient) -> dict:
     result = dict(
         last_success=_do_one_query(compiler, table, dynamo_client, "OK"),
         last_build=_do_one_query(compiler, table, dynamo_client, None),

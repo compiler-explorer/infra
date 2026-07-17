@@ -28,10 +28,14 @@ data "amazon-ami" "Server2022" {
   secret_key  = "${var.MY_SECRET_KEY}"
 }
 
-locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
+locals {
+  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
+  # Single source of truth for the Node version, shared with the Linux setup scripts.
+  node_version = trimspace(file("${path.cwd}/node-version"))
+}
 
 source "amazon-ebs" "Server2022" {
-  access_key = "${var.MY_ACCESS_KEY}"
+  access_key           = "${var.MY_ACCESS_KEY}"
   ami_name             = "compiler-explorer windows packer @ ${local.timestamp}"
   communicator         = "winrm"
   iam_instance_profile = "XaniaBlog"
@@ -41,18 +45,23 @@ source "amazon-ebs" "Server2022" {
   security_group_id    = "sg-f53f9f80"
   source_ami           = "${data.amazon-ami.Server2022.id}"
   subnet_id            = "subnet-1df1e135"
-  user_data_file       = "./packer/SetUpWinRM.ps1"
-  vpc_id               = "vpc-17209172"
-  winrm_insecure       = true
-  winrm_use_ssl        = true
-  winrm_username       = "Administrator"
+  tags = {
+    Site       = "CompilerExplorer"
+    AmiCleanup = "auto"
+  }
+  user_data_file = "./packer/SetUpWinRM.ps1"
+  vpc_id         = "vpc-17209172"
+  winrm_insecure = true
+  winrm_use_ssl  = true
+  winrm_username = "Administrator"
 }
 
 build {
   sources = ["source.amazon-ebs.Server2022"]
 
   provisioner "powershell" {
-    scripts = ["./packer/InstallPwsh.ps1", "./packer/InstallTools.ps1"]
+    environment_vars = ["NODE_VERSION=${local.node_version}"]
+    scripts          = ["./packer/InstallPwsh.ps1", "./packer/InstallTools.ps1"]
   }
 
 }

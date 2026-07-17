@@ -1,8 +1,15 @@
+from __future__ import annotations
+
 import time
 
 import click
+from botocore.exceptions import ClientError
 
-from lib.amazon import as_client, get_autoscaling_groups_for
+from lib.amazon import (
+    as_client,
+    get_autoscaling_groups_for,
+)
+from lib.blue_green_deploy import BlueGreenDeployment
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
 from lib.cloudfront_utils import invalidate_cloudfront_distributions
@@ -20,13 +27,11 @@ def environment_status(cfg: Config):
     """Gets the status of an environment."""
     if cfg.env.supports_blue_green:
         # For blue-green environments, show which color is active
-        from lib.blue_green_deploy import BlueGreenDeployment
-
         deployment = BlueGreenDeployment(cfg)
         try:
             active_color = deployment.get_active_color()
             print(f"Blue-green environment - Active color: {active_color}")
-        except Exception:
+        except (ClientError, RuntimeError):
             print("Blue-green environment - Unable to determine active color")
 
         for asg in get_autoscaling_groups_for(cfg):
@@ -37,7 +42,7 @@ def environment_status(cfg: Config):
             try:
                 is_active = color == active_color
                 status = " (ACTIVE)" if is_active else " (INACTIVE)"
-            except Exception:
+            except RuntimeError:
                 status = ""
             print(f"Found ASG {asg_name} with desired instances {desired}{status}")
     else:
@@ -85,6 +90,7 @@ def environment_start(cfg: Config):
     help="Set the message of the day used during refresh",
     show_default=True,
 )
+@click.option("--notify/--no-notify", help="Send GitHub notifications for newly released PRs", default=True)
 @click.option(
     "--skip-cloudfront",
     is_flag=True,
@@ -92,7 +98,7 @@ def environment_start(cfg: Config):
     default=False,
 )
 @click.pass_obj
-def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_cloudfront: bool):
+def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_cloudfront: bool, notify: bool):
     """Refreshes an environment.
 
     This replaces all the instances in the ASGs associated with an environment with
@@ -105,6 +111,7 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_c
         return
 
     set_update_message(cfg, motd)
+
     for asg in get_autoscaling_groups_for(cfg):
         group_name = asg["AutoScalingGroupName"]
         if asg["DesiredCapacity"] == 0:
@@ -148,6 +155,8 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_c
                 last_log = log
             if status in ("Successful", "Failed", "Cancelled"):
                 break
+    # Note: Notifications are now handled by blue-green deployment system
+    # For environments using blue-green deployment, use: ce blue-green deploy
     set_update_message(cfg, "")
 
     if not skip_cloudfront:

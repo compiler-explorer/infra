@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABI Reference Mug Designs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .mug-section {
+            background: white;
+            margin: 30px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            color: #67c52a;
+            border-bottom: 2px solid #67c52a;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mug-image {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .description {
+            margin-top: 15px;
+            color: #666;
+            font-style: italic;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>ABI Reference Mug Designs</h1>
+
+    <div class="mug-section">
+        <h2>x86-64 System V ABI</h2>
+        <img src="x86_64_systemv_abi_mug.png" alt="x86-64 System V ABI Mug Design" class="mug-image">
+        <p class="description">Linux/Unix calling convention with RDI, RSI, RDX, RCX, R8, R9 parameter registers</p>
+    </div>
+
+    <div class="mug-section">
+        <h2>x86-64 Windows (MSVC) ABI</h2>
+        <img src="x86_64_msvc_abi_mug.png" alt="x86-64 Windows MSVC ABI Mug Design" class="mug-image">
+        <p class="description">Windows calling convention with RCX, RDX, R8, R9 parameter registers and shadow space</p>
+    </div>
+
+    <div class="mug-section">
+        <h2>x86-64 Go ABI</h2>
+        <img src="x86_64_go_abi_mug.png" alt="x86-64 Go ABI Mug Design" class="mug-image">
+        <p class="description">Go's crazy nine parameter register calling convention</p>
+    </div>
+
+    <div class="mug-section">
+        <h2>ARM64 (AAPCS) ABI</h2>
+        <img src="arm64_abi_mug.png" alt="ARM64 AAPCS ABI Mug Design" class="mug-image">
+        <p class="description">ARM64 procedure call standard with X0-X7 parameter registers</p>
+    </div>
+
+    <div class="mug-section">
+        <h2>ARM32 EABI</h2>
+        <img src="arm32_eabi_mug.png" alt="ARM32 EABI Mug Design" class="mug-image">
+        <p class="description">32-bit ARM Embedded ABI with R0-R3 parameter registers and VFP support</p>
+    </div>
+
+    <div class="mug-section">
+        <h2>ARM64 Go ABI</h2>
+        <img src="arm64_go_abi_mug.png" alt="ARM64 Go ABI Mug Design" class="mug-image">
+        <p class="description">ARM64 Go calling convention with R0-R15 parameter registers</p>
+    </div>
+
+    <div class="mug-section">
+        <h2>RISC-V (RV64) ABI</h2>
+        <img src="riscv_abi_mug.png" alt="RISC-V RV64 ABI Mug Design" class="mug-image">
+        <p class="description">RISC-V calling convention with a0-a7 parameter registers and 16-byte stack alignment</p>
+    </div>
+
+    <div class="mug-section">
+        <h2>RISC-V (RV64) Go ABI</h2>
+        <img src="riscv_go_abi_mug.png" alt="RISC-V RV64 Go ABI Mug Design" class="mug-image">
+        <p class="description">RISC-V Go calling convention with a0-a7 and s0-s7 parameter registers</p>
+    </div>
+</body>
+</html>

@@ -2,160 +2,169 @@
 
 This doc covers the process of releasing a new build version to the live site.
 
-First of all, note that each commit generates a build artifact with an id of `gh-xxxx`.
-It's important to first wait until the CI has generated such artifact, and then find the id of your target commit.
-(It will be tagged to your target commit automatically)
+Each commit to `main` generates a build artifact with an id of `gh-xxxx`.
+Wait until CI has generated the artifact, then find the id for your target commit.
+(It will be tagged to your target commit automatically.)
 
 ## Ensure your build has been successfully uploaded by CI
 
-Login into the admin node with `ce admin login`, and once there remember to connect to the tmux session,
-with `tmux at` (`Ctrl+B, D` by default to later detach instead of closing the connection).
+Login to the admin node with `ce admin login`, and connect to the tmux session
+with `tmux at` (`Ctrl+B, D` to detach later instead of closing the connection).
 
-Now run `ce --env staging builds list` and make sure that your target `gh-xxxx` build is present.
+Run `ce --env staging builds list` and make sure your target `gh-xxxx` build is present.
 
-_If this is not the case, make sure that there were no errors in the CI, or ask around for help._
+_If it's not there, check for errors in CI, or ask around for help._
 
-## Run compiler discovery of your target build
+## Run compiler discovery
 
-Run a "Compiler Discovery" workflow in https://github.com/compiler-explorer/infra/actions/workflows/compiler-discovery.yml
+Compiler discovery fires up CE on a dedicated runner instance, interrogates all the compilers,
+and saves the results to speed up subsequent startups. This is only needed for Linux x86 deploys
+(staging, prod, beta). Windows and GPU environments don't use discovery.
 
-You need to fill 3 inputs:
- - **Environment**: This is usually `staging`, but can be run for `beta` and `prod` too
- - **Branch**: The branch that your target commit belongs to. Usually `main`
+Run the "Compiler Discovery" workflow: https://github.com/compiler-explorer/infra/actions/workflows/compiler-discovery.yml
+
+Inputs:
+ - **Environment**: Usually `staging`
+ - **Branch**: Usually `main`
  - **Build number**: The `gh-xxxx` id you identified
 
-Alternatively, you can use the GitHub CLI to run this workflow:
+Or via the GitHub CLI:
 
-`gh workflow run -R compiler-explorer/infra 'Compiler discovery' -f buildnumber=gh-xxxx`
-
-It usually takes less than 5 min. for the discovery to run.
-
-## Set current version in staging
-
-Once the discovery has finished, you can proceed to set the build as the current release version in staging.
-(The idea is to first test in staging as a last check before bouncing the version in prod)
-
-Once there, `ce --env staging builds set_current gh-xxxx` will set the current build version
-for staging to your identified build id.
-
-Note that `--env staging` comes before any command, and its default value is always `staging`,
-but this document uses it explicitly to be more clear as to what is running for which environment.
-
-After passing the sanity checks (it will ask you to confirm what branch this comes from and in what env you're running the command in),
-the build has been marked as current.  Note that these sanity checks are present in most commands,
-and we're always on the lookout for more places to put them, so if you find anything not secured by these checks,
-please do let us know.
-
-_If this fails due to some hash missmatch errors, you need to bump the hack version number in `webpack.config.esm.js`,
-and restart this process with the new commit as the target._
-
-## Bringing staging up
-
-Now staging needs to be brought up. This is done with `ce --env staging environment start`.
-The message should be that the number of instances has been increased from 0 to 1 (Or more!)
-
-If this is not the case, it means that staging was already up and you'll need to instead refresh those instances.
-This is accomplished by running `ce --env staging environment refresh`.
-This can take a bit until all the new nodes are healthy.
-
-Once this is done, the new version is running in https://godbolt.org/staging
-(You can confirm it by going to Other > Version Tree, which points to the release commit in GitHub)
-
-## Bringing staging down
-
-Unless staging is currently in use for something else, you should now always remember to bring staging down.
-
-This is unsurprisingly accomplished by running `ce --env staging environment stop`.
-
-## Mark discovery run as safe for production
-
-Instead of now rerunning the first step of compiler discovery for your commit but now for the prod environment,
-you can instead run `ce runner safeforprod staging gh-xxxx`, and it will create a compiler discovery result for prod.
-
-## Version Management for Different Environments
-
-Now that you've tested that everything works correctly, the deployment process varies by environment:
-
-### For Blue-Green Environments (prod, beta)
-**Do NOT use `set_current`** - instead pass the version directly to the deploy command:
-- Production: `ce --env prod blue-green deploy gh-xxxx`
-- Beta: `ce --env beta blue-green deploy gh-xxxx`
-
-### For Traditional Environments (staging, gpu, winprod, etc.)
-Use `set_current` followed by environment refresh:
 ```bash
-# Examples:
-ce --env staging builds set_current gh-xxxx
-ce --env gpu builds set_current gh-xxxx
-ce --env winprod builds set_current gh-xxxx
+gh workflow run -R compiler-explorer/infra 'Compiler discovery' -f buildnumber=gh-xxxx
 ```
 
-_If any command fails complaining about bounce lock, it means someone has blocked that environment from updating.
-The usual reason is that a conference is currently running and we don't want to have any big changes at this moment.
-There are instructions in the error message on how to bypass this if necessary, but ask around to check first._
+This takes about 5 minutes. Behind the scenes it starts a runner instance, sets the build,
+runs discovery, uploads the results, and shuts the runner down.
 
-## Deploy to production (Blue-Green)
+## Deploy to staging
 
-Production now uses blue-green deployment for zero-downtime updates. Instead of refreshing instances,
-you'll deploy to the inactive color and then switch traffic:
+All environments use blue-green deployment. Deploy your build to staging:
 
-### Check current status
 ```bash
-ce --env prod blue-green status
+ce --env staging blue-green deploy gh-xxxx
 ```
 
-This shows which color (blue or green) is currently active and serving traffic.
+This spins up instances on the inactive color, waits for health checks and compiler registration,
+then switches traffic. Once it's up, test at https://godbolt.org/staging
+(confirm the version via Other > Version Tree).
 
-### Deploy to inactive color
+_If the deploy fails due to a hash mismatch, bump the hack version number in `webpack.config.esm.js`
+and restart this process with the new commit._
+
+_If any command fails complaining about a bounce lock, someone has blocked that environment from
+updating (usually during a conference). There are instructions in the error message on how to
+bypass this, but check with the team first._
+
+## Test staging
+
+Do your testing. Once you're happy, clean up staging:
+
+```bash
+ce --env staging blue-green cleanup
+```
+
+## Deploy to production
+
 ```bash
 ce --env prod blue-green deploy gh-xxxx
 ```
 
-Replace `gh-xxxx` with the actual build version you identified earlier.
+If compiler discovery hasn't been run for prod, the tooling will offer to copy the discovery
+results from staging automatically.
 
-This will:
-1. Deploy new instances to the inactive color
-2. Wait for all health checks to pass
-3. Automatically switch traffic to the new version
-4. Keep the old version as standby for quick rollback
+The deploy will:
+1. Spin up new instances on the inactive color
+2. Wait for health checks and compiler registration
+3. Switch traffic to the new version
+4. Keep the old version on standby for rollback
 
-The deployment typically takes 10-15 minutes depending on the number of instances.
+This typically takes 10-15 minutes.
 
-### Alternative: Manual deployment steps
+### Manual control
 
-If you prefer more control, you can use individual commands:
+If you want more control over the process:
 
 ```bash
-# Deploy without automatic switch
+# Deploy without automatic traffic switch
 ce --env prod blue-green deploy gh-xxxx --skip-switch
 
 # Manually switch when ready
 ce --env prod blue-green switch {blue|green}
 
-# If issues arise, rollback instantly
+# If something goes wrong, rollback instantly
 ce --env prod blue-green rollback
 ```
 
-### Cleanup old version
+### Cleanup
 
-After confirming the new version is stable, clean up the old instances:
+After confirming the new version is stable, scale down the old instances:
 
 ```bash
 ce --env prod blue-green cleanup
 ```
 
-This scales down the inactive ASG to save costs.
+## Other environments
+
+### Windows
+
+Windows needs a separate build from the same source.
+
+1. Wait for the Linux build `gh-xxxx` to complete
+2. Manually run the [CE Windows Build](https://github.com/compiler-explorer/compiler-explorer/actions/workflows/deploy-win.yml) workflow with the same `gh-xxxx`
+3. There is no compiler discovery for Windows
+4. Deploy to staging and prod as usual:
+
+```bash
+ce --env winstaging blue-green deploy gh-xxxx
+# test, then:
+ce --env winprod blue-green deploy gh-xxxx
+```
+
+### AArch64
+
+AArch64 uses the same Linux build as x86 (no separate build needed). Deploy via:
+
+```bash
+ce --env aarch64staging blue-green deploy gh-xxxx
+# test, then:
+ce --env aarch64prod blue-green deploy gh-xxxx
+```
+
+### GPU
+
+GPU has no staging environment. Deploy directly to prod, then run compiler discovery
+afterwards (the reverse of the normal order):
+
+```bash
+ce --env gpu blue-green deploy gh-xxxx
+# then trigger compiler discovery for gpu
+```
+
+## Useful commands
+
+```bash
+ce --env <env> blue-green status     # Check current state
+ce --env <env> blue-green deploy     # Deploy (with version list)
+ce --env <env> blue-green rollback   # Instant rollback
+ce --env <env> blue-green cleanup    # Scale down inactive
+ce --env <env> blue-green shutdown   # Shut down environment
+ce --env <env> builds list           # List available builds
+```
+
+## "Now live" notifications
+
+When deploying to prod, the tooling will ask whether to send "now live" notifications.
+If you opt in, it compares the old and new commit ranges, finds all merged PRs and their
+linked issues, and posts a "This is now live" comment and adds a `live` label to each.
+
+Note that this is based purely on which commits are in the new build, not which environments
+they affect. If you merged a GPU-only change and then deployed only prod, the notification
+will still fire for that GPU change. Keep this in mind and use your judgement.
+
+See `lib/notify.py` and the `--notify`/`--no-notify`/`--dry-run-notify` flags on
+`blue-green deploy` for details.
 
 ## Done
 
-Congratulations, you've deployed the live site to a new version using blue-green deployment!
-
-The benefits of this approach:
-- Zero downtime during deployment
-- No mixed versions serving traffic
-- Instant rollback capability if issues are detected
-- Previous version remains available as backup
-
-We now usually go to all the PR/issues that this new build implements and comment that they are now live in each of them.
-
-Please submit a PR to this document if you find that something could be better explained/is just plain wrong.
+Please submit a PR to this document if you find something that could be better explained or is wrong.

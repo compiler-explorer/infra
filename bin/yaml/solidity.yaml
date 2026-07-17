@@ -13,6 +13,7 @@ compilers:
       - 0.8.25
       - 0.8.26
       - 0.8.29
+      - 0.8.30
   solidity_zksync:
     type: singleFile
     dir: zksync-solc-{{name}}
@@ -52,4 +53,23 @@ compilers:
     filename: solx
     check_exe: solx --version
     targets:
-      - 0.1.0-alpha.2
+      - 0.1.0
+      - 0.1.1
+      - 0.1.2
+  resolc:
+    type: singleFile
+    dir: resolc-{{name}}
+    depends:
+      - compilers/solidity 0.8.30
+    url: https://github.com/paritytech/revive/releases/download/v{{name}}/resolc-x86_64-unknown-linux-musl
+    filename: resolc
+    check_exe: resolc --version
+    targets:
+      - 0.4.0
+      - 0.5.0
+      - 0.6.0
+      - 1.0.0
+      - 1.1.0
+      - 1.2.0
+      - 1.3.0
+      - 1.4.0

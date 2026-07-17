@@ -141,9 +141,10 @@ ce --env <environment> blue-green validate
 2. **Scaling Protection**: Lock active ASG capacity (min/max = current)
 3. **Deploy to Inactive**: Scale up inactive ASG with new instances
 4. **Health Verification**: Ensure all instances pass health checks
-5. **Traffic Switch**: Update ALB listener rule to point to new target group
-6. **Cleanup**: Reset min sizes and restore ASG settings
-7. **Completion**: New version serving traffic, old version available for rollback
+5. **Compiler Registration Check**: Wait for compilers to be discovered and available
+6. **Traffic Switch**: Update ALB listener rule to point to new target group
+7. **Cleanup**: Reset min sizes and restore ASG settings
+8. **Completion**: New version serving traffic, old version available for rollback
 
 ### Switch Mechanism
 
@@ -172,6 +173,34 @@ for listener in [http_listener, https_listener]:
 ```
 
 ## Safety Features
+
+### Compiler Registration Verification
+
+Added in response to issue #1783, the deployment process now includes a compiler registration check to ensure instances are fully ready:
+
+**Step 3.5: Compiler Registration Check**
+- Verifies that instances have completed compiler discovery by testing `/api/compilers` endpoint
+- Ensures at least 5 compilers are registered before proceeding (configurable threshold)
+- Prevents traffic switching to instances that aren't ready to handle compilation requests
+- Can be skipped with `--skip-compiler-check` flag if needed
+- Configurable timeout with `--compiler-timeout` (default: 600 seconds)
+
+```bash
+# Deploy with compiler registration check (default)
+ce --env staging blue-green deploy
+
+# Skip compiler registration check
+ce --env staging blue-green deploy --skip-compiler-check
+
+# Custom timeout for compiler registration
+ce --env staging blue-green deploy --compiler-timeout 900
+```
+
+**Behavior:**
+- **Admin Node**: Tests `/api/compilers` endpoint on each instance via private IP
+- **Non-Admin Node**: Falls back to 30-second delay (cannot access private IPs)
+- **Timeout Handling**: Prompts user whether to continue or abort deployment
+- **Error Handling**: Graceful fallback for connection issues or API errors
 
 ### ASG Protection During Deployment
 

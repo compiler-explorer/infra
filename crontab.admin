@@ -1,5 +1,5 @@
 MAILTO=compiler-explorer-admin@googlegroups.com
-PATH=/home/ubuntu/infra/.env/bin:/home/ubuntu/infra/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PATH=/home/ubuntu/infra/.venv/bin:/home/ubuntu/infra/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # m h  dom mon dow   command
 00 00 * * * cronic bash -c "git -C /home/ubuntu/infra pull -q && make -C /home/ubuntu/infra ce"
@@ -10,3 +10,5 @@ PATH=/home/ubuntu/infra/.env/bin:/home/ubuntu/infra/bin:/usr/local/sbin:/usr/loc
 30 01 * * * cronic bash -c "/home/ubuntu/infra/admin-daily-builds.sh"
 00 09 * * * cronic bash -c "/home/ubuntu/infra/remove_old_compilers.sh"
 05 09 * * * cronic bash -c "ce builds rm_old 7"
+# AMI/snapshot cleanup (see #2220)
+10 09 * * * cronic bash -c "ce admin cleanup --no-dry-run"

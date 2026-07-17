@@ -69,6 +69,10 @@ packer-win: config.json  ## Builds the base image for the CE windows
 packer-builder: config.json  ## Builds the base image for the CE builder
 	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/builder.pkr.hcl
 
+.PHONY: packer-ce-router
+packer-ce-router: config.json  ## Builds the base image for the CE router
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/ce-router.pkr.hcl
+
 .PHONY: clean
 clean:  ## Cleans up everything
 	rm -rf $(CURDIR)/.uv $(UV_VENV) uv.lock
@@ -87,12 +91,23 @@ $(UV_DEPS): $(UV_BIN) pyproject.toml
 PY_SOURCE_ROOTS:=bin/lib bin/test lambda
 
 .PHONY: test
-test: ce  ## Runs the tests
+test: ce  ## Runs all tests (Python only)
 	$(UV_BIN) run pytest $(PY_SOURCE_ROOTS)
 
 .PHONY: static-checks
 static-checks: ce  ## Runs all the static tests
 	env SKIP=test $(UV_BIN) run pre-commit run --all-files
+
+.PHONY: mugs
+mugs: ce  ## Generate all ABI reference mug designs (SVG + PNG)
+	$(UV_BIN) run mugs/make_x86_64_systemv_mug.py mugs/x86_64_systemv_abi_mug.svg
+	$(UV_BIN) run mugs/make_x86_64_msvc_mug.py mugs/x86_64_msvc_abi_mug.svg
+	$(UV_BIN) run mugs/make_x86_64_go_mug.py mugs/x86_64_go_abi_mug.svg
+	$(UV_BIN) run mugs/make_arm64_mug.py mugs/arm64_abi_mug.svg
+	$(UV_BIN) run mugs/make_arm32_eabi_mug.py mugs/arm32_eabi_mug.svg
+	$(UV_BIN) run mugs/make_arm64_go_mug.py mugs/arm64_go_abi_mug.svg
+	$(UV_BIN) run mugs/make_riscv_mug.py mugs/riscv_abi_mug.svg
+	$(UV_BIN) run mugs/make_riscv_go_mug.py mugs/riscv_go_abi_mug.svg
 
 LAMBDA_PACKAGE:=$(CURDIR)/.dist/lambda-package.zip
 LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/lambda-package.zip.sha256
@@ -115,30 +130,6 @@ check-lambda-changed: lambda-package
 		echo "LAMBDA_CHANGED=0" > $(LAMBDA_PACKAGE_SHA).status; \
 	fi
 
-.PHONY: check-compilation-lambda-changed
-check-compilation-lambda-changed: compilation-lambda-package
-	@mkdir -p $(dir $(COMPILATION_LAMBDA_PACKAGE))
-	@echo "Checking if compilation lambda package has changed..."
-	@aws s3 cp s3://compiler-explorer/lambdas/compilation-lambda-package.zip.sha256 $(COMPILATION_LAMBDA_PACKAGE_SHA).remote 2>/dev/null || (echo "Remote compilation lambda SHA doesn't exist yet" && touch $(COMPILATION_LAMBDA_PACKAGE_SHA).remote)
-	@if [ ! -f $(COMPILATION_LAMBDA_PACKAGE_SHA).remote ] || ! cmp -s $(COMPILATION_LAMBDA_PACKAGE_SHA) $(COMPILATION_LAMBDA_PACKAGE_SHA).remote; then \
-		echo "Compilation lambda package has changed"; \
-		echo "COMPILATION_LAMBDA_CHANGED=1" > $(COMPILATION_LAMBDA_PACKAGE_SHA).status; \
-	else \
-		echo "Compilation lambda package has not changed"; \
-		echo "COMPILATION_LAMBDA_CHANGED=0" > $(COMPILATION_LAMBDA_PACKAGE_SHA).status; \
-	fi
-
-.PHONY: upload-compilation-lambda
-upload-compilation-lambda: check-compilation-lambda-changed
-	@. $(COMPILATION_LAMBDA_PACKAGE_SHA).status && \
-	if [ "$$COMPILATION_LAMBDA_CHANGED" = "1" ]; then \
-		echo "Uploading new compilation lambda package to S3..."; \
-		aws s3 cp $(COMPILATION_LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/compilation-lambda-package.zip; \
-		aws s3 cp --content-type text/sha256 $(COMPILATION_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/compilation-lambda-package.zip.sha256; \
-		echo "Compilation lambda package uploaded successfully!"; \
-	else \
-		echo "Compilation lambda package hasn't changed. No upload needed."; \
-	fi
 
 .PHONY: upload-lambda
 upload-lambda: check-lambda-changed
@@ -156,46 +147,47 @@ EVENTS_LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/events-lambda-package
 EVENTS_LAMBDA_PACKAGE:=$(CURDIR)/.dist/events-lambda-package.zip
 EVENTS_LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/events-lambda-package.zip.sha256
 EVENTS_LAMBDA_DIR:=$(CURDIR)/events-lambda
-$(EVENTS_LAMBDA_PACKAGE):
-	rm -rf $(EVENTS_LAMBDA_PACKAGE_DIR)
-	mkdir -p $(EVENTS_LAMBDA_PACKAGE_DIR)
-	cd $(EVENTS_LAMBDA_DIR) && npm i && npm run lint && npm install --no-audit --ignore-scripts --production && npm install --no-audit --ignore-scripts --production --cpu arm64 && cd ..
-	cp -R $(EVENTS_LAMBDA_DIR)/* $(EVENTS_LAMBDA_PACKAGE_DIR)
-	rm -f $(EVENTS_LAMBDA_PACKAGE)
-	cd $(EVENTS_LAMBDA_PACKAGE_DIR) && zip -r $(EVENTS_LAMBDA_PACKAGE) .
+$(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA): $(wildcard events-lambda/*.js) events-lambda/package.json Makefile scripts/build_nodejs_lambda_deterministic.py
+	$(UV_BIN) run python scripts/build_nodejs_lambda_deterministic.py $(EVENTS_LAMBDA_DIR) $(EVENTS_LAMBDA_PACKAGE)
 
-$(EVENTS_LAMBDA_PACKAGE_SHA): $(EVENTS_LAMBDA_PACKAGE)
-	openssl dgst -sha256 -binary $(EVENTS_LAMBDA_PACKAGE) | openssl enc -base64 > $@
-
-.PHONY: events-lambda-package  ## builds events lambda
+.PHONY: events-lambda-package  ## Builds events lambda
 events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
 
-COMPILATION_LAMBDA_PACKAGE:=$(CURDIR)/.dist/compilation-lambda-package.zip
-COMPILATION_LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/compilation-lambda-package.zip.sha256
-$(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA): $(wildcard compilation-lambda/*.py) compilation-lambda/pyproject.toml Makefile scripts/build_lambda_deterministic.py
-	$(UV_BIN) run python scripts/build_lambda_deterministic.py $(CURDIR)/compilation-lambda $(COMPILATION_LAMBDA_PACKAGE)
+.PHONY: lint-events-lambda  ## runs events lambda linter
+lint-events-lambda:
+	cd events-lambda && npm install && npm run lint
 
-.PHONY: compilation-lambda-package  ## builds compilation lambda
-compilation-lambda-package: $(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA)
-
-.PHONY: test-compilation-lambda  ## runs compilation lambda tests
-test-compilation-lambda: ce
-	cd compilation-lambda && $(UV_BIN) run --with websocket-client --with boto3 --with pytest python -m pytest test_lambda_function.py -v
-
-.PHONY: events-lambda-package  ## Builds events-lambda
-events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
+.PHONY: check-events-lambda-changed
+check-events-lambda-changed: events-lambda-package
+	@mkdir -p $(dir $(EVENTS_LAMBDA_PACKAGE))
+	@echo "Checking if events lambda package has changed..."
+	@aws s3 cp s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256 $(EVENTS_LAMBDA_PACKAGE_SHA).remote 2>/dev/null || (echo "Remote events lambda SHA doesn't exist yet" && touch $(EVENTS_LAMBDA_PACKAGE_SHA).remote)
+	@if [ ! -f $(EVENTS_LAMBDA_PACKAGE_SHA).remote ] || ! cmp -s $(EVENTS_LAMBDA_PACKAGE_SHA) $(EVENTS_LAMBDA_PACKAGE_SHA).remote; then \
+		echo "Events lambda package has changed"; \
+		echo "EVENTS_LAMBDA_CHANGED=1" > $(EVENTS_LAMBDA_PACKAGE_SHA).status; \
+	else \
+		echo "Events lambda package has not changed"; \
+		echo "EVENTS_LAMBDA_CHANGED=0" > $(EVENTS_LAMBDA_PACKAGE_SHA).status; \
+	fi
 
 .PHONY: upload-events-lambda
-upload-events-lambda: events-lambda-package  ## Uploads events-lambda to S3
-	aws s3 cp $(EVENTS_LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/events-lambda-package.zip
-	aws s3 cp --content-type text/sha256 $(EVENTS_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256
+upload-events-lambda: check-events-lambda-changed  ## Uploads events-lambda to S3
+	@. $(EVENTS_LAMBDA_PACKAGE_SHA).status && \
+	if [ "$$EVENTS_LAMBDA_CHANGED" = "1" ]; then \
+		echo "Uploading new events lambda package to S3..."; \
+		aws s3 cp $(EVENTS_LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/events-lambda-package.zip; \
+		aws s3 cp --content-type text/sha256 $(EVENTS_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256; \
+		echo "Events lambda package uploaded successfully!"; \
+	else \
+		echo "Events lambda package hasn't changed. No upload needed."; \
+	fi
 
 .PHONY: terraform-apply
-terraform-apply:  upload-lambda upload-compilation-lambda ## Applies terraform
+terraform-apply:  upload-lambda upload-events-lambda ## Applies terraform
 	terraform -chdir=terraform apply
 
 .PHONY: terraform-plan
-terraform-plan:  upload-lambda upload-compilation-lambda ## Plans terraform changes
+terraform-plan:  upload-lambda upload-events-lambda ## Plans terraform changes
 	terraform -chdir=terraform plan
 
 .PHONY: pre-commit
@@ -205,3 +197,12 @@ pre-commit: ce  ## Runs all pre-commit hooks
 .PHONY: install-pre-commit
 install-pre-commit: ce  ## Install pre-commit hooks
 	$(UV_BIN) run pre-commit install
+
+FISH_COMPLETIONS_DIR ?= $(HOME)/.config/fish/completions
+
+.PHONY: install-completions
+install-completions: ce  ## Install fish shell completions for ce and ce_install
+	@mkdir -p $(FISH_COMPLETIONS_DIR)
+	@_CE_COMPLETE=fish_source $(CURDIR)/bin/ce > $(FISH_COMPLETIONS_DIR)/ce.fish
+	@_CE_INSTALL_COMPLETE=fish_source $(CURDIR)/bin/ce_install > $(FISH_COMPLETIONS_DIR)/ce_install.fish
+	@echo "installed fish completions to $(FISH_COMPLETIONS_DIR)"

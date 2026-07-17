@@ -177,6 +177,97 @@ libraries:
         - absl_throw_delegate
         - absl_raw_logging_internal
         - absl_log_severity
+      - name: '20260107.1'
+        staticliblink:
+        - absl_cordz_sample_token
+        - absl_die_if_null
+        - absl_failure_signal_handler
+        - absl_flags_parse
+        - absl_flags_usage
+        - absl_flags_usage_internal
+        - absl_log_flags
+        - absl_log_initialize
+        - absl_log_internal_check_op
+        - absl_flags_internal
+        - absl_flags_marshalling
+        - absl_flags_reflection
+        - absl_flags_private_handle_accessor
+        - absl_flags_commandlineflag
+        - absl_flags_commandlineflag_internal
+        - absl_flags_config
+        - absl_flags_program_name
+        - absl_log_internal_conditions
+        - absl_log_internal_message
+        - absl_examine_stack
+        - absl_log_internal_format
+        - absl_log_internal_nullguard
+        - absl_log_internal_log_sink_set
+        - absl_log_internal_globals
+        - absl_log_globals
+        - absl_log_sink
+        - absl_log_internal_structured_proto
+        - absl_log_internal_proto
+        - absl_periodic_sampler
+        - absl_poison
+        - absl_random_internal_distribution_test_util
+        - absl_random_distributions
+        - absl_random_seed_sequences
+        - absl_random_internal_pool_urbg
+        - absl_random_internal_randen
+        - absl_random_internal_randen_hwaes
+        - absl_random_internal_randen_hwaes_impl
+        - absl_random_internal_randen_slow
+        - absl_random_internal_platform
+        - absl_random_internal_seed_material
+        - absl_random_seed_gen_exception
+        - absl_raw_hash_set
+        - absl_hash
+        - absl_city
+        - absl_low_level_hash
+        - absl_hashtablez_sampler
+        - absl_scoped_set_env
+        - absl_statusor
+        - absl_status
+        - absl_cord
+        - absl_cordz_info
+        - absl_cord_internal
+        - absl_cordz_functions
+        - absl_exponential_biased
+        - absl_cordz_handle
+        - absl_crc_cord_state
+        - absl_crc32c
+        - absl_crc_internal
+        - absl_crc_cpu_detect
+        - absl_leak_check
+        - absl_strerror
+        - absl_str_format_internal
+        - absl_bad_variant_access
+        - absl_vlog_config_internal
+        - absl_log_internal_fnmatch
+        - absl_synchronization
+        - absl_graphcycles_internal
+        - absl_kernel_timeout_internal
+        - absl_stacktrace
+        - absl_symbolize
+        - absl_debugging_internal
+        - absl_demangle_internal
+        - absl_demangle_rust
+        - absl_decode_rust_punycode
+        - absl_utf8_for_code_point
+        - absl_malloc_internal
+        - absl_time
+        - absl_civil_time
+        - absl_time_zone
+        - absl_tracing_internal
+        - absl_strings
+        - absl_strings_internal
+        - absl_string_view
+        - absl_base
+        - absl_spinlock_wait
+        - absl_int128
+        - absl_throw_delegate
+        - absl_raw_logging_internal
+        - absl_log_severity
       type: github
     async_simple:
       build_type: none
@@ -185,6 +276,138 @@ libraries:
       targets:
       - '1.2'
       type: github
+    backward_cpp:
+      check_file: README.md
+      repo: bombela/backward-cpp
+      target_prefix: v
+      targets:
+      - '1.6'
+      type: github
+    bde:
+      after_stage_script:
+      - find . -name "*.t.*" -exec rm -f {} ";"
+      - sed -i 's/add_subdirectory(standalones)//g' CMakeLists.txt
+      after_stage_script_pwsh:
+      - Get-ChildItem -Recurse -Filter "*.t.*" | Remove-Item -Force
+      - (Get-Content CMakeLists.txt) -replace 'add_subdirectory\(standalones\)', ''
+        | Set-Content CMakeLists.txt
+      build_type: cmake
+      check_file: Readme.md
+      extra_cmake_arg:
+      - -DBdeBuildSystem_ROOT:PATH=bde-tools-main/BdeBuildSystem/
+      - -DBBS_ENV_MARKER=ON
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      lib_type: static
+      make_targets:
+      - bal
+      - bbl
+      - bdl
+      - bsl
+      make_utility: ninja
+      method: clone_branch
+      package_install: true
+      prebuild_script:
+      - curl -o bde-tools.zip -L https://github.com/bloomberg/bde-tools/archive/refs/heads/main.zip
+      - unzip -q bde-tools.zip
+      prebuild_script_pwsh:
+      - Invoke-WebRequest -Uri "https://github.com/bloomberg/bde-tools/archive/refs/heads/main.zip"
+        -OutFile "bde-tools.zip"
+      - Expand-Archive -Path "bde-tools.zip" -DestinationPath "." -Force
+      repo: bloomberg/bde
+      staticliblink:
+      - bal
+      - bbl
+      - bbryu
+      - bdl
+      - bsl
+      - inteldfp
+      - pcre2
+      targets:
+      - 4.31.0.0
+      type: github
+    beman:
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/{{ context[-1] | replace('beman_', '', 1) }}
+      target_prefix: v
+      type: github
+      beman_any_view:
+        targets:
+        - name: 1.0.0
+          target_prefix: ''
+        - 1.1.0
+      beman_cache_latest:
+        targets:
+        - 0.1.0
+      beman_copyable_function:
+        targets:
+        - 0.1.0
+      beman_cstring_view:
+        targets:
+        - 0.1.0
+      beman_exemplar:
+        targets:
+        - name: 1.0.0
+          target_prefix: ''
+        - name: 2.0.0
+          target_prefix: ''
+        - name: 2.1.0
+          target_prefix: ''
+        - name: 2.1.1
+          target_prefix: ''
+        - name: 2.2.0
+          target_prefix: ''
+        - name: 2.2.1
+          target_prefix: ''
+        - 2.3.0
+        - 2.4.0
+      beman_indices_view:
+        targets:
+        - 0.1.0
+      beman_inplace_vector:
+        targets:
+        - 0.1.0
+      beman_iterator_interface:
+        after_stage_script:
+        - sed -i 's/add_subdirectory(examples)//g' CMakeLists.txt
+        build_type: cmake
+        extra_cmake_arg:
+        - -DBUILD_TESTING=OFF
+        - -DBEMAN_ITERATOR_INTERFACE_BUILD_TESTS=OFF
+        - -DBEMAN_ITERATOR_INTERFACE_BUILD_EXAMPLES=OFF
+        lib_type: cmake_built_headeronly
+        package_install: true
+        targets:
+        - 0.1.0
+      beman_monadics:
+        targets:
+        - 0.1.0
+        - 1.0.0
+      beman_optional:
+        targets:
+        - 1.0.0
+      beman_scan_view:
+        targets:
+        - 0.1.0
+      beman_scope:
+        target_prefix: ''
+        targets:
+        - 0.0.1
+      beman_take_before:
+        targets:
+        - 0.1.0
+      beman_timed_lock_alg:
+        targets:
+        - 1.0.0
+        - 1.1.0
+      beman_transform_view:
+        targets:
+        - 0.1.0
+        - 0.2.0
+      beman_utf_view:
+        targets:
+        - 0.1.0
+        - 0.2.0
     benchmark:
       build_type: cmake
       extra_cmake_arg:
@@ -289,7 +512,7 @@ libraries:
       postbuild_script_pwsh:
       - echo "skipping zlib check"
       prebuild_script:
-      - curl -sL -o zlib.tgz https://conan.compiler-explorer.com/downloadpkg/zlib/1.3.1/%compiler%/%arch%/%libcxx%
+      - curl -fsL -o zlib.tgz https://conan.compiler-explorer.com/downloadpkg/zlib/1.3.1/%compiler%/%arch%/%libcxx%
       - mkdir -p /tmp/zlib
       - tar xzf zlib.tgz -C /tmp/zlib
       prebuild_script_pwsh:
@@ -301,6 +524,9 @@ libraries:
       - 1.85.0
       - 1.86.0
       - 1.87.0
+      - 1.88.0
+      - 1.89.0
+      - 1.90.0
       type: tarballs
       untar_dir: boost-{{name}}
       url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
@@ -487,6 +713,7 @@ libraries:
       check_file: README.md
       extra_cmake_arg:
       - -DBUILD_TZ_LIB=ON
+      - -DMANUAL_TZ_DB=%cmake_bool_windows%
       make_targets:
       - date-tz
       repo: HowardHinnant/date
@@ -543,6 +770,24 @@ libraries:
       type: github
     eastl:
       build_type: none
+      built:
+        build_type: cmake
+        check_file: CMakeLists.txt
+        lib_type: static
+        recursive: false
+        staticliblink:
+        - EASTL
+        subdir: eastl
+        targets:
+        - 3.16.07
+        - 3.17.00
+        - 3.17.02
+        - 3.17.03
+        - 3.17.06
+        - 3.18.00
+        - 3.21.12
+        - 3.21.23
+        - 3.27.00
       check_file: README.md
       method: clone_branch
       repo: electronicarts/EASTL
@@ -618,6 +863,13 @@ libraries:
       targets:
       - 0.1.0
       type: github
+    fastmod:
+      check_file: README.md
+      repo: lemire/fastmod
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
     fastor:
       check_file: README.md
       repo: romeric/Fastor
@@ -661,7 +913,19 @@ libraries:
       - 11.1.4
       - 11.2.0
       - 12.0.0
-      - 11.3.0
+      type: github
+    frozen:
+      check_file: README.rst
+      repo: serge-sans-paille/frozen
+      targets:
+      - 1.2.0
+      type: github
+    fusedkernellibrary:
+      check_file: README.md
+      repo: Libraries-Openly-Fused/FusedKernelLibrary
+      targets:
+      - Beta-0.1.9
+      - Beta-0.1.13-LTS
       type: github
     gcem:
       build_type: cmake
@@ -687,6 +951,7 @@ libraries:
       - 1.9.8
       - 2.0.3
       - 5.0.0
+      - 5.5.2
       type: github
     glm:
       check_file: readme.md
@@ -713,6 +978,13 @@ libraries:
       - release-1.11.0
       - release-1.12.0
       - release-1.12.1
+      type: github
+    graaf:
+      check_file: README.md
+      repo: bobluppes/graaf
+      target_prefix: v
+      targets:
+      - 1.1.0
       type: github
     gsl:
       check_file: README.md
@@ -798,6 +1070,11 @@ libraries:
       - 6.2.4
       - 6.3.3
       - 6.4.0
+      - 7.0.1
+      - 7.0.2
+      - 7.1.0
+      - 7.1.1
+      - 7.2.0
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
     hpx:
@@ -829,6 +1106,26 @@ libraries:
       targets:
       - name: 1.11.0
       type: github
+    icu:
+      build_type: make
+      check_file: source/configure
+      compression: gz
+      dir: libs/icu/{{name}}
+      lib_type: shared
+      make_targets:
+      - all
+      package_install: true
+      sharedliblink:
+      - icuuc
+      - icui18n
+      - icudata
+      - icuio
+      source_folder: source
+      targets:
+      - '78.2'
+      type: tarballs
+      untar_dir: icu
+      url: https://github.com/unicode-org/icu/releases/download/release-{{name}}/icu4c-{{name}}-sources.tgz
     jsoncons:
       check_file: README.md
       repo: danielaparker/jsoncons
@@ -882,6 +1179,17 @@ libraries:
       - 4.5.01
       - 4.6.00
       - 4.6.01
+      - 4.6.02
+      - 4.7.00
+      - 4.7.01
+      - 4.7.02
+      - 4.7.03
+      - 4.7.04
+      - 5.0.0
+      - 5.0.1
+      - 5.0.2
+      - 5.1.0
+      - 5.1.1
       type: github
     kumi:
       check_file: README.md
@@ -1007,6 +1315,13 @@ libraries:
       - 1.0.0
       - 1.2.2
       type: github
+    libdivide:
+      check_file: README.md
+      repo: ridiculousfish/libdivide
+      target_prefix: v
+      targets:
+      - 5.3.0
+      type: github
     libguarded:
       check_file: README
       method: clone_branch
@@ -1077,6 +1392,9 @@ libraries:
       - 18.1.0
       - 19.1.0
       - 20.1.0
+      - 21.1.0
+      - 22.1.0
+      - 22.1.6
       type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
@@ -1118,6 +1436,16 @@ libraries:
       - '2'
       - '1'
       type: github
+    miniz:
+      build_type: cmake
+      lib_type: static
+      package_install: true
+      repo: richgel999/miniz
+      staticliblink:
+      - miniz
+      targets:
+      - 3.1.1
+      type: github
     mlir:
       check_file: include/mlir/InitAllPasses.h
       path_name: libs/mlir/{{name}}
@@ -1144,6 +1472,21 @@ libraries:
       - v2.2.0
       - v2.3.0
       - v2.4.0
+      - v2.5.0
+      type: github
+    named:
+      check_file: README.md
+      repo: mguid65/Named
+      target_prefix: v
+      targets:
+      - 0.0.8
+      type: github
+    nanobench:
+      check_file: README.md
+      repo: martinus/nanobench
+      target_prefix: v
+      targets:
+      - 4.3.11
       type: github
     nightly:
       array:
@@ -1169,86 +1512,114 @@ libraries:
         targets:
         - trunk
         type: github
-      beman_any_view:
+      beman:
         build_type: none
         check_file: README.md
         method: nightlyclone
-        repo: bemanproject/any_view
-        targets:
-        - main
+        repo: bemanproject/{{ context[-1] | replace('beman_', '', 1) }}
         type: github
-      beman_execution:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/execution
-        targets:
-        - main
-        type: github
-      beman_exemplar:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/exemplar
-        targets:
-        - main
-        type: github
-      beman_inplace_vector:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/inplace_vector
-        targets:
-        - main
-        type: github
-      beman_iterator_interface:
-        after_stage_script:
-        - sed -i 's/add_subdirectory(examples)//g' CMakeLists.txt
-        build_type: cmake
-        check_file: README.md
-        extra_cmake_arg:
-        - -DBUILD_TESTING=OFF
-        lib_type: static
-        method: nightlyclone
-        package_install: true
-        repo: bemanproject/iterator_interface
-        staticliblink:
-        - beman.iterator_interface
-        targets:
-        - main
-        type: github
-      beman_net:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/net
-        targets:
-        - main
-        type: github
-      beman_optional:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/optional
-        targets:
-        - main
-        type: github
-      beman_scope:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/scope
-        targets:
-        - main
-        type: github
-      beman_task:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/task
-        targets:
-        - main
-        type: github
+        beman_any_view:
+          targets:
+          - main
+        beman_at_most:
+          targets:
+          - main
+        beman_bounds_test:
+          targets:
+          - main
+        beman_cache_latest:
+          targets:
+          - main
+        beman_closed_view:
+          targets:
+          - main
+        beman_copyable_function:
+          targets:
+          - main
+        beman_cstring_view:
+          targets:
+          - main
+        beman_cycle:
+          targets:
+          - main
+        beman_elide:
+          targets:
+          - main
+        beman_execution:
+          targets:
+          - main
+        beman_exemplar:
+          targets:
+          - main
+        beman_gates:
+          targets:
+          - main
+        beman_indices_view:
+          targets:
+          - main
+        beman_indirect:
+          targets:
+          - main
+        beman_inplace_vector:
+          targets:
+          - main
+        beman_integer_division:
+          targets:
+          - main
+        beman_iterator_interface:
+          after_stage_script:
+          - sed -i 's/add_subdirectory(examples)//g' CMakeLists.txt
+          build_type: cmake
+          extra_cmake_arg:
+          - -DBUILD_TESTING=OFF
+          - -DBEMAN_ITERATOR_INTERFACE_BUILD_TESTS=OFF
+          - -DBEMAN_ITERATOR_INTERFACE_BUILD_EXAMPLES=OFF
+          lib_type: cmake_built_headeronly
+          package_install: true
+          targets:
+          - main
+        beman_map:
+          targets:
+          - main
+        beman_monadics:
+          targets:
+          - main
+        beman_net:
+          targets:
+          - main
+        beman_optional:
+          targets:
+          - main
+        beman_range_searcher:
+          targets:
+          - main
+        beman_scan_view:
+          targets:
+          - main
+        beman_scope:
+          targets:
+          - main
+        beman_span:
+          targets:
+          - main
+        beman_str_split:
+          targets:
+          - main
+        beman_take_before:
+          targets:
+          - main
+        beman_task:
+          targets:
+          - main
+        beman_timed_lock_alg:
+          targets:
+          - main
+        beman_transform_view:
+          targets:
+          - main
+        beman_utf_view:
+          targets:
+          - main
       benchmark:
         build_type: cmake
         check_file: README.md
@@ -1411,6 +1782,7 @@ libraries:
         check_file: README.md
         extra_cmake_arg:
         - -DBUILD_TZ_LIB=ON
+        - -DMANUAL_TZ_DB=%cmake_bool_windows%
         make_targets:
         - date-tz
         method: nightlyclone
@@ -1720,6 +2092,14 @@ libraries:
         targets:
         - trunk
         type: github
+      med:
+        build_type: none
+        check_file: med/med.hpp
+        method: nightlyclone
+        repo: cppden/med
+        targets:
+        - trunk
+        type: github
       mimicpp:
         check_file: README.md
         method: nightlyclone
@@ -1804,6 +2184,15 @@ libraries:
         targets:
         - trunk
         type: github
+      phd-embed:
+        build_type: none
+        check_file: include/phd/embed.hpp
+        method: nightlyclone
+        path_name: libs/phd/embed/{{name}}
+        repo: ThePhD/embed
+        targets:
+        - main
+        type: github
       pipes:
         build_type: none
         check_file: include/pipes/pipes.hpp
@@ -1817,7 +2206,7 @@ libraries:
         build_type: cmake
         check_file: README.md
         method: nightlyclone
-        repo: microsoft/proxy
+        repo: ngcpp/proxy
         targets:
         - trunk
         type: github
@@ -2194,16 +2583,26 @@ libraries:
     proxy:
       build_type: cmake
       check_file: README.md
-      older:
-        build_type: none
+      subdir: proxy
+      ngcpp:
+        repo: ngcpp/proxy
         targets:
-        - 3.0.0
-        - 3.1.0
-        - 3.2.0
-        - 3.2.1
-      repo: microsoft/proxy
-      targets:
-      - 3.3.0
+        - 4.0.2
+        - 4.1.0
+      microsoft:
+        repo: microsoft/proxy
+        targets:
+        - 3.3.0
+        - 3.4.0
+        - 4.0.0
+        - 4.0.1
+        older:
+          build_type: none
+          targets:
+          - 3.0.0
+          - 3.1.0
+          - 3.2.0
+          - 3.2.1
       type: github
     pugixml:
       build_type: cmake
@@ -2256,6 +2655,10 @@ libraries:
         url: https://download.qt.io/official_releases/qt/6.8/6.8.0/submodules/qtbase-everywhere-src-6.8.0.tar.xz
       - name: 6.9.0
         url: https://download.qt.io/official_releases/qt/6.9/6.9.0/submodules/qtbase-everywhere-src-6.9.0.tar.xz
+      - name: 6.10.0
+        url: https://download.qt.io/official_releases/qt/6.10/6.10.0/submodules/qtbase-everywhere-src-6.10.0.tar.xz
+      - name: 6.11.0
+        url: https://download.qt.io/official_releases/qt/6.11/6.11.0/submodules/qtbase-everywhere-src-6.11.0.tar.xz
       type: tarballs
       untar_dir: qtbase-everywhere-src-{{name}}
     quill:
@@ -2273,6 +2676,10 @@ libraries:
       - v8.2.0
       - v9.0.0
       - v10.0.1
+      - v10.2.0
+      - v11.0.2
+      - v11.1.0
+      - v12.0.0
       type: github
     raberu:
       check_file: README.md
@@ -2306,6 +2713,34 @@ libraries:
       - 1.0.1
       - 1.0.0
       type: github
+    re2:
+      build_type: cmake
+      check_file: README
+      extra_cmake_arg:
+      - -Dabsl_DIR=/tmp/abseil-cpp/lib/cmake/absl
+      lib_type: static
+      make_targets:
+      - all
+      method: clone_branch
+      package_install: true
+      postbuild_script:
+      - rm -Rf /tmp/abseil-cpp
+      postbuild_script_pwsh:
+      - echo "postbuild not using abseil"
+      prebuild_script:
+      - mkdir -p /tmp/abseil-cpp
+      - curl -fsL https://conan.compiler-explorer.com/downloadpkg/abseil/20250127.0/%compiler%/%arch%/%libcxx%
+        -o abseil-cpp-20250127.0.tar.gz
+      - tar xzf abseil-cpp-20250127.0.tar.gz -C /tmp/abseil-cpp
+      prebuild_script_pwsh:
+      - echo "prebuild not using abseil"
+      repo: google/re2
+      staticliblink:
+      - re2
+      targets:
+      - '2024-07-02'
+      - '2025-07-17'
+      type: github
     reactive_plus_plus:
       check_file: src/rpp/rpp/rpp.hpp
       method: clone_branch
@@ -2315,6 +2750,14 @@ libraries:
       - if: nightly
         method: nightlybranch
         name: v2
+      type: github
+    rsl:
+      build_type: none
+      check_file: README.md
+      method: nightlybranch
+      repo: fuquery/rsl
+      targets:
+      - master
       type: github
     scnlib:
       build_type: cmake
@@ -2364,6 +2807,7 @@ libraries:
       - 3.0.1
       - 3.1.5
       - 3.10.0
+      - 4.0.0
       type: github
     sol2:
       build_type: none
@@ -2425,6 +2869,7 @@ libraries:
       repo: rollbear/strong_type
       target_prefix: v
       targets:
+      - '16'
       - '15'
       - '14'
       - '13'
@@ -2447,8 +2892,9 @@ libraries:
       - compiler=%compilerTypeOrGcc%
       - arch=%intelarch?%
       lib_type: shared
-      method: nightlyclone
-      repo: oneapi-src/oneTBB
+      method: clone_branch
+      repo: uxlfoundation/oneTBB
+      target_prefix: v
       targets:
       - '2020.2'
       - '2020.3'
@@ -2603,6 +3049,17 @@ libraries:
       - 0.4.16
       - 0.5.3
       type: github
+    yaml_cpp:
+      build_type: cmake
+      check_file: README.md
+      lib_type: static
+      package_install: true
+      repo: jbeder/yaml-cpp
+      staticliblink:
+      - yaml-cppd
+      targets:
+      - yaml-cpp-0.9.0
+      type: github
     yomm2:
       build_type: none
       check_file: include/yorel/yomm2.hpp
@@ -2634,6 +3091,17 @@ libraries:
       repo: NVIDIA/cccl
       target_prefix: v
       targets:
+      - 3.3.4
+      - 3.3.2
+      - 3.3.1
+      - 3.3.0
+      - 3.2.1
+      - 3.2.0
+      - 3.1.4
+      - 3.1.0
+      - 3.0.2
+      - 3.0.1
+      - 3.0.0
       - 2.8.2
       - 2.8.1
       - 2.8.0
@@ -2652,12 +3120,35 @@ libraries:
       targets:
       - 1.8.0
       type: github
+    kokkos-cuda:
+      build_type: cmake
+      lib_type: static
+      cxx_compiler_wrapper: bin/nvcc_wrapper
+      make_targets:
+      - all
+      extra_cmake_arg:
+      - -DKokkos_ENABLE_CUDA=ON
+      - -DKokkos_ARCH_TURING75=ON
+      package_install: true
+      repo: kokkos/kokkos
+      staticliblink:
+      - kokkoscore
+      - kokkoscontainers
+      - kokkossimd
+      targets:
+      - 4.7.04
+      - 5.1.1
+      type: github
     matx:
       check_file: README.md
       method: clone_branch
       repo: NVIDIA/MatX
       target_prefix: v
       targets:
+      - 0.9.4
+      - 0.9.3
+      - 0.9.2
+      - 0.9.1
       - 0.9.0
       - 0.8.0
       - 0.7.0
@@ -2871,7 +3362,7 @@ libraries:
       build_type: fpm
       check_file: fpm.toml
       prebuild_script:
-      - curl -sL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
+      - curl -fsL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
       - tar -xzf curl.tgz
       - cp lib/libcurl-d.so lib/libcurl.so
       - export FPM_CFLAGS="-I/opt/compiler-explorer/libs/curl/7.83.1/include"
@@ -2904,7 +3395,7 @@ libraries:
         check_file: fpm.toml
         method: nightlyclone
         prebuild_script:
-        - curl -sL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
+        - curl -fsL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
         - tar -xzf curl.tgz
         - cp lib/libcurl-d.so lib/libcurl.so
         - export FPM_CFLAGS="-I/opt/compiler-explorer/libs/curl/7.83.1/include"
@@ -2923,6 +3414,35 @@ libraries:
         targets:
         - stdlib-fpm
         type: github
+    roots_fortran:
+      build_type: fpm
+      check_file: fpm.toml
+      repo: jacobwilliams/roots-fortran
+      requires_tree_copy: true
+      targets:
+      - 1.5.0
+      type: github
+  go:
+    errors:
+      build_type: gomod
+      module: github.com/pkg/errors
+      targets:
+      - v0.9.1
+      type: gomod
+    protobuf:
+      build_type: gomod
+      import_path: google.golang.org/protobuf/proto
+      module: google.golang.org/protobuf
+      targets:
+      - v1.34.1
+      - v1.36.0
+      type: gomod
+    uuid:
+      build_type: gomod
+      module: github.com/google/uuid
+      targets:
+      - v1.6.0
+      type: gomod
   rust:
     ahash:
       build_type: cargo
@@ -2933,6 +3453,7 @@ libraries:
       build_type: cargo
       targets:
       - 0.7.18
+      - 1.1.3
       type: cratesio
     ansi_term:
       build_type: cargo
@@ -2943,6 +3464,7 @@ libraries:
       build_type: cargo
       targets:
       - 1.0.57
+      - 1.0.98
       type: cratesio
     arrayvec:
       build_type: cargo
@@ -2958,6 +3480,7 @@ libraries:
       build_type: cargo
       targets:
       - 1.1.0
+      - 1.5.0
       type: cratesio
     backtrace:
       build_type: cargo
@@ -2968,6 +3491,7 @@ libraries:
       build_type: cargo
       targets:
       - 0.13.0
+      - 0.22.1
       type: cratesio
     bincode:
       build_type: cargo
@@ -2978,11 +3502,13 @@ libraries:
       build_type: cargo
       targets:
       - 1.3.2
+      - 2.9.1
       type: cratesio
     block-buffer:
       build_type: cargo
       targets:
       - 0.10.2
+      - 0.10.4
       type: cratesio
     bumpalo:
       build_type: cargo
@@ -2993,32 +3519,38 @@ libraries:
       build_type: cargo
       targets:
       - 1.4.3
+      - 1.5.0
       type: cratesio
     bytes:
       build_type: cargo
       targets:
       - 1.1.0
+      - 1.10.1
       type: cratesio
     cc:
       build_type: cargo
       targets:
       - 1.0.73
+      - 1.2.27
       type: cratesio
     cfg-if:
       build_type: cargo
       targets:
       - 1.0.0
+      - 1.0.1
       type: cratesio
     chrono:
       build_type: cargo
       targets:
       - 0.4.19
+      - 0.4.41
       type: cratesio
     clap:
       build_type: cargo
       targets:
       - 3.1.18
       - 4.5.20
+      - 4.5.40
       type: cratesio
     color-eyre:
       build_type: cargo
@@ -3049,21 +3581,29 @@ libraries:
       build_type: cargo
       targets:
       - 0.8.8
+      - 0.8.21
       type: cratesio
     dashmap:
       build_type: cargo
       targets:
       - 5.4.0
       type: cratesio
+    datafusion:
+      build_type: cargo
+      targets:
+      - 51.0.0
+      type: cratesio
     digest:
       build_type: cargo
       targets:
       - 0.10.3
+      - 0.10.7
       type: cratesio
     either:
       build_type: cargo
       targets:
       - 1.6.1
+      - 1.15.0
       type: cratesio
     env_logger:
       build_type: cargo
@@ -3075,6 +3615,11 @@ libraries:
       targets:
       - 0.6.8
       type: cratesio
+    fastrand:
+      build_type: cargo
+      targets:
+      - 2.3.0
+      type: cratesio
     fnv:
       build_type: cargo
       targets:
@@ -3084,56 +3629,82 @@ libraries:
       build_type: cargo
       targets:
       - 0.3.21
+      - 0.3.31
       type: cratesio
     futures-channel:
       build_type: cargo
       targets:
       - 0.3.21
+      - 0.3.31
       type: cratesio
     futures-core:
       build_type: cargo
       targets:
       - 0.3.21
+      - 0.3.31
+      type: cratesio
+    futures-io:
+      build_type: cargo
+      targets:
+      - 0.3.31
+      type: cratesio
+    futures-sink:
+      build_type: cargo
+      targets:
+      - 0.3.31
       type: cratesio
     futures-task:
       build_type: cargo
       targets:
       - 0.3.21
+      - 0.3.31
       type: cratesio
     futures-util:
       build_type: cargo
       targets:
       - 0.3.21
+      - 0.3.31
       type: cratesio
     generic-array:
       build_type: cargo
       targets:
       - 0.14.5
+      - 1.2.0
       type: cratesio
     getrandom:
       build_type: cargo
       targets:
       - 0.2.6
+      - 0.3.3
       type: cratesio
     h2:
       build_type: cargo
       targets:
       - 0.3.13
+      - 0.4.11
       type: cratesio
     hashbrown:
       build_type: cargo
       targets:
       - 0.12.1
+      - 0.15.4
       type: cratesio
     heck:
       build_type: cargo
       targets:
       - 0.4.0
+      - 0.5.0
       type: cratesio
     http:
       build_type: cargo
       targets:
       - 0.2.8
+      - 1.3.1
+      type: cratesio
+    http-body:
+      build_type: cargo
+      targets:
+      - 1.0.1
       type: cratesio
     httparse:
       build_type: cargo
@@ -3144,46 +3715,60 @@ libraries:
       build_type: cargo
       targets:
       - 0.14.19
+      - 1.6.0
       type: cratesio
     idna:
       build_type: cargo
       targets:
       - 0.2.3
+      - 1.0.3
       type: cratesio
     indexmap:
       build_type: cargo
       targets:
       - 1.8.2
+      - 2.10.0
       type: cratesio
     itertools:
       build_type: cargo
       targets:
       - 0.10.3
+      - 0.14.0
       type: cratesio
     itoa:
       build_type: cargo
       targets:
       - 1.0.2
+      - 1.0.15
       type: cratesio
     lazy_static:
       build_type: cargo
       targets:
       - 1.4.0
+      - 1.5.0
       type: cratesio
     libc:
       build_type: cargo
       targets:
       - 0.2.126
+      - 0.2.174
+      type: cratesio
+    linux-raw-sys:
+      build_type: cargo
+      targets:
+      - 0.10.0
       type: cratesio
     lock_api:
       build_type: cargo
       targets:
       - 0.4.7
+      - 0.4.13
       type: cratesio
     log:
       build_type: cargo
       targets:
       - 0.4.17
+      - 0.4.27
       type: cratesio
     matches:
       build_type: cargo
@@ -3194,21 +3779,25 @@ libraries:
       build_type: cargo
       targets:
       - 2.5.0
+      - 2.7.5
       type: cratesio
     memoffset:
       build_type: cargo
       targets:
       - 0.6.5
+      - 0.9.1
       type: cratesio
     miniz_oxide:
       build_type: cargo
       targets:
       - 0.5.3
+      - 0.8.9
       type: cratesio
     mio:
       build_type: cargo
       targets:
       - 0.8.3
+      - 1.0.4
       type: cratesio
     ndarray:
       build_type: cargo
@@ -3229,16 +3818,19 @@ libraries:
       build_type: cargo
       targets:
       - 0.1.45
+      - 0.1.46
       type: cratesio
     num-traits:
       build_type: cargo
       targets:
       - 0.2.15
+      - 0.2.19
       type: cratesio
     num_cpus:
       build_type: cargo
       targets:
       - 1.13.1
+      - 1.17.0
       type: cratesio
     num_traits:
       build_type: cargo
@@ -3249,6 +3841,7 @@ libraries:
       build_type: cargo
       targets:
       - 1.12.0
+      - 1.21.3
       type: cratesio
     opaque-debug:
       build_type: cargo
@@ -3259,16 +3852,19 @@ libraries:
       build_type: cargo
       targets:
       - 0.12.1
+      - 0.12.4
       type: cratesio
     parking_lot_core:
       build_type: cargo
       targets:
       - 0.9.3
+      - 0.9.11
       type: cratesio
     percent-encoding:
       build_type: cargo
       targets:
       - 2.1.0
+      - 2.3.1
       type: cratesio
     phf:
       build_type: cargo
@@ -3279,16 +3875,24 @@ libraries:
       build_type: cargo
       targets:
       - 0.2.9
+      - 0.2.16
+      type: cratesio
+    pin-utils:
+      build_type: cargo
+      targets:
+      - 0.1.0
       type: cratesio
     pkg-config:
       build_type: cargo
       targets:
       - 0.3.25
+      - 0.3.32
       type: cratesio
     ppv-lite86:
       build_type: cargo
       targets:
       - 0.2.16
+      - 0.2.21
       type: cratesio
     proc-macro-hack:
       build_type: cargo
@@ -3299,26 +3903,31 @@ libraries:
       build_type: cargo
       targets:
       - 1.0.39
+      - 1.0.95
       type: cratesio
     quote:
       build_type: cargo
       targets:
       - 1.0.18
+      - 1.0.40
       type: cratesio
     rand:
       build_type: cargo
       targets:
       - 0.8.5
+      - 0.9.1
       type: cratesio
     rand_chacha:
       build_type: cargo
       targets:
       - 0.3.1
+      - 0.9.0
       type: cratesio
     rand_core:
       build_type: cargo
       targets:
       - 0.6.3
+      - 0.9.3
       type: cratesio
     rayon:
       build_type: cargo
@@ -3329,31 +3938,51 @@ libraries:
       build_type: cargo
       targets:
       - 1.5.6
+      - 1.11.1
+      type: cratesio
+    regex-automata:
+      build_type: cargo
+      targets:
+      - 0.4.9
       type: cratesio
     regex-syntax:
       build_type: cargo
       targets:
       - 0.6.26
+      - 0.8.5
       type: cratesio
     rustc_version:
       build_type: cargo
       targets:
       - 0.4.0
       type: cratesio
+    rustix:
+      build_type: cargo
+      targets:
+      - 1.0.7
+      type: cratesio
+    rustls:
+      build_type: cargo
+      targets:
+      - 0.23.28
+      type: cratesio
     ryu:
       build_type: cargo
       targets:
       - 1.0.10
+      - 1.0.20
       type: cratesio
     scopeguard:
       build_type: cargo
       targets:
       - 1.1.0
+      - 1.2.0
       type: cratesio
     semver:
       build_type: cargo
       targets:
       - 1.0.9
+      - 1.0.26
       type: cratesio
     semver-parser:
       build_type: cargo
@@ -3364,36 +3993,48 @@ libraries:
       build_type: cargo
       targets:
       - 1.0.137
+      - 1.0.219
       type: cratesio
     serde_derive:
       build_type: cargo
       targets:
       - 1.0.137
+      - 1.0.219
       type: cratesio
     serde_json:
       build_type: cargo
       targets:
       - 1.0.81
+      - 1.0.140
+      type: cratesio
+    sha2:
+      build_type: cargo
+      targets:
+      - 0.10.9
       type: cratesio
     slab:
       build_type: cargo
       targets:
       - 0.4.6
+      - 0.4.10
       type: cratesio
     smallvec:
       build_type: cargo
       targets:
       - 1.8.0
+      - 1.15.1
       type: cratesio
     socket2:
       build_type: cargo
       targets:
       - 0.4.4
+      - 0.5.10
       type: cratesio
     strsim:
       build_type: cargo
       targets:
       - 0.10.0
+      - 0.11.1
       type: cratesio
     subtle:
       build_type: cargo
@@ -3404,6 +4045,12 @@ libraries:
       build_type: cargo
       targets:
       - 1.0.96
+      - 2.0.104
+      type: cratesio
+    tempfile:
+      build_type: cargo
+      targets:
+      - 3.20.0
       type: cratesio
     termcolor:
       build_type: cargo
@@ -3419,11 +4066,13 @@ libraries:
       build_type: cargo
       targets:
       - 1.0.31
+      - 2.0.12
       type: cratesio
     thiserror-impl:
       build_type: cargo
       targets:
       - 1.0.31
+      - 2.0.12
       type: cratesio
     thread_local:
       build_type: cargo
@@ -3434,26 +4083,50 @@ libraries:
       build_type: cargo
       targets:
       - 0.3.9
+      - 0.3.41
       type: cratesio
     tokio:
       build_type: cargo
       targets:
       - 1.19.2
+      - 1.46.0
+      type: cratesio
+    tokio-util:
+      build_type: cargo
+      targets:
+      - 0.7.15
       type: cratesio
     toml:
       build_type: cargo
       targets:
       - 0.5.9
+      - 0.8.23
+      type: cratesio
+    tracing:
+      build_type: cargo
+      targets:
+      - 0.1.41
+      type: cratesio
+    tracing-core:
+      build_type: cargo
+      targets:
+      - 0.1.34
       type: cratesio
     typenum:
       build_type: cargo
       targets:
       - 1.15.0
+      - 1.18.0
       type: cratesio
     unicode-bidi:
       build_type: cargo
       targets:
       - 0.3.8
+      type: cratesio
+    unicode-ident:
+      build_type: cargo
+      targets:
+      - 1.0.18
       type: cratesio
     unicode-normalization:
       build_type: cargo
@@ -3469,6 +4142,7 @@ libraries:
       build_type: cargo
       targets:
       - 0.1.9
+      - 0.2.1
       type: cratesio
     unicode-xid:
       build_type: cargo
@@ -3479,6 +4153,12 @@ libraries:
       build_type: cargo
       targets:
       - 2.2.2
+      - 2.5.4
+      type: cratesio
+    uuid:
+      build_type: cargo
+      targets:
+      - 1.17.0
       type: cratesio
     vec_map:
       build_type: cargo
@@ -3489,6 +4169,7 @@ libraries:
       build_type: cargo
       targets:
       - 0.9.4
+      - 0.9.5
       type: cratesio
     wide:
       build_type: cargo
@@ -3499,6 +4180,36 @@ libraries:
       build_type: cargo
       targets:
       - 0.3.9
+      type: cratesio
+    windows-sys:
+      build_type: cargo
+      targets:
+      - 0.60.2
+      type: cratesio
+    windows_aarch64_msvc:
+      build_type: cargo
+      targets:
+      - 0.53.0
+      type: cratesio
+    windows_i686_gnu:
+      build_type: cargo
+      targets:
+      - 0.53.0
+      type: cratesio
+    windows_i686_msvc:
+      build_type: cargo
+      targets:
+      - 0.53.0
+      type: cratesio
+    windows_x86_64_gnu:
+      build_type: cargo
+      targets:
+      - 0.53.0
+      type: cratesio
+    windows_x86_64_msvc:
+      build_type: cargo
+      targets:
+      - 0.53.0
       type: cratesio
     zerocopy:
       build_type: cargo
@@ -3515,6 +4226,7 @@ libraries:
       target_prefix: v
       targets:
       - 0.66.7
+      - 0.68.9
       type: github
   zig:
     nightly:

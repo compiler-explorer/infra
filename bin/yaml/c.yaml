@@ -71,6 +71,7 @@ compilers:
         - 4.3.0
         - 4.4.0
         - 4.5.0
+        - 4.6.0
     z88dk:
       type: s3tarballs
       check_exe: bin/zcc -h
@@ -109,6 +110,11 @@ compilers:
         check_file: chibicc
         targets:
           - main
+      ccc:
+        type: nightly
+        check_exe: ccc --version
+        targets:
+          - main
       movfuscator:
         type: nightly
         check_env:
@@ -116,6 +122,15 @@ compilers:
         check_exe: build/lcc --version
         targets:
           - trunk
+    archiesdk:
+      type: s3tarballs
+      subdir: archiesdk
+      s3_path_prefix: archiesdk-{{name}}
+      path_name: archiesdk/{{name}}
+      check_exe: bin/arm-archie-gcc --version
+      check_stderr_on_stdout: true
+      targets:
+        - Release-1
     cross:
       type: s3tarballs
       arch_prefix:
@@ -170,6 +185,7 @@ compilers:
             - 12.2.0
             - 12.3.0
             - 12.4.0
+            - 12.5.0
             - 13.1.0
             - 13.2.0
             - 13.3.0
@@ -178,3 +194,5 @@ compilers:
             - 14.2.0
             - 14.3.0
             - 15.1.0
+            - 15.2.0
+            - 16.1.0

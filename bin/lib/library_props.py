@@ -6,6 +6,8 @@ from libraries.yaml configurations. These functions are designed to be reusable
 across different parts of the system.
 """
 
+from __future__ import annotations
+
 from urllib.parse import urlparse
 
 
@@ -107,11 +109,11 @@ def update_library_in_properties(existing_content, library_name, library_propert
     # Find where the tools section starts
     for i, line in enumerate(lines):
         if line.strip().startswith("tools=") or (
-            line.strip().startswith("#") and "tools" in line.lower() and i > 0 and lines[i - 1].strip() == ""
+            line.strip().startswith("#") and "tools" in line.lower() and i > 0 and not lines[i - 1].strip()
         ):
             tools_section_start = i
             # Look backwards to find a good insertion point before any comment block
-            while i > 0 and (lines[i - 1].strip() == "" or lines[i - 1].strip().startswith("#")):
+            while i > 0 and (not lines[i - 1].strip() or lines[i - 1].strip().startswith("#")):
                 i -= 1
             tools_section_start = i
             break
@@ -150,7 +152,41 @@ def update_library_in_properties(existing_content, library_name, library_propert
                     continue
 
                 if prop_name in library_properties:
-                    result_lines.append(f"{key}={library_properties[prop_name]}")
+                    # Preserve existing name and url properties instead of overwriting
+                    if prop_name in ("name", "url"):
+                        result_lines.append(line)
+                    elif prop_name == "versions":
+                        # Merge version lists: keep existing IDs, add only genuinely new versions
+                        _, existing_ver_str = stripped.split("=", 1)
+                        existing_ver_ids = existing_ver_str.split(":") if existing_ver_str else []
+                        new_ver_ids = library_properties[prop_name].split(":")
+
+                        # Build a map of version value -> existing ID from the file
+                        existing_value_to_id = {}
+                        for eid in existing_ver_ids:
+                            ver_prop = f"versions.{eid}.version"
+                            ekey = generate_library_property_key(library_name, ver_prop)
+                            for eline in lines:
+                                if eline.strip().startswith(ekey + "="):
+                                    existing_value_to_id[eline.strip().split("=", 1)[1]] = eid
+                                    break
+
+                        # Map new IDs to their version values
+                        new_id_to_value = {}
+                        for nid in new_ver_ids:
+                            ver_prop = f"versions.{nid}.version"
+                            new_id_to_value[nid] = library_properties.get(ver_prop, "")
+
+                        # Merge: keep existing list, append only versions not already present by value
+                        merged = list(existing_ver_ids)
+                        for nid in new_ver_ids:
+                            ver_value = new_id_to_value.get(nid, "")
+                            if ver_value not in existing_value_to_id and nid not in existing_ver_ids:
+                                merged.append(nid)
+
+                        result_lines.append(f"{key}={':'.join(merged)}")
+                    else:
+                        result_lines.append(f"{key}={library_properties[prop_name]}")
                 else:
                     result_lines.append(line)
                 continue
@@ -159,10 +195,35 @@ def update_library_in_properties(existing_content, library_name, library_propert
 
         result_lines.append(line)
 
+    # Collect existing version values (e.g., "1.85.0") to avoid duplicates when version IDs differ
+    existing_version_values = set()
+    for prop_name in seen_props:
+        if prop_name.startswith("versions.") and prop_name.endswith(".version"):
+            ver_id = prop_name.split(".")[1]
+            existing_key = generate_library_property_key(library_name, prop_name)
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith(existing_key + "="):
+                    existing_version_values.add(stripped.split("=", 1)[1])
+                    break
+
     props_to_add = []
     for prop_name, value in library_properties.items():
-        if prop_name not in seen_props and not prop_name.startswith("_"):
-            props_to_add.append((prop_name, value))
+        if prop_name.startswith("_"):
+            continue
+        if prop_name in seen_props:
+            continue
+        # Skip version properties whose .version value already exists under a different ID
+        if prop_name.startswith("versions.") and prop_name.endswith(".version") and value in existing_version_values:
+            continue
+        # Skip other per-version properties (path, staticliblink, etc.) if that version value exists
+        if prop_name.startswith("versions.") and not prop_name.endswith(".version") and prop_name != "versions":
+            ver_id = prop_name.split(".")[1]
+            version_prop = f"versions.{ver_id}.version"
+            version_value = library_properties.get(version_prop, "")
+            if version_value in existing_version_values:
+                continue
+        props_to_add.append((prop_name, value))
 
     if props_to_add:
         if last_library_line_idx >= 0:
@@ -178,7 +239,7 @@ def update_library_in_properties(existing_content, library_name, library_propert
             if tools_section_start > 0:
                 insert_idx = tools_section_start
                 # Add empty line before our properties if needed
-                if insert_idx > 0 and result_lines[insert_idx - 1].strip() != "":
+                if insert_idx > 0 and result_lines[insert_idx - 1].strip():
                     result_lines.insert(insert_idx, "")
                     insert_idx += 1
 
@@ -190,11 +251,11 @@ def update_library_in_properties(existing_content, library_name, library_propert
                     insert_idx += 1
 
                 # Add empty line after our properties if needed
-                if insert_idx < len(result_lines) and result_lines[insert_idx].strip() != "":
+                if insert_idx < len(result_lines) and result_lines[insert_idx].strip():
                     result_lines.insert(insert_idx, "")
             else:
                 # Fallback to appending at the end
-                if result_lines and result_lines[-1].strip() != "":
+                if result_lines and result_lines[-1].strip():
                     result_lines.append("")
 
                 props_to_add.sort(key=sort_key)
@@ -215,33 +276,8 @@ def merge_properties(existing_content, new_content):
     """Merge new properties into existing properties file, preserving structure and comments."""
     new_props = parse_properties_file(new_content)
 
-    new_libs_list = []
-    if "libs" in new_props:
-        new_libs_list = new_props["libs"].split(":")
-
     result_content = existing_content
-
-    # Preserve whether original content had final newline
     original_ends_with_newline = existing_content.endswith("\n")
-
-    lines = result_content.splitlines()
-    for i, line in enumerate(lines):
-        if line.strip().startswith("libs="):
-            existing_libs = []
-            if "=" in line.strip():
-                _, value = line.strip().split("=", 1)
-                existing_libs = [lib for lib in value.split(":") if lib]
-
-            merged_libs = existing_libs.copy()
-            for lib in new_libs_list:
-                if lib not in merged_libs:
-                    merged_libs.append(lib)
-
-            lines[i] = f"libs={':'.join(merged_libs)}"
-            result_content = "\n".join(lines)
-            if original_ends_with_newline:
-                result_content += "\n"
-            break
 
     libraries_to_update = {}
 
@@ -263,7 +299,7 @@ def merge_properties(existing_content, new_content):
     cleaned_lines = []
     prev_empty = False
     for line in lines:
-        if line.strip() == "":
+        if not line.strip():
             if not prev_empty:
                 cleaned_lines.append(line)
             prev_empty = True
@@ -388,14 +424,11 @@ def generate_all_libraries_properties(cpp_libraries):
     Returns:
         String containing all properties in CE format
     """
-    all_ids = []
     properties_txt = ""
 
     for lib_id, lib_info in cpp_libraries.items():
         if should_skip_library(lib_id, lib_info):
             continue
-
-        all_ids.append(lib_id)
 
         name_key = generate_library_property_key(lib_id, "name")
         libverprops = f"{name_key}={lib_id}\n"
@@ -445,8 +478,7 @@ def generate_all_libraries_properties(cpp_libraries):
 
         properties_txt += libverprops + "\n"
 
-    header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
-    return header_properties_txt + properties_txt
+    return properties_txt
 
 
 def generate_standalone_library_properties(library_name, lib_props, specific_version=None):
@@ -462,14 +494,10 @@ def generate_standalone_library_properties(library_name, lib_props, specific_ver
     """
     props_copy = lib_props.copy()
 
-    # When generating standalone (no input file), include all properties
     if specific_version and "name" not in props_copy:
         props_copy["name"] = library_name
-        # Note: URL would need to be passed in or retrieved separately
 
     properties_lines = []
-    properties_lines.append(f"libs={library_name}")
-    properties_lines.append("")
 
     for prop_name, value in sorted(props_copy.items()):
         property_key = generate_library_property_key(library_name, prop_name)
@@ -540,11 +568,6 @@ def find_existing_library_by_github_url(cpp_libraries, github_url):
         if isinstance(lib_info, dict) and lib_info.get("repo") == github_repo:
             return lib_id
 
-    if "nightly" in cpp_libraries and isinstance(cpp_libraries["nightly"], dict):
-        for lib_id, lib_info in cpp_libraries["nightly"].items():
-            if isinstance(lib_info, dict) and lib_info.get("repo") == github_repo:
-                return lib_id
-
     return None
 
 
@@ -580,7 +603,7 @@ def process_library_specific_properties(input_file, library, lib_props, specific
     """Handle the full flow for library-specific property generation."""
     if input_file:
         # Load existing properties file
-        with open(input_file, "r", encoding="utf-8") as f:
+        with open(input_file, encoding="utf-8") as f:
             existing_content = f.read()
 
         # Update only the specific library
@@ -589,26 +612,6 @@ def process_library_specific_properties(input_file, library, lib_props, specific
             update_version_id = version_to_id(specific_version)
         result = update_library_in_properties(existing_content, library, lib_props, update_version_id)
 
-        # If the library wasn't in the libs= list, we need to add it
-        if f"libs.{library}." not in existing_content:
-            # Preserve whether original content had final newline
-            original_ends_with_newline = existing_content.endswith("\n")
-
-            lines = result.splitlines()
-            for i, line in enumerate(lines):
-                if line.strip().startswith("libs="):
-                    # Parse existing libs
-                    if "=" in line:
-                        prefix, libs_value = line.split("=", 1)
-                        existing_libs = [lib for lib in libs_value.split(":") if lib]
-                        if library not in existing_libs:
-                            existing_libs.append(library)
-                            lines[i] = f"{prefix}={':'.join(existing_libs)}"
-                    break
-            result = "\n".join(lines)
-            # Preserve original final newline behavior
-            if original_ends_with_newline and not result.endswith("\n"):
-                result += "\n"
         return result
     else:
         # Generate standalone properties for just this library
@@ -619,7 +622,7 @@ def process_all_libraries_properties(input_file, new_properties_text):
     """Handle the full flow for all-libraries property generation."""
     if input_file:
         # Load existing properties file
-        with open(input_file, "r", encoding="utf-8") as f:
+        with open(input_file, encoding="utf-8") as f:
             existing_content = f.read()
 
         # Merge properties

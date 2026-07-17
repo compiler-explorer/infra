@@ -14,8 +14,14 @@ fi
 
 env EXTRA_NFS_ARGS="" INSTALL_TYPE="admin" "${DIR}/setup-common.sh"
 
+# python3.8 is not in noble's repos; deadsnakes provides it (as on the build/runner nodes).
+apt-get -y install software-properties-common
+add-apt-repository -y ppa:deadsnakes/ppa
+apt-get -y update
+
 apt -y install \
   autojump \
+  bubblewrap \
   cronic \
   fish \
   gdb \
@@ -59,9 +65,9 @@ crontab -u ubuntu crontab.admin
 echo admin-node >/etc/hostname
 hostname admin-node
 sed -i "/127.0.0.1/c 127.0.0.1 localhost admin-node" /etc/hosts
-sed -i "/preserve_hostname/c preserve_hostname: true" /etc/cloud/cloud.cfg
+mkdir -p /etc/cloud/cloud.cfg.d
+echo "preserve_hostname: true" >/etc/cloud/cloud.cfg.d/99-ce.cfg
 
-if ! grep vm.min_free_kbytes /etc/sysctl.conf; then
-  echo "vm.min_free_kbytes=65536" >>/etc/sysctl.conf
-  sysctl -p
-fi
+mkdir -p /etc/sysctl.d
+echo "vm.min_free_kbytes=65536" >/etc/sysctl.d/99-ce.conf
+sysctl -p /etc/sysctl.d/99-ce.conf

@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 import jinja2
 
 _MAX_ITERS = 5
 _LOGGER = logging.getLogger(__name__)
 _JINJA_ENV = jinja2.Environment()
+_TEMPLATE_CACHE: dict[str, jinja2.Template] = {}
 
 
 def is_list_of_strings(value: Any) -> bool:
@@ -45,10 +49,11 @@ def needs_expansion(target: MutableMapping[str, Any]) -> bool:
 
 def expand_one(template_string: str, configuration: Mapping[str, Any]) -> str:
     try:
-        return _JINJA_ENV.from_string(template_string).render(**configuration)
-    except jinja2.exceptions.TemplateError:
-        # in python 3.11 we would...
-        # e.add_note(f"Template '{template_string}'")
+        if template_string not in _TEMPLATE_CACHE:
+            _TEMPLATE_CACHE[template_string] = _JINJA_ENV.from_string(template_string)
+        return _TEMPLATE_CACHE[template_string].render(**configuration)
+    except jinja2.exceptions.TemplateError as e:
+        e.add_note(f"Template '{template_string}'")
         _LOGGER.warning("Failed to expand '%s'", template_string)
         raise
 
@@ -62,9 +67,11 @@ def expand_target(target: MutableMapping[str, Any], context: list[str]) -> Mutab
         for key, value in target.items():
             try:
                 if is_list_of_strings(value):
-                    target[key] = [expand_one(x, target) for x in value]
+                    if any(string_needs_expansion(x) for x in value):
+                        target[key] = [expand_one(x, target) if string_needs_expansion(x) else x for x in value]
                 elif isinstance(value, str):
-                    target[key] = expand_one(value, target)
+                    if string_needs_expansion(value):
+                        target[key] = expand_one(value, target)
                 elif isinstance(value, float):
                     target[key] = str(value)
             except KeyError as ke:

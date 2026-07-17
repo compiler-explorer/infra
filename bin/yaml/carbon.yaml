@@ -1,24 +1,43 @@
 compilers:
   carbon:
-    carbon-explorer: # deprecated old carbon-explorer
+    toolchain:
+      type: restQueryTarballs
+      dir: carbon-{{name}}
+      check_exe: bin/carbon --version
+      compression: gz
+      strip_components: 1
+      create_untar_dir: true
+      url: https://api.github.com/repos/carbon-language/carbon-lang/releases
+      query: |
+        [item for item in document if item["{{version}}"]][0]['assets'][0]['browser_download_url']
+      targets:
+        - name: trunk
+          if: nightly
+          version: prerelease
+          install_always: true
+
+    # Pre-build the runtime libraries for supported platforms, as they need
+    # to be pre-built in order to be cached, and they take too long to build
+    # for them to be part of every compilation with the toolchain.
+    toolchain-runtimes:
+      type: script
+      dir: carbon-{{name}}-runtimes
+      # The path of the toolchain target we're installing runtimes for.
+      bin_install_dir: "{{destination}}/carbon-{{name}}"
+      # TODO: Add cross-compile platforms, sanitizers, etc.
+      script: |
+        {{bin_install_dir}}/bin/carbon build-runtimes --output-directory={{dir}} --target=x86_64-unknown-linux-gnu
+      targets:
+        - name: trunk
+          if: nightly
+          install_always: true
+      depends:
+        - compilers/carbon/toolchain {{name}}
+
+    # Archived carbon-explorer is no longer being updated.
+    carbon-explorer:
       if: nightly
       type: nightly
       check_exe: bin/carbon-explorer --version
       targets:
         - trunk
-    if: nightly
-    type: restQueryTarballs
-    # deliberately different from "trunk" as that refers to the carbon explorer
-    # at some point in the future we should remove the explorer and rename this
-    # (and symlink or whatever)
-    dir: carbon-{{name}}
-    compression: gz
-    install_always: true
-    check_exe: bin/carbon --version
-    strip_components: 1
-    create_untar_dir: true
-    url: https://api.github.com/repos/carbon-language/carbon-lang/releases
-    query: |
-      [item for item in document if item["prerelease"]][0]['assets'][0]['browser_download_url']
-    targets:
-      - trunk

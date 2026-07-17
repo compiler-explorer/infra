@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import re
 import subprocess
 from collections import defaultdict
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable
+from typing import Any
 
 from lib.library_platform import LibraryPlatform
 
@@ -119,16 +122,16 @@ class BinaryInfo:
     def set_maybe_cxx11abi(self, symbolset: Iterable[str]) -> bool:
         return any(self.symbol_maybe_cxx11abi(s) for s in symbolset)
 
-    def cxx_info_from_binary(self) -> Dict[str, Any]:
-        info: Dict[str, Any] = defaultdict(lambda: [])
+    def cxx_info_from_binary(self) -> dict[str, Any]:
+        info: dict[str, Any] = defaultdict(lambda: [])
         info["has_personality"] = {"__gxx_personality_v0"}.issubset(self.required_symbols)
         info["has_exceptions"] = {"_Unwind_Resume"}.issubset(self.required_symbols)
         info["has_maybecxx11abi"] = self.set_maybe_cxx11abi(self.implemented_symbols)
 
         return info
 
-    def arch_info_from_binary(self) -> Dict[str, Any]:
-        info: Dict[str, Any] = defaultdict(lambda: [])
+    def arch_info_from_binary(self) -> dict[str, Any]:
+        info: dict[str, Any] = defaultdict(lambda: [])
         info["elf_class"] = ""
         info["elf_osabi"] = ""
         info["elf_machine"] = ""

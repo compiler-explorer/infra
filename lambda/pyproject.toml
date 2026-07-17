@@ -7,8 +7,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "aws-embedded-metrics",
-    "requests==2.32.4"
+    "requests==2.33.0"
 ]
 
 # Mostly copied from the parent project.
@@ -24,6 +23,9 @@ select = [
     "F", # pyflake
     "B", # flake8-bugbear
     "I", # isort
+    "UP", # pyupgrade
+    "PLC", # Pylint Convention rules
+    "BLE001", # Ban blind except: Exception
 ]
 ignore = [
     "E501" # line length

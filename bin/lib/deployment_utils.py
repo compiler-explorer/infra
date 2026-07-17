@@ -1,17 +1,22 @@
 """General deployment utility functions for Compiler Explorer infrastructure."""
 
+from __future__ import annotations
+
+import logging
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 import requests
 from botocore.exceptions import ClientError
 
 from lib.amazon import as_client, elb_client
-from lib.aws_utils import get_instance_private_ip
+from lib.aws_utils import get_asg_info, get_instance_private_ip
 from lib.ce_utils import is_running_on_admin_node, print_elapsed_minutes, print_elapsed_time
 
+LOGGER = logging.getLogger(__name__)
 
-def print_target_group_diagnostics(target_group_arn: str, instance_ids: List[str]) -> None:
+
+def print_target_group_diagnostics(target_group_arn: str, instance_ids: list[str]) -> None:
     """Print diagnostic information about target group health status."""
     print("\nChecking target group status for diagnostic purposes...")
     try:
@@ -23,11 +28,11 @@ def print_target_group_diagnostics(target_group_arn: str, instance_ids: List[str
             state = target["TargetHealth"]["State"]
             reason = target["TargetHealth"].get("Reason", "")
             print(f"  {target['Target']['Id']}: {state} - {reason}")
-    except Exception as e:
+    except ClientError as e:
         print(f"  Could not check target group status: {e}")
 
 
-def print_instance_details(instances: List[Dict[str, Any]], prefix: str = "  ") -> None:
+def print_instance_details(instances: list[dict[str, Any]], prefix: str = "  ") -> None:
     """Print details for a list of instances."""
     for instance in instances:
         iid = instance["InstanceId"]
@@ -36,7 +41,7 @@ def print_instance_details(instances: List[Dict[str, Any]], prefix: str = "  ") 
         print(f"{prefix}{iid}: ASG Health={health}, Lifecycle={state}")
 
 
-def wait_for_instances_healthy(asg_name: str, timeout: int = 900) -> List[str]:
+def wait_for_instances_healthy(asg_name: str, timeout: int = 900) -> list[str]:
     """Wait for all instances in ASG to be InService (running).
 
     Note: This only waits for instances to be running, not for health checks to pass.
@@ -102,7 +107,7 @@ def wait_for_instances_healthy(asg_name: str, timeout: int = 900) -> List[str]:
     raise TimeoutError(f"Timeout waiting for instances in {asg_name} to become healthy")
 
 
-def wait_for_targets_healthy(target_group_arn: str, instance_ids: List[str], timeout: int = 600) -> List[str]:
+def wait_for_targets_healthy(target_group_arn: str, instance_ids: list[str], timeout: int = 600) -> list[str]:
     """Wait for instances to become healthy in the target group."""
     if not instance_ids:
         return []
@@ -124,13 +129,11 @@ def wait_for_targets_healthy(target_group_arn: str, instance_ids: List[str], tim
             if target["TargetHealth"]["State"] == "healthy":
                 healthy.append(target["Target"]["Id"])
             else:
-                unhealthy.append(
-                    {
-                        "id": target["Target"]["Id"],
-                        "state": target["TargetHealth"]["State"],
-                        "reason": target["TargetHealth"].get("Reason", "Unknown"),
-                    }
-                )
+                unhealthy.append({
+                    "id": target["Target"]["Id"],
+                    "state": target["TargetHealth"]["State"],
+                    "reason": target["TargetHealth"].get("Reason", "Unknown"),
+                })
 
         current_time = time.time()
 
@@ -171,7 +174,7 @@ def wait_for_targets_healthy(target_group_arn: str, instance_ids: List[str], tim
     raise TimeoutError("Timeout waiting for targets to become healthy")
 
 
-def wait_for_http_health(instance_ids: List[str], timeout: int = 300) -> List[str]:
+def wait_for_http_health(instance_ids: list[str], timeout: int = 300) -> list[str]:
     """Wait for instances to respond healthy to HTTP health checks."""
     if not instance_ids:
         return []
@@ -191,13 +194,11 @@ def wait_for_http_health(instance_ids: List[str], timeout: int = 300) -> List[st
             if health_result["status"] == "healthy":
                 healthy_instances.append(instance_id)
             else:
-                unhealthy_instances.append(
-                    {
-                        "id": instance_id,
-                        "status": health_result["status"],
-                        "message": health_result.get("message", "Unknown error"),
-                    }
-                )
+                unhealthy_instances.append({
+                    "id": instance_id,
+                    "status": health_result["status"],
+                    "message": health_result.get("message", "Unknown error"),
+                })
 
         current_time = time.time()
 
@@ -217,7 +218,7 @@ def wait_for_http_health(instance_ids: List[str], timeout: int = 300) -> List[st
     raise TimeoutError(f"Timeout waiting for HTTP health checks to pass for {len(instance_ids)} instances")
 
 
-def check_instance_health(instance_id: str, running_on_admin_node: bool) -> Dict[str, Any]:
+def check_instance_health(instance_id: str, running_on_admin_node: bool) -> dict[str, Any]:
     """Check the health of an instance by testing its /healthcheck endpoint."""
     if not running_on_admin_node:
         return {
@@ -257,5 +258,229 @@ def check_instance_health(instance_id: str, running_on_admin_node: bool) -> Dict
             return {"status": "connection_error", "message": "Connection refused", "private_ip": private_ip}
         except requests.exceptions.RequestException as e:
             return {"status": "error", "message": f"Request error: {str(e)}", "private_ip": private_ip}
-    except Exception as e:
+    except RuntimeError as e:
         return {"status": "error", "message": f"Unexpected error: {str(e)}"}
+
+
+def check_instance_compiler_registration(
+    instance_id: str, environment: str, running_on_admin_node: bool
+) -> dict[str, Any]:
+    """Check if an instance has completed compiler registration by testing its /api/compilers endpoint."""
+    if not running_on_admin_node:
+        return {
+            "status": "skipped",
+            "message": "Compiler registration checks only available from admin node",
+            "compiler_count": 0,
+        }
+
+    try:
+        # Get instance private IP
+        private_ip = get_instance_private_ip(instance_id)
+        if not private_ip:
+            return {"status": "error", "message": "Instance not found or not running", "compiler_count": 0}
+
+        # Build API URL based on environment
+        if environment == "prod":
+            api_path = "/api/compilers"
+        else:
+            api_path = f"/{environment}/api/compilers"
+
+        url = f"http://{private_ip}{api_path}?fields=id"
+
+        try:
+            response = requests.get(url, timeout=10, headers={"Accept": "application/json"})
+            if response.status_code == 200:
+                try:
+                    compilers = response.json()
+                    compiler_count = len(compilers) if isinstance(compilers, list) else 0
+
+                    # Consider registration complete if we have at least some compilers
+                    # This threshold can be adjusted based on expected minimum compiler count
+                    # Exception: aarch64 environments are allowed to have 0 compilers
+                    min_expected_compilers = 0 if environment.startswith("aarch64") else 5
+
+                    if compiler_count >= min_expected_compilers:
+                        return {
+                            "status": "registered",
+                            "compiler_count": compiler_count,
+                            "private_ip": private_ip,
+                            "response_time_ms": int(response.elapsed.total_seconds() * 1000),
+                        }
+                    else:
+                        return {
+                            "status": "partial",
+                            "compiler_count": compiler_count,
+                            "private_ip": private_ip,
+                            "message": f"Only {compiler_count} compilers found (expected >={min_expected_compilers})",
+                        }
+                except ValueError:
+                    return {
+                        "status": "invalid_response",
+                        "message": "Invalid JSON response from compilers API",
+                        "private_ip": private_ip,
+                        "compiler_count": 0,
+                    }
+            else:
+                return {
+                    "status": "api_error",
+                    "http_code": response.status_code,
+                    "private_ip": private_ip,
+                    "message": f"Compilers API returned HTTP {response.status_code}",
+                    "compiler_count": 0,
+                }
+        except requests.exceptions.ConnectTimeout:
+            return {"status": "timeout", "message": "Connection timeout", "private_ip": private_ip, "compiler_count": 0}
+        except requests.exceptions.ConnectionError:
+            return {
+                "status": "connection_error",
+                "message": "Connection refused",
+                "private_ip": private_ip,
+                "compiler_count": 0,
+            }
+        except requests.exceptions.RequestException as e:
+            return {
+                "status": "error",
+                "message": f"Request error: {str(e)}",
+                "private_ip": private_ip,
+                "compiler_count": 0,
+            }
+    except RuntimeError as e:
+        return {"status": "error", "message": f"Unexpected error: {str(e)}", "compiler_count": 0}
+
+
+def wait_for_compiler_registration(instance_ids: list[str], environment: str, timeout: int = 600) -> list[str]:
+    """Wait for instances to complete compiler registration and discovery."""
+    if not instance_ids:
+        return []
+
+    start_time = time.time()
+    last_status_time = 0.0
+    running_on_admin_node = is_running_on_admin_node()
+
+    print(f"Waiting for compiler registration on {len(instance_ids)} instances...")
+    print("This ensures compilers are discovered and available before switching traffic.")
+
+    if not running_on_admin_node:
+        print("⚠️  Warning: Cannot verify compiler registration (not running on admin node)")
+        print("   Waiting 30 seconds for compiler discovery to complete...")
+        time.sleep(30)
+        return instance_ids
+
+    while time.time() - start_time < timeout:
+        registered_instances = []
+        pending_instances = []
+
+        for instance_id in instance_ids:
+            result = check_instance_compiler_registration(instance_id, environment, running_on_admin_node)
+            if result["status"] == "registered":
+                registered_instances.append(instance_id)
+            else:
+                pending_instances.append({
+                    "id": instance_id,
+                    "status": result["status"],
+                    "compiler_count": result.get("compiler_count", 0),
+                    "message": result.get("message", "Unknown"),
+                })
+
+        current_time = time.time()
+
+        if len(registered_instances) == len(instance_ids):
+            elapsed_secs = int(current_time - start_time)
+            # Show total compiler count across all instances
+            total_compilers = 0
+            for instance_id in instance_ids:
+                result = check_instance_compiler_registration(instance_id, environment, running_on_admin_node)
+                total_compilers += result.get("compiler_count", 0)
+
+            print(f"✅ All {len(instance_ids)} instances have completed compiler registration after {elapsed_secs}s")
+            print(f"   Total compilers registered across all instances: {total_compilers}")
+            return registered_instances
+
+        # Show progress every 30 seconds
+        if current_time - last_status_time >= 30:
+            elapsed_secs = int(current_time - start_time)
+            print(
+                f"[{elapsed_secs}s] Compiler registration: {len(registered_instances)}/{len(instance_ids)} instances ready"
+            )
+
+            # Show details for pending instances
+            if pending_instances:
+                print("  Pending instances:")
+                for pending in pending_instances[:3]:  # Show first 3 to avoid spam
+                    print(f"    {pending['id']}: {pending['status']} ({pending['compiler_count']} compilers)")
+                if len(pending_instances) > 3:
+                    print(f"    ... and {len(pending_instances) - 3} more")
+
+            last_status_time = current_time
+
+        time.sleep(15)  # Check every 15 seconds
+
+    raise TimeoutError(f"Timeout waiting for compiler registration on {len(instance_ids)} instances")
+
+
+def clear_router_cache(env: str) -> bool:
+    """Clear the ce-router cache for the specified environment.
+
+    This function clears both the active color cache and routing cache on the ce-router
+    to ensure it immediately picks up configuration changes during blue-green deployments.
+
+    Args:
+        env: Environment name (e.g., 'prod', 'staging', 'beta')
+
+    Returns:
+        True if cache was successfully cleared on at least one instance, False otherwise
+    """
+    router_asg_name = f"ce-router-{env}"
+
+    try:
+        asg_info = get_asg_info(router_asg_name)
+        if not asg_info:
+            LOGGER.warning(f"Router ASG {router_asg_name} not found")
+            return False
+
+        instances = asg_info.get("Instances", [])
+        if not instances:
+            LOGGER.warning(f"No instances found in router ASG {router_asg_name}")
+            return False
+
+        in_service_instances = [i for i in instances if i["LifecycleState"] == "InService"]
+        if not in_service_instances:
+            LOGGER.warning(f"No in-service instances found in router ASG {router_asg_name}")
+            return False
+
+        success_count = 0
+        for instance in in_service_instances:
+            router_instance_id = instance["InstanceId"]
+            router_private_ip = get_instance_private_ip(router_instance_id)
+
+            if not router_private_ip:
+                LOGGER.warning(f"Could not get private IP for router instance {router_instance_id}")
+                continue
+
+            print(f"  Clearing cache on {router_asg_name} instance {router_instance_id} ({router_private_ip})")
+
+            try:
+                url = f"http://{router_private_ip}/admin/clear-cache"
+                response = requests.post(url, timeout=5)
+
+                if response.status_code == 200:
+                    success_count += 1
+                else:
+                    LOGGER.warning(
+                        f"Cache clear request for {router_instance_id} returned HTTP {response.status_code}: {response.text}"
+                    )
+            except requests.exceptions.Timeout:
+                LOGGER.warning(f"Timeout clearing cache on instance {router_instance_id}")
+            except requests.exceptions.ConnectionError:
+                LOGGER.warning(f"Connection error clearing cache on instance {router_instance_id}")
+            except requests.exceptions.RequestException as e:
+                LOGGER.warning(f"Request error clearing cache on instance {router_instance_id}: {e}")
+
+        return success_count > 0
+
+    except ClientError as e:
+        LOGGER.warning(f"AWS error getting router instance: {e}")
+        return False
+    except (RuntimeError, KeyError) as e:
+        LOGGER.warning(f"Unexpected error clearing router cache: {e}")
+        return False

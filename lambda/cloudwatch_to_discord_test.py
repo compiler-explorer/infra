@@ -1,3 +1,5 @@
+import json
+
 from cloudwatch_to_discord import parse_sns_message
 
 EXAMPLE_TRAFFIC_EVENT = dict(
@@ -83,8 +85,6 @@ def test_can_parse_traffic_event():
 def test_can_parse_anomaly_event():
     result = parse_sns_message(EXAMPLE_ANOMALY_EVENT)
     assert result["embeds"][0]["title"] == "CloudWatch Alert - TrafficAnomaly!"
-    import json
-
     print(json.dumps(result))
 
 

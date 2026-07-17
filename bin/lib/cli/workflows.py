@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import subprocess
 import sys
@@ -115,6 +117,53 @@ def run_discovery(
             sys.exit(1)
 
 
+@workflows.command("run-gpu-discovery")
+@click.argument("buildnumber")
+@click.option("--branch", default="main", help="Branch to use for discovery (default: main)")
+@click.option("--dry-run", is_flag=True, help="Print the command without executing")
+@click.option("--wait", is_flag=True, help="Wait for workflow to complete")
+@click.pass_obj
+def run_gpu_discovery(
+    cfg: Config,
+    buildnumber: str,
+    branch: str,
+    dry_run: bool,
+    wait: bool,
+):
+    """Trigger the GPU compiler discovery workflow.
+
+    BUILDNUMBER: The build number for discovery (e.g., gh-12345)
+    """
+    cmd = [
+        "gh",
+        "workflow",
+        "run",
+        "gpu-compiler-discovery.yml",
+        "--field",
+        f"branch={branch}",
+        "--field",
+        f"buildnumber={buildnumber}",
+        "-R",
+        "github.com/compiler-explorer/infra",
+    ]
+
+    if dry_run:
+        print(" ".join(cmd))
+    else:
+        print(f"Triggering GPU compiler discovery, branch {branch}, build {buildnumber}")
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            if result.stdout:
+                print(result.stdout)
+            print("Workflow triggered successfully")
+
+            if wait:
+                wait_for_workflow_completion("infra", "gpu-compiler-discovery.yml")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to trigger workflow: {e.stderr}", file=sys.stderr)
+            sys.exit(1)
+
+
 @workflows.command("deploy-win")
 @click.argument("buildnumber")
 @click.option("--branch", default="main", help="Branch to deploy (default: main)")
@@ -151,6 +200,77 @@ def deploy_win(cfg: Config, buildnumber: str, branch: str, dry_run: bool, wait: 
 
             if wait:
                 wait_for_workflow_completion("compiler-explorer", "deploy-win.yml")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to trigger workflow: {e.stderr}", file=sys.stderr)
+            sys.exit(1)
+
+
+@workflows.command("run-adhoc")
+@click.option("--command", default='echo "Hello from $HOSTNAME"', help="Command to run")
+@click.option("--interactive", is_flag=True, help="Start interactive debugging session")
+@click.option("--timeout-minutes", default=30, help="Timeout for interactive session in minutes (default: 30)")
+@click.option("--dry-run", is_flag=True, help="Print the command without executing")
+@click.option("--wait", is_flag=True, help="Wait for workflow to complete")
+@click.pass_obj
+def run_adhoc(
+    cfg: Config,
+    command: str,
+    interactive: bool,
+    timeout_minutes: int,
+    dry_run: bool,
+    wait: bool,
+):
+    """Trigger ad-hoc command on self-hosted linux-x64 runner.
+
+    Runs arbitrary commands on self-hosted GitHub runners for debugging or testing.
+    Use --interactive to get SSH access to the runner via upterm.
+
+    Examples:
+        ce workflows run-adhoc --command "ls -la /opt"
+        ce workflows run-adhoc --command "uname -a"
+        ce workflows run-adhoc --interactive --timeout-minutes 60
+    """
+    cmd = [
+        "gh",
+        "workflow",
+        "run",
+        "adhoc-command.yml",
+        "--field",
+        f"command={command}",
+        "--field",
+        f"interactive={'true' if interactive else 'false'}",
+        "--field",
+        f"timeout_minutes={timeout_minutes}",
+        "-R",
+        "github.com/compiler-explorer/infra",
+    ]
+
+    if dry_run:
+        print(" ".join(cmd))
+    else:
+        if interactive:
+            print(f"WARNING: Starting EXPENSIVE interactive session on linux-x64 (timeout: {timeout_minutes} minutes)")
+            print("   This will consume runner resources until manually cancelled!")
+            print("   SSH connection details will appear in the workflow logs.")
+            print("   Only workflow trigger user can access the session.")
+            print()
+            print("   TO STOP THE SESSION:")
+            print("     1. Type 'exit' in SSH session (workflow continues running)")
+            print("     2. Cancel the GitHub workflow (recommended - stops immediately)")
+            print("     Don't wait for timeout")
+            print()
+            print("   See docs/adhoc_runner_commands.md for detailed instructions")
+        else:
+            print(f"Running command on linux-x64: {command}")
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            if result.stdout:
+                print(result.stdout)
+            print("Workflow triggered successfully")
+
+            if wait:
+                wait_for_workflow_completion("infra", "adhoc-command.yml")
         except subprocess.CalledProcessError as e:
             print(f"Failed to trigger workflow: {e.stderr}", file=sys.stderr)
             sys.exit(1)
@@ -239,6 +359,7 @@ def list_workflows(cfg: Config):
     print("Workflows in compiler-explorer/infra:")
     infra_workflows = [
         ("compiler-discovery.yml", "Compiler discovery workflow"),
+        ("gpu-compiler-discovery.yml", "GPU compiler discovery workflow"),
         ("win-lib-build.yaml", "Windows library build"),
         ("start_staging.yml", "Start staging environment"),
         ("update-compilers.yml", "Update compilers"),

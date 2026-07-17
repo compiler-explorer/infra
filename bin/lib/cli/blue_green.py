@@ -1,15 +1,51 @@
 """Blue-green deployment CLI commands."""
 
-from typing import Optional
+from __future__ import annotations
 
 import click
+from botocore.exceptions import ClientError
 
-from lib.amazon import as_client, ec2_client, elb_client, get_current_key, get_releases
-from lib.aws_utils import get_asg_info, scale_asg
+from lib.amazon import (
+    as_client,
+    ec2_client,
+    elb_client,
+    get_current_key,
+    get_releases,
+    release_for,
+)
+from lib.aws_utils import get_asg_info, reset_asg_min_size, scale_asg
 from lib.blue_green_deploy import BlueGreenDeployment, DeploymentCancelledException
+from lib.builds_core import get_release_without_discovery_check
 from lib.ce_utils import are_you_sure, display_releases
 from lib.cli import cli
-from lib.env import BLUE_GREEN_ENABLED_ENVIRONMENTS, Config
+from lib.env import BLUE_GREEN_ENABLED_ENVIRONMENTS, Config, Environment
+from lib.github_app import get_github_app_token
+from lib.notify import handle_notify
+
+
+def get_commit_hash_for_version(cfg: Config, version_key: str | None) -> str | None:
+    """Convert a version key to its commit hash."""
+    if not version_key:
+        return None
+
+    try:
+        releases = get_releases(cfg)
+        release = release_for(releases, version_key)
+        return release.hash.hash if release else None
+    except (ClientError, RuntimeError):
+        return None
+
+
+def get_commit_hash_for_version_param(cfg: Config, version: str | None, branch: str | None = None) -> str | None:
+    """Convert a version parameter (from CLI) to its commit hash."""
+    if not version:
+        return None
+
+    try:
+        release = get_release_without_discovery_check(cfg, version, branch)
+        return release.hash.hash if release else None
+    except (ClientError, RuntimeError):
+        return None
 
 
 @cli.group(name="blue-green")
@@ -121,7 +157,7 @@ def blue_green_status(cfg: Config, detailed: bool):
                                 )
                                 if tg_response["TargetHealthDescriptions"]:
                                     tg_health = tg_response["TargetHealthDescriptions"][0]["TargetHealth"]["State"]
-                            except Exception:
+                            except ClientError:
                                 tg_health = "error"
 
                             # Get private IP address
@@ -131,7 +167,7 @@ def blue_green_status(cfg: Config, detailed: bool):
                                 if ec2_response["Reservations"] and ec2_response["Reservations"][0]["Instances"]:
                                     ec2_instance = ec2_response["Reservations"][0]["Instances"][0]
                                     private_ip = ec2_instance.get("PrivateIpAddress", "unknown")
-                            except Exception:
+                            except ClientError:
                                 private_ip = "error"
 
                             # Get HTTP health for this instance if available
@@ -152,7 +188,7 @@ def blue_green_status(cfg: Config, detailed: bool):
                                 f"      {iid}: IP={private_ip}, ASG={asg_health}, TG={tg_health}, HTTP={http_health}{http_details}, State={lifecycle}"
                             )
 
-                except Exception as e:
+                except ClientError as e:
                     print(f"      Error getting detailed status: {e}")
 
 
@@ -160,10 +196,33 @@ def blue_green_status(cfg: Config, detailed: bool):
 @click.option("--capacity", type=int, help="Target capacity for deployment (default: match current)")
 @click.option("--skip-confirmation", is_flag=True, help="Skip confirmation prompt")
 @click.option("--branch", help="If version == 'latest', branch to get latest version from")
+@click.option("--notify/--no-notify", help="Send GitHub notifications for newly released PRs (prod only)", default=None)
+@click.option("--dry-run-notify", is_flag=True, help="Show what notifications would be sent without sending them")
+@click.option("--check-notifications", is_flag=True, help="Only check what notifications would be sent, don't deploy")
+@click.option(
+    "--ignore-hash-mismatch", help="Continue deployment even if files have unexpected hash values", is_flag=True
+)
+@click.option("--skip-compiler-check", help="Skip compiler registration check before switching traffic", is_flag=True)
+@click.option(
+    "--compiler-timeout",
+    type=int,
+    default=600,
+    help="Timeout in seconds for compiler registration check (default: 600)",
+)
 @click.argument("version", required=False)
 @click.pass_obj
 def blue_green_deploy(
-    cfg: Config, capacity: int, skip_confirmation: bool, branch: Optional[str], version: Optional[str]
+    cfg: Config,
+    capacity: int,
+    skip_confirmation: bool,
+    branch: str | None,
+    notify: bool | None,
+    dry_run_notify: bool,
+    check_notifications: bool,
+    ignore_hash_mismatch: bool,
+    skip_compiler_check: bool,
+    compiler_timeout: int,
+    version: str | None,
 ):
     """Deploy to the inactive color using blue-green strategy.
 
@@ -187,25 +246,150 @@ def blue_green_deploy(
     active = deployment.get_active_color()
     inactive = deployment.get_inactive_color()
 
+    # Track commit hashes for notifications (before deployment starts)
+    original_commit_hash: str | None = None
+    target_commit_hash: str | None = None
+
+    if cfg.env == Environment.PROD:
+        # Get original commit hash (what's currently deployed)
+        original_version_key = get_current_key(cfg)
+        original_commit_hash = get_commit_hash_for_version(cfg, original_version_key)
+
+        # Get target commit hash (what we're deploying to)
+        if version:
+            target_commit_hash = get_commit_hash_for_version_param(cfg, version, branch)
+        else:
+            # No version specified means no change, use current
+            target_commit_hash = original_commit_hash
+
+    # Handle notification settings
+    should_notify = notify
+    if should_notify is None:
+        # Default: notify on prod when there's actually a version change, don't notify on other environments
+        should_notify = (
+            cfg.env == Environment.PROD
+            and original_commit_hash is not None
+            and target_commit_hash is not None
+            and original_commit_hash != target_commit_hash
+        )
+
+    # If dry-run-notify is specified, override to use dry-run mode
+    if dry_run_notify:
+        should_notify = True
+
+    # Handle notification checking (if requested, show notifications and exit)
+    if check_notifications:
+        print(f"\n=== Notification Check for {cfg.env.value} ===")
+
+        if cfg.env != Environment.PROD:
+            print("❌ Notifications are only sent for production deployments")
+            return
+
+        if not version:
+            print("❌ No version specified - no deployment would occur, no notifications sent")
+            return
+
+        print(f"Checking what notifications would be sent for deploying to version: {version}")
+
+        if original_commit_hash and target_commit_hash:
+            if original_commit_hash == target_commit_hash:
+                print("❌ No version change detected - no notifications would be sent")
+                print(f"   Current and target both point to: {original_commit_hash[:8]}...{original_commit_hash[-8:]}")
+                return
+            else:
+                print("✅ Version change detected:")
+                print(f"   From: {original_commit_hash[:8]}...{original_commit_hash[-8:]}")
+                print(f"   To:   {target_commit_hash[:8]}...{target_commit_hash[-8:]}")
+        else:
+            print("❌ Could not determine commit hashes - notifications would be skipped")
+            return
+
+        print("✅ Will check commits between current deployment and target:")
+        print(f"   From: {original_commit_hash[:8]}...{original_commit_hash[-8:]} (current deployment)")
+        print(f"   To:   {target_commit_hash[:8]}...{target_commit_hash[-8:]} (target deployment)")
+
+        # Show what would be notified
+        print("\n🔍 Checking what would be notified...")
+        gh_token = get_github_app_token()
+        handle_notify(original_commit_hash, target_commit_hash, gh_token, dry_run=True)
+
+        return
+
     # Show what version will be deployed if specified
     if version:
         print(f"\nWill set version to: {version}")
 
-    if not skip_confirmation:
+    if not skip_confirmation and not check_notifications:
         confirm_msg = f"deploy to {inactive} (currently active: {active})"
         if version:
             confirm_msg += f" with version {version}"
         if not are_you_sure(confirm_msg, cfg):
             return
 
+    # Handle interactive confirmation for notifications if we're going to notify
+    delay_notification_prompt = False
+    if should_notify and cfg.env == Environment.PROD and not skip_confirmation and not dry_run_notify:
+        notify_choice = click.prompt(
+            "Send 'now live' notifications to GitHub issues/PRs?",
+            type=click.Choice(["yes", "dry-run", "no", "delay"]),
+            default="yes",
+        )
+        if notify_choice == "no":
+            should_notify = False
+        elif notify_choice == "dry-run":
+            dry_run_notify = True
+        elif notify_choice == "delay":
+            delay_notification_prompt = True
+            should_notify = False  # Don't notify immediately
+
     try:
-        deployment.deploy(target_capacity=capacity, skip_confirmation=skip_confirmation, version=version, branch=branch)
+        deployment.deploy(
+            target_capacity=capacity,
+            skip_confirmation=skip_confirmation,
+            version=version,
+            branch=branch,
+            ignore_hash_mismatch=ignore_hash_mismatch,
+            skip_compiler_check=skip_compiler_check,
+            compiler_timeout=compiler_timeout,
+        )
         print("\nDeployment successful!")
         print("Run 'ce blue-green rollback' if you need to revert")
+
+        # Handle delayed notification prompt if requested
+        if delay_notification_prompt and cfg.env == Environment.PROD:
+            print("\n" + "=" * 60)
+            delayed_notify_choice = click.prompt(
+                "Deployment completed. Send 'now live' notifications to GitHub issues/PRs?",
+                type=click.Choice(["yes", "dry-run", "no"]),
+                default="yes",
+            )
+            if delayed_notify_choice in ["yes", "dry-run"]:
+                should_notify = True
+                dry_run_notify = delayed_notify_choice == "dry-run"
+
+        # Send notifications after successful deployment (prod only)
+        if should_notify and cfg.env == Environment.PROD:
+            if original_commit_hash is not None and target_commit_hash is not None:
+                try:
+                    gh_token = get_github_app_token()
+                    print(f"\n{'[DRY RUN] ' if dry_run_notify else ''}Checking for notifications...")
+                    print(
+                        f"Checking commits from {original_commit_hash[:8]}...{original_commit_hash[-8:]} to {target_commit_hash[:8]}...{target_commit_hash[-8:]}"
+                    )
+                    handle_notify(original_commit_hash, target_commit_hash, gh_token, dry_run=dry_run_notify)
+                    print("Notification check completed.")
+                except RuntimeError as e:
+                    print(f"Warning: Failed to send notifications: {e}")
+            else:
+                if original_commit_hash is None:
+                    print("No original commit hash available - skipping notifications.")
+                if target_commit_hash is None:
+                    print("No target commit hash available - skipping notifications.")
+
     except DeploymentCancelledException:
         # Deployment was cancelled - don't show success message or raise
         return
-    except Exception as e:
+    except ClientError as e:
         print(f"\nDeployment failed: {e}")
         print("The inactive ASG may be partially scaled. Check status and clean up if needed.")
         raise
@@ -247,7 +431,7 @@ def blue_green_switch(cfg: Config, color: str, skip_confirmation: bool, force: b
 
         deployment.switch_target_group(color)
         print(f"Successfully switched to {color}")
-    except Exception as e:
+    except ClientError as e:
         print(f"Switch failed: {e}")
         raise
 
@@ -271,7 +455,7 @@ def blue_green_rollback(cfg: Config, skip_confirmation: bool):
 
     try:
         deployment.rollback()
-    except Exception as e:
+    except ClientError as e:
         print(f"Rollback failed: {e}")
         raise
 
@@ -294,7 +478,7 @@ def blue_green_cleanup(cfg: Config, skip_confirmation: bool):
 
     try:
         deployment.cleanup_inactive()
-    except Exception as e:
+    except ClientError as e:
         print(f"Cleanup failed: {e}")
         raise
 
@@ -334,10 +518,12 @@ def blue_green_shutdown(cfg: Config, skip_confirmation: bool):
 
     try:
         print(f"Shutting down {cfg.env.value} environment: scaling {active_asg} from {current_capacity} to 0 instances")
+        # Need to set minimum size to 0 first, then scale down
+        reset_asg_min_size(active_asg, 0)
         scale_asg(active_asg, 0)
         print(f"✅ {cfg.env.value.capitalize()} environment shut down successfully")
         print(f"To restart: run 'ce --env {cfg.env.value} blue-green deploy' or scale up manually")
-    except Exception as e:
+    except ClientError as e:
         print(f"Shutdown failed: {e}")
         raise
 
@@ -360,7 +546,7 @@ def blue_green_validate(cfg: Config):
     try:
         active_color = deployment.get_active_color()
         print(f"✓ Active color parameter exists: {active_color}")
-    except Exception as e:
+    except ClientError as e:
         issues.append(f"Cannot read active color parameter: {e}")
 
     # Check target groups
@@ -368,7 +554,7 @@ def blue_green_validate(cfg: Config):
         try:
             deployment.get_target_group_arn(color)
             print(f"✓ {color.capitalize()} target group exists")
-        except Exception as e:
+        except ClientError as e:
             issues.append(f"{color.capitalize()} target group not found: {e}")
 
     # Check ASGs
@@ -380,7 +566,7 @@ def blue_green_validate(cfg: Config):
                 print(f"✓ {color.capitalize()} ASG exists: {asg_name}")
             else:
                 issues.append(f"{color.capitalize()} ASG not found: {asg_name}")
-        except Exception as e:
+        except ClientError as e:
             issues.append(f"Error checking {color} ASG: {e}")
 
     # Check listener rule
@@ -396,7 +582,7 @@ def blue_green_validate(cfg: Config):
                 issues.append("ALB listener not found for production")
             else:
                 issues.append(f"ALB listener rule not found for /{cfg.env.value}*")
-    except Exception as e:
+    except ClientError as e:
         issues.append(f"Error checking listener rule: {e}")
 
     if issues:

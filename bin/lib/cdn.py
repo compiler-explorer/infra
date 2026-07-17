@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 import mimetypes
@@ -11,7 +13,7 @@ from pathlib import Path
 from tempfile import mkdtemp
 from zipfile import ZipFile
 
-from lib.amazon import botocore, force_lazy_init, s3_client
+from lib.amazon import botocore, s3_client
 
 logger = logging.getLogger("ce-cdn")
 
@@ -36,6 +38,11 @@ def hash_file_for_s3(f):
         sha256 = hash_fileobj(fobj, hashlib.sha256).digest()
         sha256 = b64encode(sha256).decode()
         return dict(hash=sha256, **f)
+
+
+def is_source_map(name: str) -> bool:
+    """True for source-map sidecar files (``*.map``)."""
+    return name.endswith(".map")
 
 
 def get_directory_contents(basedir):
@@ -68,13 +75,23 @@ def guess_content_type(filename):
 class DeploymentJob:
     tmpdir = None
 
-    def __init__(self, tar_file_path, bucket_name, bucket_path="", version=None, max_workers=None, cache_control=None):
+    def __init__(
+        self,
+        tar_file_path,
+        bucket_name,
+        bucket_path="",
+        version=None,
+        max_workers=None,
+        cache_control=None,
+        ignore_hash_mismatch=False,
+    ):
         self.tar_file_path = tar_file_path
         self.bucket_name = bucket_name
         self.bucket_path = Path(bucket_path)
         self.version = version
         self.max_workers = max_workers or os.cpu_count() or 1
         self.cache_control = cache_control
+        self.ignore_hash_mismatch = ignore_hash_mismatch
         self.deploydate = datetime.utcnow().isoformat(timespec="seconds")
 
     def __enter__(self):
@@ -203,7 +220,11 @@ class DeploymentJob:
         if guessed_type is not None:
             extra_args["ContentType"] = guessed_type
 
-        if self.cache_control is not None:
+        if is_source_map(file["name"]):
+            # Revalidate (cheap 304s) rather than cache for a year: a map's bytes
+            # can change under a stable name, and debugging must see the current one.
+            extra_args["CacheControl"] = "no-cache"
+        elif self.cache_control is not None:
             extra_args["CacheControl"] = self.cache_control
 
         # upload file to s3
@@ -231,8 +252,6 @@ class DeploymentJob:
         return file
 
     def check_hashes(self):
-        force_lazy_init(s3_client)
-
         if ".zip" in self.tar_file_path:
             files = self.__unpack_zip()
         else:
@@ -244,7 +263,11 @@ class DeploymentJob:
             files_with_mismatch = []
             for f in executor.map(self._check_s3_hash, files):
                 if f["exists"]:
-                    if f["mismatch"]:
+                    # Source maps are exempt from the immutable-content guarantee:
+                    # unlike code, a map's bytes can change for a byte-identical
+                    # asset (a toolchain bump regenerates it), so its content-derived
+                    # name legitimately holds new bytes — not a collision.
+                    if f["mismatch"] and not is_source_map(f["name"]):
                         files_with_mismatch.append(f)
 
             if files_with_mismatch:
@@ -257,9 +280,6 @@ class DeploymentJob:
 
     def run(self):
         logger.debug("running with %d workers", self.max_workers)
-
-        # work around race condition with parallel lazy init of boto3
-        force_lazy_init(s3_client)
 
         if ".zip" in self.tar_file_path:
             files = self.__unpack_zip()
@@ -278,19 +298,29 @@ class DeploymentJob:
             for f in executor.map(self._check_s3_hash, files):
                 if f["exists"]:
                     if f["mismatch"]:
-                        files_with_mismatch.append(f)
+                        if is_source_map(f["name"]):
+                            # Not a code collision: overwrite rather than abort.
+                            files_to_upload.append(f)
+                        else:
+                            files_with_mismatch.append(f)
                     else:
                         files_to_update.append(f)
                 else:
                     files_to_upload.append(f)
 
             if files_with_mismatch:
-                logger.error("%d files have mismatching hashes", len(files_with_mismatch))
+                log_level = logging.WARNING if self.ignore_hash_mismatch else logging.ERROR
+                logger.log(log_level, "%d files have mismatching hashes", len(files_with_mismatch))
                 for f in files_with_mismatch:
-                    logger.error("%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
+                    logger.log(log_level, "%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
 
-                logger.error("aborting cdn deployment due to errors")
-                return False
+                if self.ignore_hash_mismatch:
+                    logger.warning("continuing deployment despite hash mismatches")
+                    # Treat mismatched files as files to upload
+                    files_to_upload.extend(files_with_mismatch)
+                else:
+                    logger.error("aborting cdn deployment due to errors")
+                    return False
 
             logger.info("will update %d file tag%s", len(files_to_update), "s" if len(files_to_update) != 1 else "")
             logger.info("will upload %d file tag%s", len(files_to_upload), "s" if len(files_to_upload) != 1 else "")

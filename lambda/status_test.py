@@ -3,6 +3,8 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
+from botocore.exceptions import ClientError
+
 import status
 
 
@@ -198,7 +200,9 @@ class TestStatusLambda(unittest.TestCase):
         self.assertEqual(result["hash_short"], "1234567")
 
         # Handle exceptions - use a different key to avoid cache
-        mock_s3_client.return_value.get_object.side_effect = Exception("Test error")
+        mock_s3_client.return_value.get_object.side_effect = ClientError(
+            {"Error": {"Code": "NoSuchKey", "Message": "Test error"}}, "GetObject"
+        )
         result = status.fetch_commit_hash("dist/gh/main/98765.txt")  # Different key to avoid cache
         self.assertIsNone(result)
 

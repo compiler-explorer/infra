@@ -1,0 +1,104 @@
+<svg width="1400" height="1000" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="1000" fill="transparent"/>
+
+  <!-- Title (horizontal at top) -->
+  <text x="700" y="64.0" font-family="DejaVu Sans Mono" font-size="72"
+        font-weight="bold" fill="#67c52a" text-anchor="middle">RISC-V (RV64) ABI</text>
+  <rect x="0" y="114.0" width="1399" height="91"
+        fill="#f0f0f0" stroke="#333333" stroke-width="1"/>
+  <text x="311" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">a0</text>
+  <text x="456" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">a1</text>
+  <text x="601" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">a2</text>
+  <text x="746" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">a3</text>
+  <text x="891" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">a4</text>
+  <text x="1036" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">a5</text>
+  <text x="1181" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">a6</text>
+  <text x="1326" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">a7</text>
+  <rect x="0" y="205.0" width="1399" height="91"
+        fill="#ffffff" stroke="#333333" stroke-width="1"/>
+  <text x="119" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#000000" text-anchor="middle">func()</text>
+  <text x="311" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">1st</text>
+  <text x="456" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">2nd</text>
+  <text x="601" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">3rd</text>
+  <text x="746" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">4th</text>
+  <text x="891" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">5th</text>
+  <text x="1036" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">6th</text>
+  <text x="1181" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">7th</text>
+  <text x="1326" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">8th</text>
+  <rect x="0" y="296.0" width="1399" height="91"
+        fill="#f9f9f9" stroke="#333333" stroke-width="1"/>
+  <text x="119" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#000000" text-anchor="middle">obj.f()</text>
+  <text x="311" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">this</text>
+  <text x="456" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">1st</text>
+  <text x="601" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">2nd</text>
+  <text x="746" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">3rd</text>
+  <text x="891" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">4th</text>
+  <text x="1036" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">5th</text>
+  <text x="1181" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">6th</text>
+  <text x="1326" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">7th</text>
+  <text x="37" y="460.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">Return values</text>
+  <text x="484" y="460.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">a0</tspan><tspan fill="#000000"> (+ </tspan><tspan font-weight="bold" fill="#67c52a">a1</tspan><tspan fill="#000000"> for 128-bit)</tspan>
+  </text>
+  <text x="37" y="528.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">FP args</text>
+  <text x="484" y="528.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">fa0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">fa7</tspan>
+  </text>
+  <text x="37" y="596.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">FP return</text>
+  <text x="484" y="596.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">fa0</tspan><tspan fill="#000000"> (+ </tspan><tspan font-weight="bold" fill="#67c52a">fa1</tspan><tspan fill="#000000"> for 128-bit)</tspan>
+  </text>
+  <text x="37" y="664.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">Special regs</text>
+  <text x="484" y="664.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">ra</tspan><tspan fill="#000000"> (</tspan><tspan font-weight="bold" fill="#67c52a">x1</tspan><tspan fill="#000000">) link, </tspan><tspan font-weight="bold" fill="#67c52a">sp</tspan><tspan fill="#000000"> (</tspan><tspan font-weight="bold" fill="#67c52a">x2</tspan><tspan fill="#000000">) stack</tspan>
+  </text>
+  <text x="484" y="721.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">fp</tspan><tspan fill="#000000">/</tspan><tspan font-weight="bold" fill="#67c52a">s0</tspan><tspan fill="#000000"> (</tspan><tspan font-weight="bold" fill="#67c52a">x8</tspan><tspan fill="#000000">) frame</tspan>
+  </text>
+  <text x="37" y="789.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">Caller-saved</text>
+  <text x="484" y="789.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">ra</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">t0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">t6</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">a0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">a7</tspan>
+  </text>
+  <text x="484" y="846.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">ft0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">ft11</tspan>
+  </text>
+  <text x="37" y="914.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">Callee-saved</text>
+  <text x="484" y="914.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">s0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">s11</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">fs0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">fs11</tspan>
+  </text>
+
+  <text x="700" y="990.0" font-family="DejaVu Sans Mono" font-size="40"
+        fill="#000000" opacity="0.6" font-style="italic" text-anchor="middle">Args beyond 8 int/FP args on stack (16b aligned)</text>
+</svg>

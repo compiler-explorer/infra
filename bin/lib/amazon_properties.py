@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import os
 import re
 import urllib.parse
 from collections import defaultdict
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
@@ -24,15 +26,16 @@ COMPILEROPT_RE = re.compile(r"(\w*)\.(.*)\.(\w*)")
 
 
 def get_properties_compilers_and_libraries(language, logger, platform: LibraryPlatform, filter_binary_support: bool):
-    _compilers: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    _libraries: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    _compilers: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    _libraries: dict[str, dict[str, Any]] = defaultdict(lambda: {})
 
     encoded_language = urllib.parse.quote(language)
+    branch = "main"
 
     if platform == LibraryPlatform.Linux:
-        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazon.properties"
+        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/{branch}/etc/config/{encoded_language}.amazon.properties"
     elif platform == LibraryPlatform.Windows:
-        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazonwin.properties"
+        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/{branch}/etc/config/{encoded_language}.amazonwin.properties"
     else:
         raise RuntimeError("Unsupported platform")
 
@@ -41,19 +44,20 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
         raise FetchFailure(f"Fetch failure for {url}: {request}")
     lines = request.text.splitlines(keepends=False)
 
-    if platform == LibraryPlatform.Windows and "libs=\n" in request.text:
+    has_library_properties = any(line.startswith("libs.") for line in lines)
+    if platform == LibraryPlatform.Windows and not has_library_properties:
         # Windows properties file is missing the libs section, so we need to fetch the Linux one to kickstart Windows libraries
         #  but technically it's better to always supply enough information in the yaml file, so this is a workaround
         request = requests.get(
-            f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazon.properties",
+            f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/{branch}/etc/config/{encoded_language}.amazon.properties",
             timeout=30,
         )
         if not request.ok:
             raise FetchFailure(f"Fetch failure for {url}: {request}")
-        lines += request.text[request.text.index("libs=") :].splitlines(keepends=False)
+        lines += [line for line in request.text.splitlines(keepends=False) if line.startswith("libs.")]
 
     logger.debug("Reading properties for groups")
-    groups: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    groups: dict[str, dict[str, Any]] = defaultdict(lambda: {})
     for line in lines:
         if line.startswith("group."):
             keyval = line.split("=", 1)
@@ -75,6 +79,10 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
                 groups[group]["libPath"] = val
             elif key[2] == "includePath":
                 groups[group]["includePath"] = val
+            elif key[2] == "goarch":
+                groups[group]["goarch"] = val
+            elif key[2] == "goos":
+                groups[group]["goos"] = val
         elif line.startswith("libs."):
             keyval = line.split("=", 1)
             key = keyval[0].split(".")
@@ -121,29 +129,35 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
                     _libraries[libid]["versions"] = val
 
     logger.debug("Setting default values for compilers")
-    for group in groups:
-        for compiler in groups[group]["compilers"]:
+    for group, group_data in groups.items():
+        for compiler in group_data["compilers"]:
             if "&" in compiler:
                 subgroupname = compiler[1:]
-                if "options" not in groups[subgroupname] and "options" in groups[group]:
-                    groups[subgroupname]["options"] = groups[group]["options"]
-                if "compilerType" not in groups[subgroupname] and "compilerType" in groups[group]:
-                    groups[subgroupname]["compilerType"] = groups[group]["compilerType"]
-                if "supportsBinary" not in groups[subgroupname] and "supportsBinary" in groups[group]:
-                    groups[subgroupname]["supportsBinary"] = groups[group]["supportsBinary"]
-                if "ldPath" not in groups[subgroupname] and "ldPath" in groups[group]:
-                    groups[subgroupname]["ldPath"] = groups[group]["ldPath"]
-                if "libPath" not in groups[subgroupname] and "libPath" in groups[group]:
-                    groups[subgroupname]["libPath"] = groups[group]["libPath"]
-                if "includePath" not in groups[subgroupname] and "includePath" in groups[group]:
-                    groups[subgroupname]["includePath"] = groups[group]["includePath"]
+                if "options" not in groups[subgroupname] and "options" in group_data:
+                    groups[subgroupname]["options"] = group_data["options"]
+                if "compilerType" not in groups[subgroupname] and "compilerType" in group_data:
+                    groups[subgroupname]["compilerType"] = group_data["compilerType"]
+                if "supportsBinary" not in groups[subgroupname] and "supportsBinary" in group_data:
+                    groups[subgroupname]["supportsBinary"] = group_data["supportsBinary"]
+                if "ldPath" not in groups[subgroupname] and "ldPath" in group_data:
+                    groups[subgroupname]["ldPath"] = group_data["ldPath"]
+                if "libPath" not in groups[subgroupname] and "libPath" in group_data:
+                    groups[subgroupname]["libPath"] = group_data["libPath"]
+                if "includePath" not in groups[subgroupname] and "includePath" in group_data:
+                    groups[subgroupname]["includePath"] = group_data["includePath"]
+                if "goarch" not in groups[subgroupname] and "goarch" in group_data:
+                    groups[subgroupname]["goarch"] = group_data["goarch"]
+                if "goos" not in groups[subgroupname] and "goos" in group_data:
+                    groups[subgroupname]["goos"] = group_data["goos"]
             else:
-                _compilers[compiler]["options"] = groups[group].get("options", "")
-                _compilers[compiler]["compilerType"] = groups[group].get("compilerType", "")
-                _compilers[compiler]["supportsBinary"] = groups[group].get("supportsBinary", True)
-                _compilers[compiler]["ldPath"] = groups[group].get("ldPath", "")
-                _compilers[compiler]["libPath"] = groups[group].get("libPath", "")
-                _compilers[compiler]["includePath"] = groups[group].get("includePath", "")
+                _compilers[compiler]["options"] = group_data.get("options", "")
+                _compilers[compiler]["compilerType"] = group_data.get("compilerType", "")
+                _compilers[compiler]["supportsBinary"] = group_data.get("supportsBinary", True)
+                _compilers[compiler]["ldPath"] = group_data.get("ldPath", "")
+                _compilers[compiler]["libPath"] = group_data.get("libPath", "")
+                _compilers[compiler]["includePath"] = group_data.get("includePath", "")
+                _compilers[compiler]["goarch"] = group_data.get("goarch", "")
+                _compilers[compiler]["goos"] = group_data.get("goos", "")
                 _compilers[compiler]["group"] = group
 
     logger.debug("Reading properties for compilers")
@@ -164,15 +178,15 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
     if filter_binary_support:
         logger.debug("Removing compilers that are not available or do not support binaries")
         keys_to_remove = set()
-        for compiler in _compilers:
-            if "supportsBinary" in _compilers[compiler] and not _compilers[compiler]["supportsBinary"]:
+        for compiler, compiler_data in _compilers.items():
+            if "supportsBinary" in compiler_data and not compiler_data["supportsBinary"]:
                 logger.debug("%s does not supportsBinary", compiler)
                 keys_to_remove.add(compiler)
-            elif "compilerType" in _compilers[compiler] and _compilers[compiler]["compilerType"] == "wine-vc":
+            elif "compilerType" in compiler_data and compiler_data["compilerType"] == "wine-vc":
                 keys_to_remove.add(compiler)
                 logger.debug("%s is wine", compiler)
-            elif "exe" in _compilers[compiler]:
-                exe = _compilers[compiler]["exe"]
+            elif "exe" in compiler_data:
+                exe = compiler_data["exe"]
                 if not os.path.exists(exe):
                     keys_to_remove.add(compiler)
                     logger.debug("%s does not exist (looked for %s)", compiler, exe)

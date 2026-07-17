@@ -9,6 +9,12 @@ cd "${DIR}"
 
 env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh" ci
 
+ARCH=$(dpkg --print-architecture)
+
+# In order to run older compilers like gcc 1.27, we need to support running 32-bit code
+if [ "$ARCH" == 'amd64' ]; then
+    dpkg --add-architecture i386
+fi
 add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 apt-get -y install \
@@ -47,6 +53,9 @@ apt-get -y install \
     libboost-all-dev \
     zlib1g-dev
 
-ln -s /efs/squash-images /opt/squash-images
-ln -s /efs/compiler-explorer /opt/compiler-explorer
-ln -s /efs/wine-stable /opt/wine-stable
+# x86_64-specific packages for 32-bit support
+if [ "$ARCH" == 'amd64' ]; then
+    apt-get -y install \
+        libc6-dev:i386 \
+        libc6-dev-i386
+fi

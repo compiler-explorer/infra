@@ -1,9 +1,0 @@
-compilers:
- algol68:
-   subdir: algol68
-   gcc:
-     if: nightly
-     type: nightly
-     check_exe: bin/ga68 --version
-     targets:
-       - ga68-master

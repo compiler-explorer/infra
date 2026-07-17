@@ -1,14 +1,18 @@
 """Blue-green deployment management for Compiler Explorer."""
 
+from __future__ import annotations
+
+import logging
 import signal
 import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
 from botocore.exceptions import ClientError
 
-from lib.amazon import elb_client, get_current_key, ssm_client
+from lib.amazon import elb_client, get_current_key, set_current_key, ssm_client
 from lib.aws_utils import (
     get_asg_info,
+    get_instance_private_ip,
     get_target_health_counts,
     protect_asg_capacity,
     reset_asg_min_size,
@@ -21,14 +25,19 @@ from lib.builds_core import (
     set_version_for_deployment,
 )
 from lib.ce_utils import is_running_on_admin_node
+from lib.compiler_routing import update_compiler_routing_table
 from lib.deployment_utils import (
     check_instance_health,
+    clear_router_cache,
     print_target_group_diagnostics,
+    wait_for_compiler_registration,
     wait_for_http_health,
     wait_for_instances_healthy,
 )
-from lib.discovery import copy_discovery_to_prod
+from lib.discovery import copy_discovery_to_prod, discovery_exists
 from lib.env import Config
+
+LOGGER = logging.getLogger(__name__)
 
 
 class DeploymentCancelledException(Exception):
@@ -46,7 +55,7 @@ class BlueGreenDeployment:
         self.running_on_admin_node = is_running_on_admin_node()
 
         # Deployment state for signal handling
-        self._deployment_state: Dict[str, Any] = {
+        self._deployment_state: dict[str, Any] = {
             "active_asg": None,
             "inactive_asg": None,
             "active_original_min": None,
@@ -62,7 +71,7 @@ class BlueGreenDeployment:
             # Not in a deployment, just exit
             sys.exit(1)
 
-        print(f"\n\n⚠️  Deployment interrupted by signal {signum}!")
+        LOGGER.warning(f"\n\nDeployment interrupted by signal {signum}!")
         print("Performing cleanup...")
 
         active_asg = self._deployment_state["active_asg"]
@@ -76,28 +85,26 @@ class BlueGreenDeployment:
             print(f"Restoring original capacity settings for {active_asg}")
             try:
                 restore_asg_capacity_protection(active_asg, active_original_min, active_original_max)
-            except Exception as e:
-                print(f"Warning: Failed to restore capacity settings for {active_asg}: {e}")
+            except ClientError as e:
+                LOGGER.warning(f"Failed to restore capacity settings for {active_asg}: {e}")
 
         if inactive_asg:
-            env_min_size = self.cfg.env.min_instances
-            print(f"Resetting minimum size of {inactive_asg} to {env_min_size}")
+            # Reset to 0 since deployment was interrupted (inactive ASG)
+            print(f"Resetting minimum size of {inactive_asg} to 0")
             try:
-                reset_asg_min_size(inactive_asg, min_size=env_min_size)
-            except Exception as e:
-                print(f"Warning: Failed to reset min size for {inactive_asg}: {e}")
+                reset_asg_min_size(inactive_asg, min_size=0)
+            except ClientError as e:
+                LOGGER.warning(f"Failed to reset min size for {inactive_asg}: {e}")
 
         # Rollback version if it was changed
         if version_was_changed and original_version_key:
             print(f"Rolling back version to {original_version_key}")
             try:
-                from lib.amazon import set_current_key
-
                 set_current_key(self.cfg, original_version_key)
                 print("✓ Version rolled back successfully")
-            except Exception as e:
-                print(f"⚠️  WARNING: Failed to rollback version: {e}")
-                print(f"You may need to manually set version back to {original_version_key}")
+            except ClientError as e:
+                LOGGER.error(f"Failed to rollback version: {e}")
+                LOGGER.error(f"You may need to manually set version back to {original_version_key}")
 
         print("Cleanup complete. Exiting.")
         sys.exit(1)
@@ -117,7 +124,7 @@ class BlueGreenDeployment:
             return response["Parameter"]["Value"]
         except ClientError as e:
             if e.response["Error"]["Code"] == "ParameterNotFound":
-                print(f"No active color parameter found for {self.env}, defaulting to 'blue'")
+                LOGGER.warning(f"No active color parameter found for {self.env}, defaulting to 'blue'")
                 return "blue"
             raise
 
@@ -143,7 +150,7 @@ class BlueGreenDeployment:
         """Get ASG name for the specified color."""
         return f"{self.env}-{color}"
 
-    def get_listener_rule_arn(self) -> Optional[str]:
+    def get_listener_rule_arn(self) -> str | None:
         """Get the ALB listener rule ARN for this environment."""
         # Get listeners for the load balancer
         listeners = elb_client.describe_listeners(LoadBalancerArn=self._get_load_balancer_arn())
@@ -154,7 +161,7 @@ class BlueGreenDeployment:
             return None
 
         # For production, we return the listener ARN itself (to modify default action)
-        if self.cfg.env.path_pattern == "":
+        if not self.cfg.env.path_pattern:
             return https_listeners[0]["ListenerArn"]
 
         # For other environments, find the specific rule for their path pattern
@@ -192,7 +199,7 @@ class BlueGreenDeployment:
 
             for listener in listeners["Listeners"]:
                 if listener["Port"] in [80, 443]:
-                    print(f"  Updating {listener['Protocol']} listener on port {listener['Port']}")
+                    LOGGER.debug(f"  Updating {listener['Protocol']} listener on port {listener['Port']}")
                     elb_client.modify_listener(
                         ListenerArn=listener["ListenerArn"],
                         DefaultActions=[{"Type": "forward", "TargetGroupArn": new_tg_arn}],
@@ -214,12 +221,112 @@ class BlueGreenDeployment:
         asg_info = get_asg_info(asg_name)
         return asg_info["DesiredCapacity"] if asg_info else 0
 
+    def _display_discovery_status(self, version: str) -> None:
+        """Display discovery status for the target version across environments."""
+        envs = ["prod", "staging", "beta"]
+        if self.env not in envs:
+            envs.append(self.env)
+        print(f"\nDiscovery status for {version}:")
+        for env in envs:
+            exists = discovery_exists(env, version)
+            label = "found" if exists else "not found"
+            padded_env = f"{env}:"
+            print(f"  {padded_env:10s} {label}")
+
+    def _copy_and_check_discovery(self, source_env: str, version: str, branch: str | None):
+        """Copy discovery from source environment and return release."""
+        print(f"Attempting to copy discovery from {source_env} for version {version}...")
+        try:
+            if copy_discovery_to_prod(source_env, version):
+                print("Retrying discovery check...")
+                try:
+                    release = check_compiler_discovery(self.cfg, version, branch)
+                    if release:
+                        return release
+                except RuntimeError:
+                    pass
+                LOGGER.warning("Discovery copy succeeded but check still failed. Continuing anyway.")
+            else:
+                LOGGER.warning(f"No discovery file found in {source_env} for this version.")
+                LOGGER.warning("Falling back to continuing without discovery.")
+
+            release = get_release_without_discovery_check(self.cfg, version, branch)
+            if not release:
+                raise RuntimeError(f"Version {version} not found") from None
+            return release
+        except (ClientError, OSError) as copy_error:
+            LOGGER.error(f"Failed to copy discovery file: {copy_error}")
+            LOGGER.error("Deployment cancelled due to discovery copy failure.")
+            raise DeploymentCancelledException("Discovery copy failed") from copy_error
+
+    def _handle_prod_missing_discovery(self, error: RuntimeError, version: str, branch: str | None):
+        """Handle missing prod discovery by checking staging/beta and presenting options."""
+        staging_has_discovery = discovery_exists("staging", version)
+        beta_has_discovery = discovery_exists("beta", version)
+
+        LOGGER.warning("%s", error)
+
+        if staging_has_discovery:
+            print("Staging discovery IS available for this version.")
+            print("Options:")
+            print("  1. Copy discovery from staging (recommended)")
+            print("  2. Continue without discovery")
+            print("  3. Cancel deployment")
+        elif beta_has_discovery:
+            print("Beta discovery IS available (staging is not).")
+            print("Options:")
+            print("  1. Copy discovery from beta")
+            print("  2. Continue without discovery")
+            print("  3. Cancel deployment")
+        else:
+            print("WARNING: No discovery found in staging or beta for this version either.")
+            suggestion = f"ce workflows run-discovery {version} --environment staging"
+            print(f"You may need to run discovery first: {suggestion}")
+            print("Options:")
+            print("  1. Continue without discovery (risky)")
+            print("  2. Cancel deployment")
+
+        source_env = "staging" if staging_has_discovery else ("beta" if beta_has_discovery else None)
+
+        while True:
+            if source_env:
+                response = input("Choose option (1/2/3): ").strip()
+                if response == "1":
+                    return self._copy_and_check_discovery(source_env, version, branch)
+                elif response == "2":
+                    LOGGER.warning("Continuing without discovery...")
+                    release = get_release_without_discovery_check(self.cfg, version, branch)
+                    if not release:
+                        raise RuntimeError(f"Version {version} not found") from None
+                    return release
+                elif response == "3":
+                    print("Deployment cancelled.")
+                    raise DeploymentCancelledException("Deployment cancelled by user") from None
+                else:
+                    LOGGER.error("Invalid option. Please choose 1, 2, or 3.")
+            else:
+                response = input("Choose option (1/2): ").strip()
+                if response == "1":
+                    LOGGER.warning("Continuing without discovery...")
+                    release = get_release_without_discovery_check(self.cfg, version, branch)
+                    if not release:
+                        raise RuntimeError(f"Version {version} not found") from None
+                    return release
+                elif response == "2":
+                    print("Deployment cancelled.")
+                    raise DeploymentCancelledException("Deployment cancelled by user") from None
+                else:
+                    LOGGER.error("Invalid option. Please choose 1 or 2.")
+
     def deploy(
         self,
-        target_capacity: Optional[int] = None,
+        target_capacity: int | None = None,
         skip_confirmation: bool = False,
-        version: Optional[str] = None,
-        branch: Optional[str] = None,
+        version: str | None = None,
+        branch: str | None = None,
+        ignore_hash_mismatch: bool = False,
+        skip_compiler_check: bool = False,
+        compiler_timeout: int = 600,
     ) -> None:
         """Perform a blue-green deployment with optional version setting."""
         active_color = self.get_active_color()
@@ -240,10 +347,10 @@ class BlueGreenDeployment:
         # Check if inactive ASG already has instances running
         inactive_asg_info = get_asg_info(inactive_asg)
         if inactive_asg_info and inactive_asg_info["DesiredCapacity"] > 0:
-            print(
-                f"\n⚠️  WARNING: The {inactive_color} ASG already has {inactive_asg_info['DesiredCapacity']} instance(s) running!"
+            LOGGER.warning(
+                f"\nThe {inactive_color} ASG already has {inactive_asg_info['DesiredCapacity']} instance(s) running!"
             )
-            print("This means you'll be switching to existing instances rather than deploying fresh ones.")
+            LOGGER.warning("This means you'll be switching to existing instances rather than deploying fresh ones.")
             print("\nIf you want to:")
             print(
                 f"  • Switch traffic to existing {inactive_color} instances → use 'ce --env {self.env} blue-green switch'"
@@ -252,8 +359,8 @@ class BlueGreenDeployment:
             print(f"  • Deploy fresh instances → run 'ce --env {self.env} blue-green cleanup' first, then deploy")
 
             if skip_confirmation:
-                print("\nDeployment cancelled (--skip-confirmation prevents deploying to existing instances).")
-                print("Use one of the commands above instead.")
+                LOGGER.error("\nDeployment cancelled (--skip-confirmation prevents deploying to existing instances).")
+                LOGGER.error("Use one of the commands above instead.")
                 raise DeploymentCancelledException(
                     "Deployment cancelled: existing instances found with --skip-confirmation"
                 )
@@ -279,17 +386,15 @@ class BlueGreenDeployment:
         version_was_changed = False
 
         # Update deployment state for signal handler
-        self._deployment_state.update(
-            {
-                "active_asg": active_asg,
-                "inactive_asg": inactive_asg,
-                "active_original_min": None,  # Will be set after protection
-                "active_original_max": None,  # Will be set after protection
-                "in_deployment": True,
-                "original_version_key": None,
-                "version_was_changed": False,
-            }
-        )
+        self._deployment_state.update({
+            "active_asg": active_asg,
+            "inactive_asg": inactive_asg,
+            "active_original_min": None,  # Will be set after protection
+            "active_original_max": None,  # Will be set after protection
+            "in_deployment": True,
+            "original_version_key": None,
+            "version_was_changed": False,
+        })
 
         # Install signal handlers for cleanup
         old_sigint = signal.signal(signal.SIGINT, self._cleanup_on_signal)
@@ -315,6 +420,7 @@ class BlueGreenDeployment:
 
                 print(f"\nStep 0.5: Setting build version to {version}")
                 print(f"         (Current version: {original_version_key})")
+                self._display_discovery_status(version)
 
                 # Check if version exists and has discovery
                 try:
@@ -325,70 +431,27 @@ class BlueGreenDeployment:
                     # Discovery hasn't run - handle specially for prod deployments
                     if self.cfg.env.value == "prod":
                         if skip_confirmation:
-                            print(f"⚠️  WARNING: {e}")
-                            print(
-                                "❌ ERROR: --skip-confirmation cannot be used for production deployments without discovery."
+                            LOGGER.warning(f"{e}")
+                            LOGGER.error(
+                                "--skip-confirmation cannot be used for production deployments without discovery."
                             )
-                            print("Production deployments require either:")
-                            print("  1. Existing discovery file for the version")
-                            print("  2. Manual confirmation to copy discovery from staging")
+                            LOGGER.error("Production deployments require either:")
+                            LOGGER.error("  1. Existing discovery file for the version")
+                            LOGGER.error("  2. Manual confirmation to copy discovery from staging")
                             print("Deployment cancelled.")
                             raise DeploymentCancelledException(
                                 "Production deployments require manual confirmation"
                             ) from None
-                        print(f"⚠️  WARNING: {e}")
-                        print("For production deployments, we can copy discovery from staging if available.")
-                        print("Options:")
-                        print("  1. Copy discovery from staging (recommended)")
-                        print("  2. Continue without discovery (risky)")
-                        print("  3. Cancel deployment")
-
-                        while True:
-                            response = input("Choose option (1/2/3): ").strip()
-                            if response == "1":
-                                print(f"Attempting to copy discovery from staging for version {version}...")
-                                try:
-                                    if copy_discovery_to_prod("staging", version):
-                                        print("✓ Discovery copied from staging. Retrying discovery check...")
-                                        try:
-                                            release = check_compiler_discovery(self.cfg, version, branch)
-                                            if release:
-                                                break
-                                        except RuntimeError:
-                                            pass
-                                        print("⚠️  Discovery copy succeeded but check still failed. Continuing anyway.")
-                                    else:
-                                        print("❌ No discovery file found in staging for this version.")
-                                        print("Falling back to continuing without discovery.")
-
-                                    release = get_release_without_discovery_check(self.cfg, version, branch)
-                                    if not release:
-                                        raise RuntimeError(f"Version {version} not found") from None
-                                    break
-                                except Exception as copy_error:
-                                    print(f"❌ Failed to copy discovery file: {copy_error}")
-                                    print("Deployment cancelled due to discovery copy failure.")
-                                    raise DeploymentCancelledException("Discovery copy failed") from copy_error
-                            elif response == "2":
-                                print("Continuing without discovery...")
-                                release = get_release_without_discovery_check(self.cfg, version, branch)
-                                if not release:
-                                    raise RuntimeError(f"Version {version} not found") from None
-                                break
-                            elif response == "3":
-                                print("Deployment cancelled.")
-                                raise DeploymentCancelledException("Deployment cancelled by user") from None
-                            else:
-                                print("Invalid option. Please choose 1, 2, or 3.")
+                        release = self._handle_prod_missing_discovery(e, version, branch)
                     elif skip_confirmation:
                         # For non-prod environments, skip_confirmation is allowed
-                        print(f"⚠️  WARNING: {e}")
-                        print("Proceeding anyway due to --skip-confirmation")
+                        LOGGER.warning("%s", e)
+                        LOGGER.warning("Proceeding anyway due to --skip-confirmation")
                         release = get_release_without_discovery_check(self.cfg, version, branch)
                         if not release:
                             raise RuntimeError(f"Version {version} not found") from None
                     else:
-                        print(f"⚠️  WARNING: {e}")
+                        LOGGER.warning("%s", e)
                         response = input("Are you sure you want to continue? (yes/no): ").strip().lower()
                         if response not in ["yes", "y"]:
                             print("Version setting cancelled.")
@@ -397,7 +460,7 @@ class BlueGreenDeployment:
                         if not release:
                             raise RuntimeError(f"Version {version} not found") from None
 
-                if not set_version_for_deployment(self.cfg, release):
+                if not set_version_for_deployment(self.cfg, release, ignore_hash_mismatch=ignore_hash_mismatch):
                     raise RuntimeError(f"Failed to set version {version}")
 
                 version_was_changed = True
@@ -422,12 +485,15 @@ class BlueGreenDeployment:
             # the inactive color isn't receiving traffic. We must use HTTP health checks.
             if self.running_on_admin_node:
                 print("\nStep 3: Checking HTTP health endpoints")
+                # Windows instances run compiler discovery on startup, which routinely
+                # takes well over 5 minutes; give them longer before giving up.
+                http_timeout = 600 if self.cfg.env.is_windows else 300
                 try:
-                    wait_for_http_health(instances, timeout=300)  # 5 minute timeout for HTTP checks
+                    wait_for_http_health(instances, timeout=http_timeout)
                     print("✅ All instances are responding to health checks!")
                 except TimeoutError:
-                    print("⚠️  HTTP health checks timed out after 5 minutes")
-                    print("This indicates instances are not properly responding to health checks")
+                    LOGGER.error("HTTP health checks timed out after %d seconds", http_timeout)
+                    LOGGER.error("This indicates instances are not properly responding to health checks")
 
                     # Try to get more info about what's wrong
                     tg_arn = self.get_target_group_arn(inactive_color)
@@ -435,15 +501,17 @@ class BlueGreenDeployment:
 
                     raise RuntimeError("Instances are not passing health checks. Deployment aborted.") from None
             else:
-                print("\nStep 3: Cannot verify instance health (not running on admin node)")
-                print("⚠️  WARNING: Unable to verify instances are actually healthy!")
-                print("Please manually verify instances are responding to health checks before proceeding.")
+                LOGGER.warning("\nStep 3: Cannot verify instance health (not running on admin node)")
+                LOGGER.warning("Unable to verify instances are actually healthy!")
+                LOGGER.warning("Please manually verify instances are responding to health checks before proceeding.")
 
             # Additional confirmation when not on admin node
             if not self.running_on_admin_node and not skip_confirmation:
-                print(f"\n⚠️  WARNING: About to switch traffic to {inactive_color} without HTTP health verification!")
-                print("Since you're not running on the admin node, HTTP health checks were skipped.")
-                print(f"Please ensure the {inactive_color} instances are responding properly before continuing.")
+                LOGGER.warning(f"\nAbout to switch traffic to {inactive_color} without HTTP health verification!")
+                LOGGER.warning("Since you're not running on the admin node, HTTP health checks were skipped.")
+                LOGGER.warning(
+                    f"Please ensure the {inactive_color} instances are responding properly before continuing."
+                )
 
                 response = input("\nDo you want to proceed with the traffic switch? (yes/no): ").strip().lower()
                 if response not in ["yes", "y"]:
@@ -451,18 +519,75 @@ class BlueGreenDeployment:
                     # Cleanup will happen in finally block
                     return
 
+            # Step 3.5: Check compiler registration (unless skipped)
+            if not skip_compiler_check:
+                print("\nStep 3.5: Checking compiler registration and discovery")
+                try:
+                    wait_for_compiler_registration(instances, self.env, timeout=compiler_timeout)
+                    print("✅ All instances have completed compiler registration!")
+                except TimeoutError:
+                    LOGGER.error("Compiler registration check timed out")
+                    LOGGER.error("Instances may not be ready to handle compilation requests")
+
+                    if skip_confirmation:
+                        LOGGER.error("Deployment aborted due to compiler registration timeout")
+                        raise RuntimeError("Compiler registration timeout") from None
+                    else:
+                        LOGGER.warning("Do you want to proceed anyway? Instances may not be fully ready.")
+                        response = input("Continue with deployment? (yes/no): ").strip().lower()
+                        if response not in ["yes", "y"]:
+                            print("Deployment cancelled due to compiler registration issues.")
+                            return
+            else:
+                print("\nStep 3.5: Skipping compiler registration check (--skip-compiler-check)")
+
+            # Step 3.9: Clear router cache before traffic switch
+            print("\nStep 3.9: Clearing router cache before traffic switch")
+            if clear_router_cache(self.env):
+                print("✓ Router cache cleared successfully")
+            else:
+                LOGGER.warning("Failed to clear router cache (deployment will continue, cache expires in 30s)")
+
             # Step 4: Switch traffic to new color
             print(f"\nStep 4: Switching traffic to {inactive_color}")
             self.switch_target_group(inactive_color)
 
-            # Step 5: Reset minimum size to environment default now that deployment is complete
-            env_min_size = self.cfg.env.min_instances
-            print(f"\nStep 5: Resetting minimum size of {inactive_asg} to {env_min_size} (environment default)")
-            reset_asg_min_size(inactive_asg, min_size=env_min_size)
+            # Step 5: Reset minimum size to 1 to ensure ASG always has at least one instance
+            # This ensures the active ASG is always ready, regardless of environment defaults
+            min_size_after_deploy = max(1, self.cfg.env.min_instances)
+            print(
+                f"\nStep 5: Resetting minimum size of {inactive_asg} to {min_size_after_deploy} (ensuring at least 1)"
+            )
+            reset_asg_min_size(inactive_asg, min_size=min_size_after_deploy)
 
             # Step 5.5: Reset old active ASG minimum size to 0 (it's now inactive)
             print(f"\nStep 5.5: Resetting minimum size of {active_asg} to 0 (now inactive)")
             reset_asg_min_size(active_asg, min_size=0)
+
+            # Step 6: Update compiler routing table
+            print(f"\nStep 6: Updating compiler routing table for {self.env}")
+            try:
+                # Get private IPs of new instances to query directly (bypassing ALB propagation delay)
+                instance_ips = []
+                for instance_id in instances:
+                    private_ip = get_instance_private_ip(instance_id)
+                    if private_ip:
+                        instance_ips.append(private_ip)
+
+                if instance_ips:
+                    print("  Querying compiler list directly from new instances (bypassing ALB)")
+                    result = update_compiler_routing_table(self.env, instance_ips=instance_ips)
+                else:
+                    print("  Warning: No instance IPs found, falling back to public API")
+                    result = update_compiler_routing_table(self.env)
+
+                print(
+                    f"  Compiler routing updated: {result['added']} added, {result['updated']} updated, {result['deleted']} deleted"
+                )
+            except ClientError as e:
+                LOGGER.warning(f"Failed to update compiler routing table: {e}")
+                LOGGER.warning("Deployment will continue, but compiler routing may be out of date")
+                print(f"  ⚠️  Warning: Compiler routing update failed: {e}")
 
             print(f"\n✅ Blue-green deployment complete! Now serving from {inactive_color}")
             print(f"Old {active_color} ASG remains running for rollback if needed")
@@ -472,28 +597,24 @@ class BlueGreenDeployment:
         finally:
             # Always restore active ASG capacity settings, regardless of success or failure
             if active_original_min is not None and active_original_max is not None:
-                print(f"\nStep 6: Restoring original capacity settings for {active_asg}")
+                print(f"\nStep 7: Restoring original capacity settings for {active_asg}")
                 restore_asg_capacity_protection(active_asg, active_original_min, active_original_max)
 
             # If deployment failed, also reset the inactive ASG min size
             if not deployment_succeeded:
-                env_min_size = self.cfg.env.min_instances
-                print(
-                    f"\nCleaning up: Resetting minimum size of {inactive_asg} to {env_min_size} after failed deployment"
-                )
-                reset_asg_min_size(inactive_asg, min_size=env_min_size)
+                # Use 0 for failed deployments since it's still inactive
+                print(f"\nCleaning up: Resetting minimum size of {inactive_asg} to 0 after failed deployment")
+                reset_asg_min_size(inactive_asg, min_size=0)
 
                 # Rollback version if it was changed
                 if version_was_changed and original_version_key:
                     print(f"\nRolling back version to {original_version_key}")
                     try:
-                        from lib.amazon import set_current_key
-
                         set_current_key(self.cfg, original_version_key)
                         print("✓ Version rolled back successfully")
-                    except Exception as e:
-                        print(f"⚠️  WARNING: Failed to rollback version: {e}")
-                        print(f"You may need to manually set version back to {original_version_key}")
+                    except ClientError as e:
+                        LOGGER.error(f"Failed to rollback version: {e}")
+                        LOGGER.error(f"You may need to manually set version back to {original_version_key}")
 
             # Restore original signal handlers
             if cleanup_handler_installed:
@@ -546,12 +667,12 @@ class BlueGreenDeployment:
         scale_asg(inactive_asg, 0)
         print(f"{inactive_asg} scaled to 0")
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """Get the current status of blue-green deployment."""
         active_color = self.get_active_color()
         inactive_color = self.get_inactive_color()
 
-        status: Dict[str, Any] = {
+        status: dict[str, Any] = {
             "environment": self.env,
             "active_color": active_color,
             "inactive_color": inactive_color,
@@ -592,7 +713,7 @@ class BlueGreenDeployment:
                             tg_status = "partially_healthy"
                         else:
                             tg_status = "unhealthy"
-                    except Exception:
+                    except ClientError:
                         tg_status = "error"
 
                     # Get HTTP health checks for instances

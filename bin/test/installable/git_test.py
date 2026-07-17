@@ -114,8 +114,6 @@ def _assert_git_repo_isolation(repo_path, expected_repo_path):
     Assert that git operations are happening in the expected repository.
     This prevents tests from accidentally operating on the main repository.
     """
-    import subprocess
-
     # Create isolated environment for this check
     env = _create_completely_isolated_git_env(Path(expected_repo_path).parent.parent)
 
@@ -130,7 +128,7 @@ def _assert_git_repo_isolation(repo_path, expected_repo_path):
             assert actual_git_dir.resolve() == expected_git_dir.resolve(), (
                 f"Git isolation failed! Operating on {actual_git_dir} instead of {expected_git_dir}"
             )
-    except Exception as e:
+    except (subprocess.SubprocessError, OSError) as e:
         # If we can't check, that's also a problem
         pytest.fail(f"Failed to verify git repository isolation: {e}")
 

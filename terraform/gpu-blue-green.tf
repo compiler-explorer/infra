@@ -6,7 +6,7 @@ module "gpu_blue_green" {
 
   environment               = "gpu"
   vpc_id                    = module.ce_network.vpc.id
-  launch_template_id        = aws_launch_template.CompilerExplorer-prod-gpu.id
+  launch_template_id        = aws_launch_template.ce["prod-gpu"].id
   subnets                   = local.subnets
   asg_max_size              = 4
   initial_desired_capacity  = 0

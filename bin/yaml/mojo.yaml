@@ -6,15 +6,21 @@ compilers:
     dir: mojo-{{name}}
     python: "%DEP0%/bin/python3.13"
     package:
-      - max=={{name}}
+      - mojo=={{name}}
     check_exe: bin/mojo --version
     targets:
-      - 25.3.0
+      - 0.25.6.0
+      - 0.25.7.0
+      - 0.26.1.0
+      - 0.26.2.0
+      - 1.0.0b1
+      - 1.0.0b2
     nightly:
       if: nightly
       install_always: true
       targets:
         - name: nightly
           package:
-            - --index-url=https://dl.modular.com/public/nightly/python/simple/
-            - max
+            - --extra-index-url=https://whl.modular.com/nightly/simple
+            - --pre
+            - mojo
