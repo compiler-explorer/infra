@@ -27,6 +27,15 @@ compilers:
         - name: 3.2.0
           dir: fpc-{{name}}-x86_64-linux
         - 3.2.2
+    tunnelpascal:
+      type: tarballs
+      compression: gz
+      create_untar_dir: true
+      dir: tunnel-pascal-{{name}}.x86_64-linux
+      url: https://github.com/partouf/tunnelpascal/releases/download/v{{name}}/tunnel-pascal-bleeding-edge.x86_64-linux.tar.gz
+      check_exe: bin/fpc -iV
+      targets:
+        - "1.9.1"
     nightly:
       if: nightly
       madpas-compiler:
