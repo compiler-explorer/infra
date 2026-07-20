@@ -79,7 +79,7 @@ jobs:
 
       - name: Upload build failure artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-failure-${{ inputs.compiler }}-${{ steps.extract.outputs.library_safe }}-${{ github.run_id }}
           path: |

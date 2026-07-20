@@ -39,7 +39,7 @@ jobs:
         run: find "$GITHUB_WORKSPACE" -mindepth 1 -delete
 
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Show runner information
         run: |
