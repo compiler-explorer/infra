@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Clean workspace
         run: find "$GITHUB_WORKSPACE" -mindepth 1 -delete
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Set up environment
         run: make ce
       - name: Consolidate ${{ github.event.inputs.filter }} into ${{ github.event.inputs.max-size }} chunks
