@@ -13,6 +13,7 @@ add-apt-repository ppa:deadsnakes/ppa
 apt-get install -y \
     binutils-multiarch \
     bison \
+    bubblewrap \
     bzip2 \
     cgroup-tools \
     curl \
