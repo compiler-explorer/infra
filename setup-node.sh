@@ -10,6 +10,8 @@ apt-get -y update
 apt-get -y install software-properties-common
 dpkg --add-architecture i386
 add-apt-repository ppa:deadsnakes/ppa
+# bubblewrap is not for the node itself: the GitHub runner boots this image,
+# and ce_install stages script-type installables inside bwrap under CEFS.
 apt-get install -y \
     binutils-multiarch \
     bison \
