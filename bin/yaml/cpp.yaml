@@ -1382,10 +1382,31 @@ compilers:
         - name: 21.6.1.LTS
           fetch:
             - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-p4jWEYpR8n/{{name}}/ti_cgt_msp430_{{name}}_linux-x64_installer.bin installer.bin
-          script: |
+          script: &ti-install-script |
             chmod +x installer.bin
             ./installer.bin --unattendedmodeui none --mode unattended --prefix .
             rm installer.bin {{dir}}/*.log {{dir}}/*.run {{dir}}/*.dat
+    c29clang:
+      type: script
+      dir: "ti-cgt-c29_{{name}}"
+      check_exe: bin/c29clang --version
+      fetch_user_agent: "curl/8.0.1"
+      fetch:
+        - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-CIrrlYTTGZ/{{name}}/ti_cgt_c29_{{name}}_linux-x64_installer.bin installer.bin
+      targets:
+        - name: 2.2.1.LTS
+          script: *ti-install-script
+        - name: 2.2.0.LTS
+          script: *ti-install-script
+        - name: 1.0.2.LTS
+          script: *ti-install-script
+        - name: 1.0.1.LTS
+          script: *ti-install-script
+        - name: 1.0.0.LTS
+          dir: "ti-cgt-c29_1.0.0LTS"
+          fetch:
+            - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-CIrrlYTTGZ/{{name}}/ti_cgt_c29_1.0.0LTS_linux-x64_installer.bin installer.bin
+          script: *ti-install-script
     intel-cpp:
       type: script
       dir: "intel-cpp-{{name}}"
