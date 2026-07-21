@@ -1079,7 +1079,6 @@ libraries:
       - 7.2.2
       - 7.2.3
       - 7.2.4
-      - 7.14.0
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
     hpx:
