@@ -1375,6 +1375,14 @@ compilers:
       check_exe: bin/tcc -v
       targets:
         - 0.9.27
+    aburi:
+      type: s3tarballs
+      s3_path_prefix: aburi-{{name}}
+      path_name: aburi/{{name}}
+      untar_dir: aburi-{{name}}
+      check_exe: bin/aburi --version
+      targets:
+        - atta-mills
     cl430:
       type: script
       dir: "ti-cgt-msp430_{{name}}"
