@@ -1407,6 +1407,50 @@ compilers:
           fetch:
             - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-CIrrlYTTGZ/{{name}}/ti_cgt_c29_1.0.0LTS_linux-x64_installer.bin installer.bin
           script: *ti-install-script
+    tiarmclang:
+      type: script
+      dir: "ti-cgt-armllvm_{{name}}"
+      check_exe: bin/tiarmclang --version
+      fetch_user_agent: "curl/8.0.1"
+      fetch:
+        - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-ayxs93eZNN/{{name}}/ti_cgt_armllvm_{{name}}_linux-x64_installer.bin installer.bin
+      targets:
+        - name: 5.1.1.LTS
+          script: *ti-install-script
+        - name: 5.1.0.LTS
+          script: *ti-install-script
+        - name: 4.0.5.LTS
+          script: *ti-install-script
+        - name: 4.0.4.LTS
+          script: *ti-install-script
+        - name: 4.0.3.LTS
+          script: *ti-install-script
+        - name: 4.0.2.LTS
+          script: *ti-install-script
+        - name: 4.0.1.LTS
+          script: *ti-install-script
+        - name: 4.0.0.LTS
+          script: *ti-install-script
+        - name: 3.2.3.LTS
+          script: *ti-install-script
+        - name: 3.2.2.LTS
+          script: *ti-install-script
+        - name: 3.2.1.LTS
+          script: *ti-install-script
+        - name: 3.2.0.LTS
+          script: *ti-install-script
+        - name: 2.1.3.LTS
+          script: *ti-install-script
+        - name: 2.1.2.LTS
+          script: *ti-install-script
+        - name: 2.1.1.LTS
+          script: *ti-install-script
+        - name: 2.1.0.LTS
+          script: *ti-install-script
+        - name: 1.3.1.LTS
+          script: *ti-install-script
+        - name: 1.3.0.LTS
+          script: *ti-install-script
     intel-cpp:
       type: script
       dir: "intel-cpp-{{name}}"
