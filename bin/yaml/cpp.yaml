@@ -1758,3 +1758,24 @@ compilers:
           vername: v1500
         - name: 15.0.7
           vername: v1507
+    # MCST LCC - eLbrus Compiler Collection developed by MCST (https://mcst.ru/LCC).
+    #
+    # Do not be confused with https://en.wikipedia.org/wiki/LCC_(compiler).
+    mcst-lcc:
+      if: non-free
+      type: tarballs
+      compression: gz
+      # strip opt/mcst/
+      strip_components: 2
+      dir: "lcc-{{vername}}"
+      check_exe: bin/l++ --version
+      url: "https://dev.mcst.ru/downloads/{{date}}/cross-sp-public-osl-{{vername}}_64.tgz"
+      e2k:
+        vername: "{{name}}.e2k-v4.{{kernel}}"
+        after_stage_script:
+          - "{{yaml_dir}}/mcst-lcc/setup.sh {{dir}}"
+        lcc129:
+          kernel: linux-6.1
+          targets:
+            - name: 1.29.16
+              date: 2026-03-13
