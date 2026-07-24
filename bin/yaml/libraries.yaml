@@ -3126,12 +3126,12 @@ libraries:
     kokkos-cuda:
       build_type: cmake
       lib_type: static
-      cxx_compiler_wrapper: bin/nvcc_wrapper
       make_targets:
       - all
       extra_cmake_arg:
       - -DKokkos_ENABLE_CUDA=ON
       - -DKokkos_ARCH_TURING75=ON
+      - -DKokkos_ENABLE_COMPILE_AS_CMAKE_LANGUAGE=ON
       package_install: true
       repo: kokkos/kokkos
       staticliblink:
