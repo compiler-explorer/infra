@@ -49,3 +49,7 @@ compilers:
       targets:
         - 0.7.10
         - 0.7.11
+        - name: 0.8.0
+          url: https://github.com/c3lang/c3c/releases/download/v0.8.0_3/c3-linux-static.tar.gz
+        - 0.8.1
+        - 0.8.2
