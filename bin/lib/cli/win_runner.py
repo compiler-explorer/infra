@@ -54,9 +54,9 @@ def win_runner_exec(remote_cmd: Sequence[str]):
     exec_remote_to_stdout(WinRunnerInstance.instance(), remote_cmd)
 
 
-# No pull command, unlike the other runners: packer/Startup.ps1 clones infra at every boot,
-# before init/start.ps1 closes the firewall and removes DNS, so github is unreachable from then
-# on. Restart the instance to pick up infra changes.
+# No pull command, unlike the other runners: init/start.ps1 closes the firewall and removes DNS,
+# so github is unreachable from then on. Restarting is what refreshes infra, via the clone in
+# packer/Startup.ps1 -- which only works because that script resets the firewall first.
 
 
 @win_runner.command(name="discovery")
