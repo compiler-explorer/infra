@@ -38,7 +38,6 @@ $nodeargs = @(
     "--dist",
     "--port", "10240",
     "--metrics-port", "10241",
-    "--suppress-console-log",
     "--env", "amazonwin",
     "--env", $CE_ENV,
     "--language", "c",
