@@ -33,10 +33,10 @@ jobs:
     # the normal pipeline. See docs/windows_architecture.md.
     - name: Set build number ${{ github.event.inputs.buildnumber }}
       run: ce --env winrunner builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
+    # Booting is what updates infra on the instance: packer/Startup.ps1 clones it before
+    # init/start.ps1 closes the firewall, and there is no reaching github afterwards.
     - name: Start Windows runner
       run: ce win-runner start
-    - name: Update infra on Windows runner
-      run: ce win-runner pull
     - name: Do compiler discovery
       run: ce win-runner discovery
     - name: Upload discovered compilers
