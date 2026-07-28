@@ -7,7 +7,7 @@ locals {
 
   // Pinned rather than tracking local.winstaging_image_id: this is the first image with an
   // sshd, and the Windows fleet has not been rolled onto it yet.
-  win_runner_image_id = "ami-0d17d54fb7be08253"
+  win_runner_image_id = "ami-0082e8641a9c012c7"
 }
 
 resource "aws_instance" "AdminNode" {
