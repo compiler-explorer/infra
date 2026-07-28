@@ -17,7 +17,7 @@ on:
         default: 'main'
         required: true
       buildnumber:
-        description: 'Build number'
+        description: 'Build number (run CE Windows Build in compiler-explorer for it first)'
         default: ''
         required: true
 
@@ -28,6 +28,9 @@ jobs:
     steps:
     - name: Update infra
       run: cd /home/ubuntu/infra && git pull && make ce
+    # Fails with "Unable to find version" if the Windows zip for this build number does not
+    # exist yet: it is built by deploy-win.yml in the compiler-explorer repo, separately from
+    # the normal pipeline. See docs/windows_architecture.md.
     - name: Set build number ${{ github.event.inputs.buildnumber }}
       run: ce --env winrunner builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
     - name: Start Windows runner

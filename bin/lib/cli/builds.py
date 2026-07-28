@@ -32,6 +32,7 @@ from lib.builds_core import (
     deploy_staticfiles_windows,
     notify_sentry_deployment,
     old_deploy_staticfiles,
+    print_missing_version_hint,
 )
 from lib.cdn import DeploymentJob
 from lib.ce_utils import are_you_sure, confirm_action, confirm_branch, describe_current_release, display_releases
@@ -91,6 +92,7 @@ def check_hashes(cfg: Config, branch: str | None, version: str, raw: bool):
             print("Unable to find version " + version)
             if setting_latest and branch:
                 print(f"Branch {branch} has no available versions (Bad branch/No image yet built)")
+            print_missing_version_hint(cfg)
             sys.exit(1)
         else:
             to_set = release.key
@@ -142,6 +144,7 @@ def builds_set_current(
             print("Unable to find version " + version)
             if setting_latest and branch:
                 print(f"Branch {branch} has no available versions (Bad branch/No image yet built)")
+            print_missing_version_hint(cfg)
             sys.exit(1)
         elif confirm:
             print(f"Found release {release}")

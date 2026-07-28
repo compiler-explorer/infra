@@ -3,6 +3,7 @@
 import json
 
 import pytest
+from lib.builds_core import print_missing_version_hint
 from lib.cli.win_runner import (
     MIN_EXPECTED_COMPILERS,
     STARTUP_FAILED,
@@ -11,6 +12,7 @@ from lib.cli.win_runner import (
     check_discovery_json_contents,
     startup_state,
 )
+from lib.env import Config, Environment
 
 RUNNING_SERVICE = "Status   Name      DisplayName\nRunning  cestartup cestartup"
 STOPPED_SERVICE = "Status   Name      DisplayName\nStopped  cestartup cestartup"
@@ -70,3 +72,12 @@ def test_startup_state_fails_once_the_service_has_stopped():
 def test_startup_state_prefers_ready_over_a_stopped_service():
     """The service stops as soon as start.ps1 returns, so both can be true at once."""
     assert startup_state("True\n", STOPPED_SERVICE) == STARTUP_READY
+
+
+def test_missing_version_hint_is_printed_for_windows(capsys):
+    print_missing_version_hint(Config(env=Environment.WINPROD))
+    assert "deploy-win" in capsys.readouterr().out
+
+
+def test_missing_version_hint_is_silent_for_linux():
+    print_missing_version_hint(Config(env=Environment.STAGING))
