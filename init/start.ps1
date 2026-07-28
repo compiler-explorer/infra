@@ -402,6 +402,17 @@ function GetLatestCEWrapper {
     Move-Item -Path "/tmp/cewrapper.exe" -Destination "/cewrapper/cewrapper.exe" -Force
 }
 
+function PrepareNulDevice {
+    # The kernel resets \Device\Null's DACL every boot, and the default does not grant the AppContainer
+    # SIDs, so anything sandboxed by cewrapper that touches NUL fails with access denied. Grants it to
+    # all app packages; machine wide, has to be redone on every boot, needs to run elevated.
+    Write-Host "Granting AppContainer access to the NUL device"
+    & /cewrapper/cewrapper.exe --prepare-nul
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Failed to prepare the NUL device (exit code $LASTEXITCODE)"
+    }
+}
+
 function InitializeAgentConfig {
     Write-Host "Setting up Grafana Agent"
     $config = Get-Content -Path "/tmp/infra/grafana/agent-win.yaml"
@@ -656,6 +667,7 @@ ConfigureSmbRights
 MountY
 
 GetLatestCEWrapper
+PrepareNulDevice
 GetLatestCeWinFileCache
 GetCeWinFileCacheConfig
 
