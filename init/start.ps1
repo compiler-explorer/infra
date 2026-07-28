@@ -28,6 +28,7 @@ if ([string]::IsNullOrEmpty($env:CE_ENV)) {
 }
 Write-Host "Running in environment $($env:CE_ENV)"
 $DEPLOY_DIR = "/compilerexplorer"
+$COMPILERS_FILE = "$DEPLOY_DIR/discovered-compilers.json"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
 
@@ -70,6 +71,26 @@ function update_code {
     $S3_KEY = $S3_KEY -replace ".tar.xz","zip"
 
     get_released_code -URL "https://s3.amazonaws.com/compiler-explorer/$S3_KEY"
+    get_discovered_compilers -S3_KEY $S3_KEY
+}
+
+function get_discovered_compilers {
+    param (
+        $S3_KEY
+    )
+
+    # dist/gh/main/18675.zip is discovered as gh-18675.json, uploaded by ce win-runner
+    # uploaddiscovery. Must follow get_released_code, which empties the deploy directory.
+    $buildnumber = [IO.Path]::GetFileNameWithoutExtension($S3_KEY)
+    $url = "https://s3.amazonaws.com/compiler-explorer/dist/discovery/$CE_ENV/gh-$buildnumber.json"
+    Write-Host "Discovered compilers from $url"
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $COMPILERS_FILE
+    } catch {
+        # Not having one is fine: Compiler Explorer discovers for itself, just more slowly.
+        Write-Host "No discovered compilers available: $_"
+        Remove-Item -Path $COMPILERS_FILE -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function get_released_code {

@@ -98,6 +98,14 @@ $nodeargs += @(
     "--language", "hlsl"
 )
 
+# Written by init/start.ps1 when a discovery exists for this build. Without it Compiler Explorer
+# runs every compiler itself before it will serve anything.
+$compilersFile = "C:\compilerexplorer\discovered-compilers.json"
+if (Test-Path $compilersFile) {
+    Write-Host "Using prediscovered compilers from $compilersFile"
+    $nodeargs += @("--prediscovered", $compilersFile)
+}
+
 Set-Location -Path "C:\compilerexplorer"
 
 & 'C:\Program Files\nodejs\node.exe' $nodeargs
