@@ -153,11 +153,7 @@ def builds_set_current(
             print(f"Found release {release}")
             to_set = release.key
     if to_set is not None and release is not None:
-        if (
-            cfg.env.value not in ("runner", "gpu-runner")
-            and not cfg.env.is_windows
-            and not runner_discoveryexists(cfg.env.value, str(release.version))
-        ):
+        if cfg.env.discovery_required and not runner_discoveryexists(cfg.env.value, str(release.version)):
             if not confirm_action(
                 f"Compiler discovery has not run for {cfg.env.value}/{release.version}, are you sure you want to continue?"
             ):

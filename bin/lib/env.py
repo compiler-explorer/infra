@@ -60,6 +60,17 @@ class Environment(Enum):
         return self in (Environment.RUNNER, Environment.GPU_RUNNER, Environment.WINRUNNER)
 
     @property
+    def discovery_required(self) -> bool:
+        """Whether deploys here should insist a discovery has been run for the version.
+
+        Runners produce discovery rather than consume it, and nothing produces one for wintest,
+        which serves its own compiler set from the windows-docker properties.
+        """
+        if self.is_runner:
+            return False
+        return self != Environment.WINTEST
+
+    @property
     def is_prod(self):
         return self in (Environment.PROD, Environment.GPU, Environment.WINPROD, Environment.AARCH64PROD)
 

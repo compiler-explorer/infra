@@ -118,11 +118,7 @@ def check_compiler_discovery(cfg: Config, version: str, branch: str | None = Non
             return None
 
     # Check compiler discovery
-    if (
-        not cfg.env.is_runner
-        and not cfg.env.is_windows
-        and not runner_discoveryexists(cfg.env.value, str(release.version))
-    ):
+    if cfg.env.discovery_required and not runner_discoveryexists(cfg.env.value, str(release.version)):
         raise RuntimeError(f"Compiler discovery has not run for {cfg.env.value}/{release.version}")
 
     return release
