@@ -50,9 +50,21 @@ Write-Host "AWS Hostname $betterComputerName"
 
 function update_code {
     Write-Host "Current environment $CE_ENV"
-    Invoke-WebRequest -Uri "https://s3.amazonaws.com/compiler-explorer/version/$CE_ENV" -OutFile "/tmp/s3key.txt"
+    $versionUrl = "https://s3.amazonaws.com/compiler-explorer/version/$CE_ENV"
+    Remove-Item -Path "/tmp/s3key.txt" -Force -ErrorAction SilentlyContinue
+    Invoke-WebRequest -Uri $versionUrl -OutFile "/tmp/s3key.txt"
+
+    # Errors here are not terminating, so without these checks a missing or empty version file
+    # gets as far as unzipping the bucket listing, and the failure reads as an Expand-Archive
+    # problem rather than a missing build.
+    if (-not (Test-Path "/tmp/s3key.txt")) {
+        throw "No build set for $CE_ENV : could not fetch $versionUrl"
+    }
 
     $S3_KEY = Get-Content -Path "/tmp/s3key.txt"
+    if ([string]::IsNullOrWhiteSpace($S3_KEY)) {
+        throw "No build set for $CE_ENV : $versionUrl is empty"
+    }
 
     # should not be needed, but just in case we copy pasted the file
     $S3_KEY = $S3_KEY -replace ".tar.xz","zip"
