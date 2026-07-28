@@ -413,7 +413,15 @@ function InitializeAgentConfig {
     } catch {
     }
     $config = $config.Replace("@PROM_PASSWORD@", $prom_pass)
-    Set-Content -Path "C:\Program Files\Grafana Agent\agent-config.yaml" -Value $config
+    $agentConfig = "C:\Program Files\Grafana Agent\agent-config.yaml"
+    Set-Content -Path $agentConfig -Value $config
+
+    icacls.exe $agentConfig /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
+    $agentAccount = (Get-CimInstance Win32_Service -Filter "DisplayName='Grafana Agent'").StartName
+    if ($agentAccount -and $agentAccount -ne "LocalSystem") {
+        Write-Host "Grafana Agent runs as $agentAccount, granting it read"
+        icacls.exe $agentConfig /grant "${agentAccount}:R"
+    }
 
     Stop-Service "Grafana Agent"
     $started = (Start-Service "Grafana Agent") -as [bool]
