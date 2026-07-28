@@ -4,6 +4,10 @@ locals {
   conan_image_id      = "ami-0c7129c233b1564dd"
   smbserver_image_id  = "ami-01e7c7963a9c4755d"
   admin_subnet        = module.ce_network.subnet["1a"].id
+
+  // Pinned rather than tracking local.winstaging_image_id: this is the first image with an
+  // sshd, and the Windows fleet has not been rolled onto it yet.
+  win_runner_image_id = "ami-0d17d54fb7be08253"
 }
 
 resource "aws_instance" "AdminNode" {
@@ -174,6 +178,37 @@ resource "aws_instance" "CEGPURunner" {
   tags = {
     Name        = "CEGPURunner"
     Environment = "gpu-runner"
+  }
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
+  }
+
+}
+
+resource "aws_instance" "CEWinRunner" {
+  ami                         = local.win_runner_image_id
+  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerWindowsRole.name
+  ebs_optimized               = false
+  instance_type               = "m6i.large"
+  monitoring                  = false
+  key_name                    = "mattgodbolt"
+  subnet_id                   = local.admin_subnet
+  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
+  associate_public_ip_address = true
+  source_dest_check           = false
+
+  lifecycle {
+    ignore_changes = [
+      // Seemingly needed to not replace stopped instances
+      associate_public_ip_address
+    ]
+  }
+
+  tags = {
+    Name        = "CEWinRunner"
+    Environment = "winrunner"
   }
   metadata_options {
     http_tokens                 = "required"

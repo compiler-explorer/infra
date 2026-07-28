@@ -455,6 +455,54 @@ function AddLocalHost {
     Set-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value $content
 }
 
+function ConfigureSSH {
+    # start.ps1 is pulled from main at every boot, so this runs on images predating the
+    # OpenSSH install in packer/InstallTools.ps1.
+    if (-not (Get-Service -Name sshd -ErrorAction SilentlyContinue)) {
+        Write-Host "No sshd service in this image, skipping SSH setup"
+        return
+    }
+
+    # Taken from the service rather than hardcoded: a Feature on Demand install puts these in
+    # System32\OpenSSH, the release zip in Program Files\OpenSSH.
+    $sshdExe = (Get-CimInstance Win32_Service -Filter "Name='sshd'").PathName.Trim('"')
+    $sshdBin = Split-Path -Parent $sshdExe
+
+    $sshDir = "C:\ProgramData\ssh"
+    New-Item -Path $sshDir -ItemType Directory -Force | Out-Null
+
+    Write-Host "Fetching authorized keys"
+    $keyDir = "C:\tmp\auth_keys"
+    Remove-Item -Path $keyDir -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -Path $keyDir -ItemType Directory -Force | Out-Null
+    aws s3 sync s3://compiler-explorer/authorized_keys $keyDir
+
+    # sshd ignores a user's own .ssh/authorized_keys for members of the administrators group;
+    # their keys have to live here instead. It also silently refuses the file if anyone other
+    # than Administrators or SYSTEM can write it, hence the icacls reset. ASCII, because sshd
+    # will not read a BOM.
+    $authKeys = "$sshDir\administrators_authorized_keys"
+    Get-Content -Path "$keyDir\*.key" | Set-Content -Path $authKeys -Encoding ascii
+    Remove-Item -Path $keyDir -Recurse -Force
+    icacls.exe $authKeys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
+
+    Set-Content -Path "$sshDir\sshd_config" -Encoding ascii -Value @(
+        "PubkeyAuthentication yes",
+        "PasswordAuthentication no",
+        "Subsystem sftp sftp-server.exe",
+        "Match Group administrators",
+        "       AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys"
+    )
+
+    # Per instance rather than baked into the AMI.
+    & "$sshdBin\ssh-keygen.exe" -A
+
+    netsh advfirewall firewall add rule name="allow sshd in" dir=in program="$sshdExe" action=allow enable=yes
+
+    Set-Service -Name sshd -StartupType Automatic
+    Restart-Service -Name sshd
+}
+
 function ConfigureFirewall {
     netsh advfirewall firewall add rule name="TCP Port 80" dir=in action=allow protocol=TCP localport=80 enable=yes
     netsh advfirewall firewall add rule name="TCP Port 80" dir=out action=allow protocol=TCP localport=80 enable=yes
@@ -493,6 +541,11 @@ function ConfigureFirewall {
     netsh advfirewall set publicprofile firewallpolicy blockinbound,blockoutbound
 }
 
+# First, so an instance that later hangs mounting the share or fails to find a build is still
+# reachable to debug. Also has to precede ConfigureFirewall: the key sync talks to the bucket's
+# virtual-host name, which the pinned-IP allowlist does not cover.
+ConfigureSSH
+
 ConfigureSmbRights
 
 MountY
@@ -517,5 +570,11 @@ $logport = GetLogPort
 
 ConfigureFirewall
 
-#CreateCredAndRun
-InstallAndRunCEAsSystem
+if ($CE_ENV -eq "winrunner") {
+    # As with runner/gpu-runner in init/start.sh: set the machine up but don't serve anything.
+    # Discovery is driven over SSH by `ce win-runner discovery`.
+    Write-Host "Runner environment, not starting Compiler Explorer"
+} else {
+    #CreateCredAndRun
+    InstallAndRunCEAsSystem
+}
