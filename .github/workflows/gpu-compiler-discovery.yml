@@ -30,4 +30,6 @@ jobs:
     - name: Upload discovered compilers
       run: ce gpu-runner uploaddiscovery gpu ${{ github.event.inputs.buildnumber }}
     - name: Shut down GPU runner
+      # Unconditionally: a failure anywhere above would otherwise leave a g4dn.xlarge running.
+      if: always()
       run: ce gpu-runner stop
