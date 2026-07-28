@@ -213,6 +213,19 @@ function RecreateUser {
     ConfigureUserRights -SID (Get-LocalUser $CE_USER).SID
 }
 
+function DisableSmbServer {
+    # Nothing connects to these instances over SMB, and leaving the server side up gives
+    # sandboxed code a loopback UNC target that the firewall cannot filter -- Windows exempts
+    # loopback. LanmanWorkstation is the client half, so Z: still mounts.
+    Set-Service -Name LanmanServer -StartupType Disabled
+    Stop-Service -Name LanmanServer -Force
+
+    $status = (Get-Service -Name LanmanServer).Status
+    if ($status -ne "Stopped") {
+        Write-Host "WARNING: LanmanServer is $status, expected Stopped; loopback UNC remains reachable"
+    }
+}
+
 function ConfigureSmbRights {
     $tmpfile = "c:\tmp\secpol.cfg"
     secedit /export /cfg $tmpfile
@@ -546,6 +559,43 @@ function ConfigureSSH {
     Restart-Service -Name sshd
 }
 
+function GetAdjacentIPv4 {
+    param(
+        [string] $Address,
+        [int] $Offset
+    )
+
+    $bytes = ([System.Net.IPAddress]::Parse($Address)).GetAddressBytes()
+    [array]::Reverse($bytes)
+    $value = [System.BitConverter]::ToUInt32($bytes, 0) + $Offset
+    $result = [System.BitConverter]::GetBytes([uint32]$value)
+    [array]::Reverse($result)
+
+    return ([System.Net.IPAddress]::new([byte[]]$result)).ToString()
+}
+
+function BlockSmbExceptServer {
+    param(
+        [string] $SmbServer
+    )
+
+    $parsed = [System.Net.IPAddress]::Any
+    if (-not [System.Net.IPAddress]::TryParse($SmbServer, [ref]$parsed)) {
+        # GetConf returns "smb-address-unknown" if SSM is unreachable; block rather than open.
+        Write-Host "No usable SMB server address, blocking SMB outbound entirely"
+        netsh advfirewall firewall add rule name="Block SMB out" dir=out protocol=TCP remoteport=139,445 action=block enable=yes
+        return
+    }
+
+    # Block beats allow in Windows Firewall, so the server has to be excluded by address rather
+    # than allowed back in afterwards.
+    $below = GetAdjacentIPv4 -Address $SmbServer -Offset -1
+    $above = GetAdjacentIPv4 -Address $SmbServer -Offset 1
+    $except = "0.0.0.0-$below,$above-255.255.255.255"
+
+    netsh advfirewall firewall add rule name="Block SMB out except $SmbServer" dir=out protocol=TCP remoteport=139,445 remoteip="$except" action=block enable=yes
+}
+
 function ConfigureFirewall {
     netsh advfirewall firewall add rule name="TCP Port 80" dir=in action=allow protocol=TCP localport=80 enable=yes
     netsh advfirewall firewall add rule name="TCP Port 80" dir=out action=allow protocol=TCP localport=80 enable=yes
@@ -563,6 +613,8 @@ function ConfigureFirewall {
     $ip = GetSMBServerIP -CeEnv $CE_ENV
     netsh advfirewall firewall add rule name="Allow IP $ip out" dir=out remoteip="$ip" action=allow enable=yes
     netsh advfirewall firewall add rule name="Allow IP $ip in" dir=in remoteip="$ip" action=allow enable=yes
+
+    BlockSmbExceptServer -SmbServer $ip
 
     AddLocalHost
 
@@ -588,6 +640,8 @@ function ConfigureFirewall {
 # reachable to debug. Also has to precede ConfigureFirewall: the key sync talks to the bucket's
 # virtual-host name, which the pinned-IP allowlist does not cover.
 ConfigureSSH
+
+DisableSmbServer
 
 ConfigureSmbRights
 
