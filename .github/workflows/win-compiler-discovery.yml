@@ -1,0 +1,44 @@
+name: Windows compiler discovery
+run-name: Windows discovery for ${{ inputs.environment }} ${{ inputs.branch }} build ${{ inputs.buildnumber }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        type: choice
+        default: winstaging
+        required: true
+        options:
+        - winstaging
+        - winprod
+      branch:
+        description: 'Branch'
+        default: 'main'
+        required: true
+      buildnumber:
+        description: 'Build number'
+        default: ''
+        required: true
+
+jobs:
+  win-compiler-discovery:
+    runs-on: ['admin']
+
+    steps:
+    - name: Update infra
+      run: cd /home/ubuntu/infra && git pull && make ce
+    - name: Set build number ${{ github.event.inputs.buildnumber }}
+      run: ce --env winrunner builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
+    - name: Start Windows runner
+      run: ce win-runner start
+    - name: Update infra on Windows runner
+      run: ce win-runner pull
+    - name: Do compiler discovery
+      run: ce win-runner discovery
+    - name: Upload discovered compilers
+      run: ce win-runner uploaddiscovery ${{ github.event.inputs.environment }} ${{ github.event.inputs.buildnumber }}
+    - name: Shut down Windows runner
+      # Unconditionally: a failed discovery would otherwise leave the instance billing.
+      if: always()
+      run: ce win-runner stop

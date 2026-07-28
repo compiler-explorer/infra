@@ -164,6 +164,62 @@ def run_gpu_discovery(
             sys.exit(1)
 
 
+@workflows.command("run-win-discovery")
+@click.argument("buildnumber")
+@click.option(
+    "--environment",
+    default="winstaging",
+    type=click.Choice(["winstaging", "winprod"]),
+    help="Environment to upload discovery for (default: winstaging)",
+)
+@click.option("--branch", default="main", help="Branch to use for discovery (default: main)")
+@click.option("--dry-run", is_flag=True, help="Print the command without executing")
+@click.option("--wait", is_flag=True, help="Wait for workflow to complete")
+@click.pass_obj
+def run_win_discovery(
+    cfg: Config,
+    buildnumber: str,
+    environment: str,
+    branch: str,
+    dry_run: bool,
+    wait: bool,
+):
+    """Trigger the Windows compiler discovery workflow.
+
+    BUILDNUMBER: The build number for discovery (e.g., gh-12345)
+    """
+    cmd = [
+        "gh",
+        "workflow",
+        "run",
+        "win-compiler-discovery.yml",
+        "--field",
+        f"environment={environment}",
+        "--field",
+        f"branch={branch}",
+        "--field",
+        f"buildnumber={buildnumber}",
+        "-R",
+        "github.com/compiler-explorer/infra",
+    ]
+
+    if dry_run:
+        print(" ".join(cmd))
+    else:
+        print(f"Triggering Windows compiler discovery for {environment}, branch {branch}, build {buildnumber}")
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            if result.stdout:
+                print(result.stdout)
+            print("Workflow triggered successfully")
+
+            if wait:
+                wait_for_workflow_completion("infra", "win-compiler-discovery.yml")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to trigger workflow: {e.stderr}", file=sys.stderr)
+            sys.exit(1)
+
+
 @workflows.command("deploy-win")
 @click.argument("buildnumber")
 @click.option("--branch", default="main", help="Branch to deploy (default: main)")
@@ -360,6 +416,7 @@ def list_workflows(cfg: Config):
     infra_workflows = [
         ("compiler-discovery.yml", "Compiler discovery workflow"),
         ("gpu-compiler-discovery.yml", "GPU compiler discovery workflow"),
+        ("win-compiler-discovery.yml", "Windows compiler discovery workflow"),
         ("win-lib-build.yaml", "Windows library build"),
         ("start_staging.yml", "Start staging environment"),
         ("update-compilers.yml", "Update compilers"),
