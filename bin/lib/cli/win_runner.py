@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import time
 from collections.abc import Sequence
 from tempfile import NamedTemporaryFile
@@ -8,7 +9,8 @@ from tempfile import NamedTemporaryFile
 import boto3
 import click
 
-from lib.discovery import s3_key_for_discovery
+from lib.discovery import copy_discovery, s3_key_for_discovery
+from lib.env import Environment
 from lib.instance import WinRunnerInstance
 from lib.ssh import exec_remote, exec_remote_to_stdout, get_remote_file, run_remote_shell
 
@@ -124,6 +126,15 @@ def win_runner_uploaddiscovery(environment: str, version: str):
             **_S3_CONFIG,
         )
     print(f"Uploaded discovery for {environment}/{version}")
+
+
+@win_runner.command(name="promote")
+@click.argument("version", required=True)
+def win_runner_promote(version: str):
+    """Copy a winstaging discovery to winprod, marking it safe for production."""
+    if not copy_discovery(Environment.WINSTAGING.value, Environment.WINPROD.value, version):
+        print(f"❌ Discovery file not found for winstaging/{version}")
+        sys.exit(1)
 
 
 @win_runner.command(name="start")

@@ -1,8 +1,10 @@
 """Tests for the Windows runner CLI helpers."""
 
 import json
+from unittest.mock import patch
 
 import pytest
+from click.testing import CliRunner
 from lib.builds_core import print_missing_version_hint
 from lib.cli.win_runner import (
     MIN_EXPECTED_COMPILERS,
@@ -11,6 +13,7 @@ from lib.cli.win_runner import (
     STARTUP_WAITING,
     check_discovery_json_contents,
     startup_state,
+    win_runner_promote,
 )
 from lib.env import Config, Environment
 
@@ -81,3 +84,19 @@ def test_missing_version_hint_is_printed_for_windows(capsys):
 
 def test_missing_version_hint_is_silent_for_linux():
     print_missing_version_hint(Config(env=Environment.STAGING))
+
+
+@patch("lib.cli.win_runner.copy_discovery")
+def test_promote_copies_winstaging_to_winprod(mock_copy):
+    mock_copy.return_value = True
+    result = CliRunner().invoke(win_runner_promote, ["gh-18675"])
+    assert result.exit_code == 0
+    mock_copy.assert_called_once_with("winstaging", "winprod", "gh-18675")
+
+
+@patch("lib.cli.win_runner.copy_discovery")
+def test_promote_fails_when_there_is_nothing_to_copy(mock_copy):
+    mock_copy.return_value = False
+    result = CliRunner().invoke(win_runner_promote, ["gh-18675"])
+    assert result.exit_code == 1
+    assert "not found" in result.output

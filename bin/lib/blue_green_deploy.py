@@ -34,7 +34,7 @@ from lib.deployment_utils import (
     wait_for_http_health,
     wait_for_instances_healthy,
 )
-from lib.discovery import copy_discovery_to_prod, discovery_exists
+from lib.discovery import copy_discovery, discovery_exists
 from lib.env import Config
 
 LOGGER = logging.getLogger(__name__)
@@ -235,9 +235,9 @@ class BlueGreenDeployment:
 
     def _copy_and_check_discovery(self, source_env: str, version: str, branch: str | None):
         """Copy discovery from source environment and return release."""
-        print(f"Attempting to copy discovery from {source_env} for version {version}...")
+        print(f"Attempting to copy discovery from {source_env} to {self.env} for version {version}...")
         try:
-            if copy_discovery_to_prod(source_env, version):
+            if copy_discovery(source_env, self.env, version):
                 print("Retrying discovery check...")
                 try:
                     release = check_compiler_discovery(self.cfg, version, branch)
@@ -259,34 +259,37 @@ class BlueGreenDeployment:
             LOGGER.error("Deployment cancelled due to discovery copy failure.")
             raise DeploymentCancelledException("Discovery copy failed") from copy_error
 
+    def _discovery_suggestion(self, version: str) -> str:
+        """The command that would produce a discovery this deployment could use."""
+        sources = self.cfg.env.discovery_sources
+        source = sources[0].value if sources else self.env
+        if self.cfg.env.is_windows:
+            return f"ce workflows run-win-discovery {version} --environment {source}"
+        return f"ce workflows run-discovery {version} --environment {source}"
+
     def _handle_prod_missing_discovery(self, error: RuntimeError, version: str, branch: str | None):
-        """Handle missing prod discovery by checking staging/beta and presenting options."""
-        staging_has_discovery = discovery_exists("staging", version)
-        beta_has_discovery = discovery_exists("beta", version)
+        """Handle missing discovery by checking the environments it can be promoted from."""
+        sources = self.cfg.env.discovery_sources
+        available = [env.value for env in sources if discovery_exists(env.value, version)]
+        source_env = available[0] if available else None
 
         LOGGER.warning("%s", error)
 
-        if staging_has_discovery:
-            print("Staging discovery IS available for this version.")
+        if source_env:
+            preferred = sources[0].value
+            recommended = " (recommended)" if source_env == preferred else f" ({preferred} is not available)"
+            print(f"{source_env.capitalize()} discovery IS available for this version.")
             print("Options:")
-            print("  1. Copy discovery from staging (recommended)")
-            print("  2. Continue without discovery")
-            print("  3. Cancel deployment")
-        elif beta_has_discovery:
-            print("Beta discovery IS available (staging is not).")
-            print("Options:")
-            print("  1. Copy discovery from beta")
+            print(f"  1. Copy discovery from {source_env}{recommended}")
             print("  2. Continue without discovery")
             print("  3. Cancel deployment")
         else:
-            print("WARNING: No discovery found in staging or beta for this version either.")
-            suggestion = f"ce workflows run-discovery {version} --environment staging"
-            print(f"You may need to run discovery first: {suggestion}")
+            described = " or ".join(env.value for env in sources) or "any other environment"
+            print(f"WARNING: No discovery found in {described} for this version either.")
+            print(f"You may need to run discovery first: {self._discovery_suggestion(version)}")
             print("Options:")
             print("  1. Continue without discovery (risky)")
             print("  2. Cancel deployment")
-
-        source_env = "staging" if staging_has_discovery else ("beta" if beta_has_discovery else None)
 
         while True:
             if source_env:
@@ -428,8 +431,9 @@ class BlueGreenDeployment:
                     if not release:
                         raise RuntimeError(f"Version {version} not found")
                 except RuntimeError as e:
-                    # Discovery hasn't run - handle specially for prod deployments
-                    if self.cfg.env.value == "prod":
+                    # Discovery hasn't run - offer to promote one where that is possible
+                    if self.cfg.env.discovery_sources:
+                        source = self.cfg.env.discovery_sources[0].value
                         if skip_confirmation:
                             LOGGER.warning(f"{e}")
                             LOGGER.error(
@@ -437,7 +441,7 @@ class BlueGreenDeployment:
                             )
                             LOGGER.error("Production deployments require either:")
                             LOGGER.error("  1. Existing discovery file for the version")
-                            LOGGER.error("  2. Manual confirmation to copy discovery from staging")
+                            LOGGER.error(f"  2. Manual confirmation to copy discovery from {source}")
                             print("Deployment cancelled.")
                             raise DeploymentCancelledException(
                                 "Production deployments require manual confirmation"

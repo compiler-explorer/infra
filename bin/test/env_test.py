@@ -1,7 +1,6 @@
 """Tests for environment properties."""
 
 import pytest
-
 from lib.env import Environment
 
 
@@ -36,3 +35,16 @@ def test_winrunner_is_windows_so_it_looks_for_zip_builds():
 
 def test_winrunner_does_not_keep_builds():
     assert not Environment.WINRUNNER.keep_builds
+
+
+def test_prod_promotes_discovery_from_staging_then_beta():
+    assert Environment.PROD.discovery_sources == [Environment.STAGING, Environment.BETA]
+
+
+def test_winprod_promotes_discovery_from_winstaging():
+    assert Environment.WINPROD.discovery_sources == [Environment.WINSTAGING]
+
+
+@pytest.mark.parametrize("env", [Environment.STAGING, Environment.BETA, Environment.WINSTAGING, Environment.GPU])
+def test_environments_discovery_runs_against_have_no_sources(env):
+    assert env.discovery_sources == []

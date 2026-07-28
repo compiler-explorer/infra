@@ -5,8 +5,8 @@ locals {
   gpu_image_id            = "ami-06ec75448944956cb"
   aarch64prod_image_id    = "ami-0a3feaf88b426390e"
   aarch64staging_image_id = "ami-0a3feaf88b426390e"
-  winprod_image_id        = "ami-05ba079ae5ca85ba9"
-  winstaging_image_id     = "ami-05ba079ae5ca85ba9"
+  winprod_image_id        = "ami-0082e8641a9c012c7"
+  winstaging_image_id     = "ami-0082e8641a9c012c7"
   wintest_image_id        = "ami-0807541f025aad832"
   ce_router_image_id      = "ami-0d57d7a6a221012c5"
 

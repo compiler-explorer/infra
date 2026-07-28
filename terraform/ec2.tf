@@ -5,9 +5,7 @@ locals {
   smbserver_image_id  = "ami-01e7c7963a9c4755d"
   admin_subnet        = module.ce_network.subnet["1a"].id
 
-  // Pinned rather than tracking local.winstaging_image_id: this is the first image with an
-  // sshd, and the Windows fleet has not been rolled onto it yet.
-  win_runner_image_id = "ami-0082e8641a9c012c7"
+  win_runner_image_id = local.winstaging_image_id
 }
 
 resource "aws_instance" "AdminNode" {

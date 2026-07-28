@@ -60,6 +60,19 @@ class Environment(Enum):
         return self in (Environment.RUNNER, Environment.GPU_RUNNER, Environment.WINRUNNER)
 
     @property
+    def discovery_sources(self) -> list[Environment]:
+        """Environments whose discovery may be promoted to this one, most preferred first.
+
+        Only for environments that cannot have discovery run against them directly, so a
+        deployment can offer to reuse one built elsewhere for the same version.
+        """
+        if self == Environment.PROD:
+            return [Environment.STAGING, Environment.BETA]
+        if self == Environment.WINPROD:
+            return [Environment.WINSTAGING]
+        return []
+
+    @property
     def discovery_required(self) -> bool:
         """Whether deploys here should insist a discovery has been run for the version.
 
