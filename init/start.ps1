@@ -486,9 +486,14 @@ function ConfigureSSH {
     Remove-Item -Path $keyDir -Recurse -Force
     icacls.exe $authKeys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
 
+    # The logging is not optional in practice: sshd rejects a badly-permissioned key file
+    # without telling the client why, and C:\ProgramData\ssh\logs\sshd.log is the only place
+    # that says so.
     Set-Content -Path "$sshDir\sshd_config" -Encoding ascii -Value @(
         "PubkeyAuthentication yes",
         "PasswordAuthentication no",
+        "SyslogFacility LOCAL0",
+        "LogLevel INFO",
         "Subsystem sftp sftp-server.exe",
         "Match Group administrators",
         "       AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys"

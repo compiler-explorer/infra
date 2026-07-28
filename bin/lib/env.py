@@ -27,6 +27,7 @@ class Environment(Enum):
     WINPROD = "winprod"
     WINSTAGING = "winstaging"
     WINTEST = "wintest"
+    WINRUNNER = "winrunner"
     AARCH64PROD = "aarch64prod"
     AARCH64STAGING = "aarch64staging"
 
@@ -46,7 +47,17 @@ class Environment(Enum):
 
     @property
     def is_windows(self):
-        return self in (Environment.WINPROD, Environment.WINSTAGING, Environment.WINTEST)
+        return self in (
+            Environment.WINPROD,
+            Environment.WINSTAGING,
+            Environment.WINTEST,
+            Environment.WINRUNNER,
+        )
+
+    @property
+    def is_runner(self):
+        """Runners build discovery for other environments and never serve traffic."""
+        return self in (Environment.RUNNER, Environment.GPU_RUNNER, Environment.WINRUNNER)
 
     @property
     def is_prod(self):

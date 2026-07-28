@@ -201,6 +201,32 @@ class GpuRunnerInstance:
         return self.instance.state["Name"]
 
 
+class WinRunnerInstance:
+    # No ubuntu user on Windows; sshd matches this against the administrators group, which is
+    # what init/start.ps1 installs the authorized keys for.
+    ssh_user = "Administrator"
+
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = "unknown"
+        self.service_status = {"SubState": "unknown"}
+        self.running_version = "winrunner"
+
+    @staticmethod
+    def instance():
+        return WinRunnerInstance(_singleton_instance("CEWinRunner"))
+
+    def start(self):
+        self.instance.start()
+
+    def stop(self):
+        self.instance.stop()
+
+    def status(self):
+        self.instance.load()
+        return self.instance.state["Name"]
+
+
 class SMBServerInstance:
     def __init__(self, instance):
         self.instance = instance
