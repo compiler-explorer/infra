@@ -20,10 +20,11 @@ _S3_CONFIG = dict(ACL="public-read", StorageClass="REDUCED_REDUNDANCY")
 DISCOVERY_REMOTE_PATH = "/C:/tmp/discovered-compilers.json"
 INFRA_DIR = "C:/tmp/infra"
 
-# init/start.ps1 logs this once it has finished setting a runner up. nssm points the cestartup
-# service's stdout here.
+# Remote commands reach a PowerShell, because the image sets OpenSSH's DefaultShell to pwsh
+# with -Command. exec_remote joins them with POSIX quoting, though, so an argument containing
+# spaces or quotes arrives mangled: keep every argument a bare word.
+STARTUP_COMPLETE_FILE = "C:/tmp/ce-startup-complete"
 STARTUP_LOG = "C:/tmp/log/cestartup-svc.log"
-STARTUP_DONE_MARKER = "Runner environment, not starting Compiler Explorer"
 
 # Windows discovers ~240 compilers across c, c++ and hlsl. Well under that means something
 # failed to enumerate rather than a compiler or two having been retired.
@@ -129,18 +130,15 @@ def win_runner_start():
     else:
         raise RuntimeError("Unable to get SSH access")
 
-    # There is no journalctl here, so wait on the marker init/start.ps1 leaves in the startup
-    # service's log instead.
-    check_log = ["pwsh", "-Command", f"Select-String -Path {STARTUP_LOG} -SimpleMatch '{STARTUP_DONE_MARKER}'"]
+    # There is no journalctl here, so wait on the file init/start.ps1 writes when it finishes.
     for _ in range(60):
-        try:
-            if STARTUP_DONE_MARKER in exec_remote(instance, check_log, ignore_errors=True):
-                break
-        except RuntimeError as e:
-            print(f"Waiting for startup to complete: {e}")
+        if exec_remote(instance, ["Test-Path", STARTUP_COMPLETE_FILE], ignore_errors=True).strip() == "True":
+            break
+        print("Waiting for startup to complete")
         time.sleep(5)
     else:
-        raise RuntimeError("Windows runner did not finish starting up")
+        log_tail = exec_remote(instance, ["Get-Content", "-Tail", "40", STARTUP_LOG], ignore_errors=True)
+        raise RuntimeError(f"Windows runner did not finish starting up. Last of {STARTUP_LOG}:\n{log_tail}")
 
     print("Windows runner started OK")
 

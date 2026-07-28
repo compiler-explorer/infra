@@ -3,7 +3,6 @@
 import json
 
 import pytest
-
 from lib.cli.win_runner import MIN_EXPECTED_COMPILERS, check_discovery_json_contents
 
 

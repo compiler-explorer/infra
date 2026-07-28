@@ -30,6 +30,11 @@ Write-Host "Running in environment $($env:CE_ENV)"
 $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
+
+# Written at the end of this script; `ce win-runner start` waits on it. Cleared here because
+# C:\tmp survives a reboot, so a file left by the last boot would report ready immediately.
+$STARTUP_COMPLETE_FILE = "C:\tmp\ce-startup-complete"
+Remove-Item -Path $STARTUP_COMPLETE_FILE -Force -ErrorAction SilentlyContinue
 $env:PATH = "$env:PATH;C:\Program Files\Amazon\AWSCLIV2"
 $loghost = "todo"
 $logport = "80"
@@ -583,3 +588,6 @@ if ($CE_ENV -eq "winrunner") {
     #CreateCredAndRun
     InstallAndRunCEAsSystem
 }
+
+New-Item -Path $STARTUP_COMPLETE_FILE -ItemType File -Force | Out-Null
+Write-Host "Startup complete"
