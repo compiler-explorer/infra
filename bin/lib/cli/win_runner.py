@@ -25,6 +25,11 @@ INFRA_DIR = "C:/tmp/infra"
 # spaces or quotes arrives mangled: keep every argument a bare word.
 STARTUP_COMPLETE_FILE = "C:/tmp/ce-startup-complete"
 STARTUP_LOG = "C:/tmp/log/cestartup-svc.log"
+STARTUP_SERVICE = "cestartup"
+
+STARTUP_READY = "ready"
+STARTUP_FAILED = "failed"
+STARTUP_WAITING = "waiting"
 
 # Windows discovers ~240 compilers across c, c++ and hlsl. Well under that means something
 # failed to enumerate rather than a compiler or two having been retired.
@@ -59,6 +64,23 @@ def win_runner_pull():
 def win_runner_discovery():
     """Execute compiler discovery on the Windows runner instance."""
     exec_remote_to_stdout(WinRunnerInstance.instance(), ["pwsh", "-File", f"{INFRA_DIR}/init/do-discovery.ps1"])
+
+
+def startup_log_tail(instance, lines: int = 40) -> str:
+    tail = exec_remote(instance, ["Get-Content", "-Tail", str(lines), STARTUP_LOG], ignore_errors=True)
+    return f" Last of {STARTUP_LOG}:\n{tail}"
+
+
+def startup_state(ready_output: str, service_output: str) -> str:
+    """Classify a runner's startup from a Test-Path and a Get-Service result."""
+    if ready_output.strip() == "True":
+        return STARTUP_READY
+    # start.ps1 is what configures sshd, so being able to run this at all means the startup
+    # service was running. Once it stops the script has finished, and with no file to show for
+    # it, it finished badly -- no point waiting out the timeout.
+    if "Stopped" in service_output:
+        return STARTUP_FAILED
+    return STARTUP_WAITING
 
 
 def check_discovery_json_contents(contents: str) -> None:
@@ -132,13 +154,18 @@ def win_runner_start():
 
     # There is no journalctl here, so wait on the file init/start.ps1 writes when it finishes.
     for _ in range(60):
-        if exec_remote(instance, ["Test-Path", STARTUP_COMPLETE_FILE], ignore_errors=True).strip() == "True":
+        state = startup_state(
+            exec_remote(instance, ["Test-Path", STARTUP_COMPLETE_FILE], ignore_errors=True),
+            exec_remote(instance, ["Get-Service", "-Name", STARTUP_SERVICE], ignore_errors=True),
+        )
+        if state == STARTUP_READY:
             break
+        if state == STARTUP_FAILED:
+            raise RuntimeError(f"Startup failed on the Windows runner.{startup_log_tail(instance)}")
         print("Waiting for startup to complete")
         time.sleep(5)
     else:
-        log_tail = exec_remote(instance, ["Get-Content", "-Tail", "40", STARTUP_LOG], ignore_errors=True)
-        raise RuntimeError(f"Windows runner did not finish starting up. Last of {STARTUP_LOG}:\n{log_tail}")
+        raise RuntimeError(f"Windows runner did not finish starting up.{startup_log_tail(instance)}")
 
     print("Windows runner started OK")
 
