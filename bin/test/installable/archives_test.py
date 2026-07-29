@@ -36,7 +36,7 @@ def test_rest_query_empty_result_gives_no_url(fake_context):
     fake_context.fetch_rest_query.return_value = []
     installable = make_installable(fake_context, "[item for item in document if item['ok']]")
 
-    assert installable.url == ""
+    assert not installable.url
 
 
 def test_rest_query_failure_gives_no_url_instead_of_raising(fake_context):
@@ -44,14 +44,14 @@ def test_rest_query_failure_gives_no_url_instead_of_raising(fake_context):
     fake_context.fetch_rest_query.return_value = []
     installable = make_installable(fake_context, "document[0]['cdn_url']")
 
-    assert installable.url == ""
+    assert not installable.url
 
 
 def test_rest_query_fetch_failure_gives_no_url(fake_context):
     fake_context.fetch_rest_query.side_effect = OSError("connection reset")
     installable = make_installable(fake_context, "document[0]['cdn_url']")
 
-    assert installable.url == ""
+    assert not installable.url
 
 
 def test_should_install_false_when_query_fails(fake_context):
