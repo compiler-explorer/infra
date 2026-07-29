@@ -151,8 +151,12 @@ The following installer types are available, each with specific required and opt
 | `cratesio` | Installs a Rust crate from crates.io | `check_exe` or `check_file` | `dir` |
 | `non-free-s3tarballs` | Downloads and extracts a non-free tarball from S3 | `check_exe` or `check_file` | `dir`, `s3_path_prefix` |
 | `edg` | Installs an EDG compiler (very special-case) | `check_exe` or `check_file` | `dir` |
-| `restQueryTarballs` | Downloads tarball using REST API information | `check_exe` or `check_file`, `url` | `dir` |
+| `restQueryTarballs` | Downloads tarball using REST API information | `check_exe` or `check_file`, `url`, `query` | `dir` |
 | `go` | Installs a Go compiler and automatically builds the standard library | `check_exe` or `check_file` | `dir`, `build_stdlib`, `build_stdlib_archs` |
+
+For `restQueryTarballs`, `url` is fetched and `query` is a Python expression evaluated against the parsed
+response as `document`, yielding the tarball URL. If the fetch or the query fails, or the query yields nothing,
+the target is logged and skipped rather than failing the run; an explicit install of such a target errors out.
 
 ## GitHub/GitLab/Bitbucket Repository Properties
 
