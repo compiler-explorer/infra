@@ -404,6 +404,11 @@ build_timeout = 1200
 conanserver_url = "https://conan.compiler-explorer.com"
 
 
+def is_nvhpc_compiler(exe: str) -> bool:
+    """The nvhpc compilers have no compilerType of their own, so identify them by executable name."""
+    return os.path.basename(exe) in ("nvc", "nvc++", "nvc.exe", "nvc++.exe")
+
+
 @contextlib.contextmanager
 def open_script(script: Path) -> Generator[TextIO, None, None]:
     with script.open("w", encoding="utf-8") as f:
@@ -578,7 +583,10 @@ class LibraryBuilder:
 
     def getDefaultTargetFromCompiler(self, exe):
         try:
-            return subprocess.check_output([exe, "-dumpmachine"]).decode("utf-8", "ignore").strip()
+            # Compilers that don't know -dumpmachine (e.g. nvc) complain on stderr; we only care
+            # whether we got a triple back.
+            output = subprocess.check_output([exe, "-dumpmachine"], stderr=subprocess.DEVNULL)
+            return output.decode("utf-8", "ignore").strip()
         except:  # noqa: E722
             return False
 
@@ -774,7 +782,9 @@ class LibraryBuilder:
                 elif compilerexe.endswith("g++"):
                     compilerexecc = f"{compilerexecc}cc"
                 elif compilerType == "edg":
-                    compilerexecc = compilerexe
+                    # EDG only accepts C++; leave CC unset so CMake finds a working system C compiler
+                    # instead of failing its "can the compiler compile a simple C program" check.
+                    compilerexecc = ""
 
             elif self.platform == LibraryPlatform.Windows:
                 compilerexecc = compilerexe.replace("++.exe", "")
@@ -783,7 +793,7 @@ class LibraryBuilder:
                 elif compilerexe.endswith("g++.exe"):
                     compilerexecc = f"{compilerexecc}cc.exe"
                 elif compilerType == "edg":
-                    compilerexecc = compilerexe
+                    compilerexecc = ""
                 else:
                     if not compilerexecc.endswith(".exe"):
                         compilerexecc = compilerexecc + ".exe"
@@ -808,7 +818,8 @@ class LibraryBuilder:
                         f.write(self.script_env("CXX", os.path.join(host_bindir, "g++")))
                     f.write(self.script_env("CUDACXX", compilerexe))
             else:
-                f.write(self.script_env("CC", compilerexecc))
+                if compilerexecc:
+                    f.write(self.script_env("CC", compilerexecc))
                 f.write(self.script_env("CXX", compilerexe))
 
             is_msvc = compilerType == "win32-vc"
@@ -869,7 +880,7 @@ class LibraryBuilder:
             if target:
                 triplearr = target.split("-")
             else:
-                if not is_msvc:
+                if not is_msvc and compilerexecc:
                     target = self.getDefaultTargetFromCompiler(compilerexecc)
                     if target:
                         triplearr = target.strip().split("-")
@@ -948,11 +959,17 @@ class LibraryBuilder:
                 ]
 
                 if self.platform == LibraryPlatform.Windows:
-                    expanded_cmake_args = expanded_cmake_args + ["-D", f'"CMAKE_C_COMPILER={compilerexecc}"']
+                    if compilerexecc:
+                        expanded_cmake_args = expanded_cmake_args + ["-D", f'"CMAKE_C_COMPILER={compilerexecc}"']
                     expanded_cmake_args = expanded_cmake_args + ["-D", f'"CMAKE_CXX_COMPILER={compilerexe}"']
 
                 extracmakeargs = " ".join(expanded_cmake_args)
-                if compilerTypeOrGcc == "clang" and "--gcc-toolchain=" not in compileroptions:
+                # CMake turns EXTERNAL_TOOLCHAIN into --gcc-toolchain= for clang and nvhpc. Both locate
+                # their own gcc -- nvhpc's is baked into its localrc by makelocalrc at install time --
+                # and the toolchain we derive for nvc++ is its own install root, which holds no gcc.
+                # Only pass one when the compiler options name a specific one.
+                picks_own_gcc = compilerTypeOrGcc == "clang" or is_nvhpc_compiler(compilerexe)
+                if picks_own_gcc and "--gcc-toolchain=" not in compileroptions:
                     toolchainparam = ""
                 else:
                     toolchainparam = f'"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}"'
