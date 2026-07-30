@@ -23,7 +23,7 @@ resource "aws_lambda_function" "explain" {
   function_name = "explain"
   role          = aws_iam_role.iam_for_lambda.arn # TODO separate role?
   timeout       = 60
-  memory_size   = 256
+  memory_size   = 512
 
   depends_on = [aws_cloudwatch_log_group.explain]
 
