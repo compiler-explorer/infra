@@ -12,7 +12,9 @@ jobs:
     runs-on: [ 'self-hosted', 'ce', 'linux', 'x64', 'small' ]
     steps:
       - name: Clean workspace
-        run: find "$GITHUB_WORKSPACE" -mindepth 1 -delete
+        # ce_install runs under sudo and leaves root-owned __pycache__ behind, which a
+        # non-sudo clean can't remove, breaking the next run on that runner.
+        run: sudo find "${GITHUB_WORKSPACE:?}" -mindepth 1 -delete
       - uses: actions/checkout@v7
       - name: Set up environment
         run: make ce
