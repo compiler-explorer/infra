@@ -1380,14 +1380,14 @@ compilers:
       dir: "ti-cgt-msp430_{{name}}"
       check_exe: bin/cl430 -version
       fetch_user_agent: "curl/8.0.1"
+      fetch:
+        - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-p4jWEYpR8n/{{name}}/ti_cgt_msp430_{{name}}_linux-x64_installer.bin installer.bin
+      script: &ti-install-script |
+        chmod +x installer.bin
+        ./installer.bin --unattendedmodeui none --mode unattended --prefix .
+        rm installer.bin {{dir}}/*.log {{dir}}/*.run {{dir}}/*.dat
       targets:
-        - name: 21.6.1.LTS
-          fetch:
-            - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-p4jWEYpR8n/{{name}}/ti_cgt_msp430_{{name}}_linux-x64_installer.bin installer.bin
-          script: &ti-install-script |
-            chmod +x installer.bin
-            ./installer.bin --unattendedmodeui none --mode unattended --prefix .
-            rm installer.bin {{dir}}/*.log {{dir}}/*.run {{dir}}/*.dat
+        - 21.6.1.LTS
     c29clang:
       type: script
       dir: "ti-cgt-c29_{{name}}"
@@ -1395,20 +1395,17 @@ compilers:
       fetch_user_agent: "curl/8.0.1"
       fetch:
         - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-CIrrlYTTGZ/{{name}}/ti_cgt_c29_{{name}}_linux-x64_installer.bin installer.bin
+      script: *ti-install-script
       targets:
-        - name: 2.2.1.LTS
-          script: *ti-install-script
-        - name: 2.2.0.LTS
-          script: *ti-install-script
-        - name: 1.0.2.LTS
-          script: *ti-install-script
-        - name: 1.0.1.LTS
-          script: *ti-install-script
+        - 2.2.1.LTS
+        - 2.2.0.LTS
+        - 1.0.2.LTS
+        - 1.0.1.LTS
+        # Upstream dropped the dot before LTS in this one release's directory and installer name.
         - name: 1.0.0.LTS
           dir: "ti-cgt-c29_1.0.0LTS"
           fetch:
             - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-CIrrlYTTGZ/{{name}}/ti_cgt_c29_1.0.0LTS_linux-x64_installer.bin installer.bin
-          script: *ti-install-script
     tiarmclang:
       type: script
       dir: "ti-cgt-armllvm_{{name}}"
@@ -1416,43 +1413,26 @@ compilers:
       fetch_user_agent: "curl/8.0.1"
       fetch:
         - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-ayxs93eZNN/{{name}}/ti_cgt_armllvm_{{name}}_linux-x64_installer.bin installer.bin
+      script: *ti-install-script
       targets:
-        - name: 5.1.1.LTS
-          script: *ti-install-script
-        - name: 5.1.0.LTS
-          script: *ti-install-script
-        - name: 4.0.5.LTS
-          script: *ti-install-script
-        - name: 4.0.4.LTS
-          script: *ti-install-script
-        - name: 4.0.3.LTS
-          script: *ti-install-script
-        - name: 4.0.2.LTS
-          script: *ti-install-script
-        - name: 4.0.1.LTS
-          script: *ti-install-script
-        - name: 4.0.0.LTS
-          script: *ti-install-script
-        - name: 3.2.3.LTS
-          script: *ti-install-script
-        - name: 3.2.2.LTS
-          script: *ti-install-script
-        - name: 3.2.1.LTS
-          script: *ti-install-script
-        - name: 3.2.0.LTS
-          script: *ti-install-script
-        - name: 2.1.3.LTS
-          script: *ti-install-script
-        - name: 2.1.2.LTS
-          script: *ti-install-script
-        - name: 2.1.1.LTS
-          script: *ti-install-script
-        - name: 2.1.0.LTS
-          script: *ti-install-script
-        - name: 1.3.1.LTS
-          script: *ti-install-script
-        - name: 1.3.0.LTS
-          script: *ti-install-script
+        - 5.1.1.LTS
+        - 5.1.0.LTS
+        - 4.0.5.LTS
+        - 4.0.4.LTS
+        - 4.0.3.LTS
+        - 4.0.2.LTS
+        - 4.0.1.LTS
+        - 4.0.0.LTS
+        - 3.2.3.LTS
+        - 3.2.2.LTS
+        - 3.2.1.LTS
+        - 3.2.0.LTS
+        - 2.1.3.LTS
+        - 2.1.2.LTS
+        - 2.1.1.LTS
+        - 2.1.0.LTS
+        - 1.3.1.LTS
+        - 1.3.0.LTS
     intel-cpp:
       type: script
       dir: "intel-cpp-{{name}}"
