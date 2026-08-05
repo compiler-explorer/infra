@@ -40,6 +40,7 @@ apt-get -y install \
     cmake \
     ninja-build \
     elfutils \
+    bubblewrap \
     python-is-python3 \
     python3-pip \
     python3-venv \
