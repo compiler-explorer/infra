@@ -1439,133 +1439,108 @@ compilers:
       check_exe: compiler/latest/linux/bin/intel64/icc -V
       check_stderr_on_stdout: true
       script_filename: install.sh
+      script: |
+        rm -Rf ~/.intel
+        rm -Rf ~/intel
+        rm -Rf /var/intel/installercache
+        bash {{script_filename}} -s -a -s --action install --eula accept --install-dir $CE_STAGING_DIR/{{dir}}
+        rm -Rf ~/.intel
+        rm -Rf ~/intel
+        rm -Rf /var/intel/installercache
       targets:
         - name: 2021.1.2.63
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/17513/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: &intel-one-install-script |
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-            bash {{script_filename}} -s -a -s --action install --eula accept --install-dir $CE_STAGING_DIR/{{dir}}
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
         - name: 2021.2.0.118
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/17749/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2021.3.0.3168
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/17928/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2021.4.0.3201
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18209/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2022.0.1.71
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18435/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2022.1.0.137
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18717/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2022.2.0.8772
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18849/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2022.2.1.16991
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/19049/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2023.0.0.25393
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/19123/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2023.1.0.46347
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/89283df8-c667-47b0-b7e1-c4573e37bd3e/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2023.2.1.8
           fetch:
             - https://registrationcenter-download.intel.com/akdlm//IRC_NAS/ebf5d9aa-17a7-46a4-b5df-ace004227c0e/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2024.0.0.49524
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/5c8e686a-16a7-4866-b585-9cf09e97ef36/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2024.1.0.468
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/2e562b6e-5d0f-4001-8121-350a828332fb/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2024.2.0.495
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/6780ac84-6256-4b59-a647-330eb65f32b6/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2024.2.1.79
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/74587994-3c83-48fd-b963-b707521a63f4/l_dpcpp-cpp-compiler_p_{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2025.0.0.740
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ac92f2bb-4818-4e53-a432-f8b34d502f23/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2025.0.1.46
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/4fd7c6b0-853f-458a-a8ec-421ab50a80a6/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2025.0.3.9
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1cac4f39-2032-4aa9-86d7-e4f3e40e4277/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2025.0.4.20
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/84c039b6-2b7d-4544-a745-3fcf8afd643f/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2025.1.0.573
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/cd63be99-88b0-4981-bea1-2034fe17f5cf/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2025.1.1.9
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/c4d2aef3-3123-475e-800c-7d66fd8da2a5/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2025.2.0.527
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/39c79383-66bf-4f44-a6dd-14366e34e255/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2025.2.1.7
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/04c5fd98-57e6-4a4b-be4d-e84de3aea45a/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2025.3.0.322
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/44809add-596f-4484-9cd1-cc032460e241/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2025.3.1.16
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/5adfc398-db78-488c-b98f-78461b3c5760/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
         - name: 2026.0.0.564
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/e2f4cda3-8891-4d0e-bf60-00d19c4e3e27/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
-          script: *intel-one-install-script
 
     nvhpc-sdk:
       type: script
