@@ -38,6 +38,7 @@ apt-get install -y \
     libnl-route-3-dev \
     libpciaccess0 \
     libprotobuf-dev \
+    libstdc++6:i386 \
     libwww-perl \
     linux-libc-dev \
     make \
