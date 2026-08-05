@@ -274,12 +274,23 @@ Build-time variable expansion is available in `prebuild_script` and
 
 | Variable | Description |
 |---|---|
-| `%compiler%` | Compiler executable path |
+| `%compiler%` | Compiler id, e.g. `g142`. This is what the Conan download endpoints expect. |
+| `%compilerexe%` | Compiler executable path |
+| `%compilerTypeOrGcc%` | Compiler family, e.g. `gcc`, `clang` |
 | `%arch%` | Target architecture |
 | `%libcxx%` | C++ standard library |
 | `%stdver%` | C++ standard version |
+| `%buildos%` | Build OS (`Linux` or `Windows`) |
 | `%buildtype%` | Build configuration (Release/Debug) |
-| `%DEP0%`, `%DEP1%`, ... | Install paths of entries in `depends` list |
+| `%extraflags%` | Extra flags collection for this build |
+
+Writing a variable as `%name?%` makes the whole line conditional: if the value is
+empty, the line is dropped from the generated build script instead of expanding
+to nothing.
+
+`%DEP0%`, `%DEP1%`, ... (install paths of entries in `depends`) are *not*
+available here. They are substituted at installable level, in `after_stage_script`,
+`check_file`, `check_call` and `check_env`.
 
 ### Miscellaneous Build Properties
 
