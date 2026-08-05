@@ -29,6 +29,62 @@ tools:
       check_exe: bin/cmake --help
       targets:
         - 3.29.20240506-g1ea8fa8
+  maven:
+    type: tarballs
+    compression: gz
+    url: https://archive.apache.org/dist/maven/maven-3/{{name}}/binaries/apache-maven-{{name}}-bin.tar.gz
+    dir: maven-{{name}}
+    untar_dir: apache-maven-{{name}}
+    # Needed to run maven during the install below; at build time the JDK is whichever the user picked.
+    depends:
+      - compilers/java 21.0.2
+    # Maven cannot do anything without its plugins, and build nodes have no network to fetch them: even a hello world
+    # needs the resources, compiler and jar plugins. So prime a repository here, while we still have a network, by
+    # running each plugin against a throwaway project -- a plugin only downloads what it needs when actually invoked.
+    # Builds then point maven.repo.local at it; it is only read, so all compilations share this one copy.
+    after_stage_script:
+      - |
+        # This runs in the staging root, with the unpacked maven one level down.
+        MVN_DIR="apache-maven-{{name}}"
+        REPO="$(pwd)/$MVN_DIR/repository"
+        MVN="$(pwd)/$MVN_DIR/bin/mvn"
+        export JAVA_HOME=%DEP0%
+        mkdir -p ce-prime/src/main/java
+        cat > ce-prime/pom.xml <<'POM'
+        <project xmlns="http://maven.apache.org/POM/4.0.0">
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>org.compiler-explorer</groupId>
+          <artifactId>prime</artifactId>
+          <version>1.0</version>
+          <build><plugins>
+            <plugin><groupId>org.codehaus.mojo</groupId><artifactId>exec-maven-plugin</artifactId><version>3.5.0</version></plugin>
+            <plugin><groupId>org.codehaus.mojo</groupId><artifactId>build-helper-maven-plugin</artifactId><version>3.6.0</version></plugin>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-checkstyle-plugin</artifactId><version>3.6.0</version></plugin>
+            <plugin><groupId>com.diffplug.spotless</groupId><artifactId>spotless-maven-plugin</artifactId><version>2.44.4</version></plugin>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-javadoc-plugin</artifactId><version>3.11.2</version></plugin>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-source-plugin</artifactId><version>3.3.1</version></plugin>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><version>3.8.1</version></plugin>
+            <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-antrun-plugin</artifactId><version>3.1.0</version></plugin>
+          </plugins></build>
+        </project>
+        POM
+        echo 'public class Prime { public static void main(String[] a) { System.out.println(1); } }' > ce-prime/src/main/java/Prime.java
+        cd ce-prime
+        # Independently, and never failing: a plugin that stops the chain leaves everything after it unfetched, and
+        # some of these exit non-zero by design (checkstyle on a style violation) while still having fetched fine.
+        for goal in "clean install" "javadoc:jar" "source:jar" "exec:java -Dexec.mainClass=Prime" \
+                    "spotless:check" "checkstyle:check" "antrun:run" "build-helper:add-source" "dependency:list"; do
+          "$MVN" -B -q --fail-never -Dmaven.repo.local="$REPO" $goal || true
+        done
+        # Priming is best-effort above, so prove the result actually serves an offline build before shipping it.
+        "$MVN" -o -B -Dmaven.repo.local="$REPO" clean package
+        cd ..
+        rm -rf ce-prime
+    # Anchored in the primed repository rather than on bin/mvn, so an install predating the priming is redone.
+    check_file: repository/org/apache/maven/plugins/maven-jar-plugin/3.5.0/maven-jar-plugin-3.5.0.jar
+    targets:
+      - name: 3.9.16
+        symlink: maven  # The one distinguished maven we use for "maven" on the site
   ninja:
     type: ziparchive
     extract_into_folder: true
