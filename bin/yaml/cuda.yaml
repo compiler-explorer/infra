@@ -109,3 +109,4 @@ compilers:
       untar_dir: scale-{{name}}-Linux
       targets:
         - 1.7.1
+        - 1.7.2
