@@ -20,8 +20,17 @@ if [ "$LIBRARYTOBUILD" != "all" ]; then
   LIBRARYPARAM="libraries/$LANGUAGE/$LIBRARYTOBUILD"
 fi
 
-PYENV_ROOT="/root/.pyenv"
+PYENV_ROOT="/opt/pyenv"
 PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PYENV_ROOT/versions/3.10.16/bin:/home/ubuntu/.local/bin:/opt/compiler-explorer/cmake/bin:$PATH"
+
+# conan 1.59 pins PyYAML<=6.0, which has no wheel for the 3.12 that Ubuntu
+# 24.04 ships, so the build must run on pyenv's 3.10. Fail loudly rather than
+# falling through to the system python, which is how this broke silently
+# before: pyenv lived under /root and was unreadable to the ubuntu user.
+if ! command -v python >/dev/null || [[ "$(command -v python)" != "$PYENV_ROOT"/* ]]; then
+  echo "Expected python from $PYENV_ROOT, got '$(command -v python || echo none)'" >&2
+  exit 1
+fi
 
 git config --global --add safe.directory '*'
 
