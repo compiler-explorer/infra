@@ -40,6 +40,18 @@ def old_deploy_staticfiles(branch: str | None, versionfile: str) -> None:
     subprocess.call(["rm", "-Rf", "deploy"])
 
 
+def print_missing_version_hint(cfg: Config) -> None:
+    """Explain a version that exists on Linux but not here.
+
+    Windows deploys a separate zip built by its own workflow, so a build number that has been
+    through the normal pipeline is still unknown to a Windows environment until that runs.
+    """
+    if not cfg.env.is_windows:
+        return
+    print("Windows builds come from their own workflow, so a build number that exists elsewhere")
+    print("is unknown here until it has run. Build it with: ce workflows deploy-win <buildnumber>")
+
+
 def deploy_staticfiles_windows(release: Release, ignore_hash_mismatch: bool = False) -> bool:
     """Deploy static files to CDN for Windows."""
     print("Deploying static files to cdn (Windows)")
@@ -106,11 +118,7 @@ def check_compiler_discovery(cfg: Config, version: str, branch: str | None = Non
             return None
 
     # Check compiler discovery
-    if (
-        cfg.env.value not in ("runner", "gpu-runner")
-        and not cfg.env.is_windows
-        and not runner_discoveryexists(cfg.env.value, str(release.version))
-    ):
+    if cfg.env.discovery_required and not runner_discoveryexists(cfg.env.value, str(release.version)):
         raise RuntimeError(f"Compiler discovery has not run for {cfg.env.value}/{release.version}")
 
     return release

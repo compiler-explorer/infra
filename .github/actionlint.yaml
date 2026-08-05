@@ -1,0 +1,19 @@
+self-hosted-runner:
+  # Labels of our self-hosted runners (see the ce-ci repository), plus the
+  # admin node which is registered as a repo runner directly.
+  labels:
+    - ce
+    - small
+    - medium
+    - admin
+    - lin-builder
+    - win-builder
+
+# Enforce shellcheck errors and warnings in embedded run: scripts, but not
+# info/style — matching the shellcheck pre-commit hook's severity gating.
+paths:
+  .github/workflows/**/*.yml:
+    ignore: &shellcheck-info-style
+      - 'shellcheck reported issue in this script: SC\d+:(info|style):'
+  .github/workflows/**/*.yaml:
+    ignore: *shellcheck-info-style

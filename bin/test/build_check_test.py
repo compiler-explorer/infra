@@ -300,6 +300,21 @@ class TestBuildParams:
         assert "-f image=clad" in cmd
         assert "-f version=2.1-clang-21.1.0" in cmd
 
+    def test_get_build_command_quotes_cross_version(self):
+        """Cross-compiler versions contain a space and must be shell-quoted so the
+        whole "arch version" reaches the workflow rather than being word-split."""
+        addition = Addition(
+            yaml_file="cpp.yaml",
+            context=["compilers", "c++", "cross", "gcc", "msp430"],
+            target="14.4.0",
+            installer_type="s3tarballs",
+        )
+        available_images = {"gcc", "gcc-cross", "clang"}
+        cmd = addition.get_build_command(available_images)
+        assert cmd is not None
+        assert "-f image=gcc-cross" in cmd
+        assert "-f 'version=msp430 14.4.0'" in cmd
+
     def test_get_build_params_prefers_compound_image(self):
         """Test that gcc-cross is matched for cross-compiler context with arch in version."""
         addition = Addition(

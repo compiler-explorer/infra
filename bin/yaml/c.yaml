@@ -71,6 +71,7 @@ compilers:
         - 4.3.0
         - 4.4.0
         - 4.5.0
+        - 4.6.0
     z88dk:
       type: s3tarballs
       check_exe: bin/zcc -h

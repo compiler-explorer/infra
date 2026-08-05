@@ -26,10 +26,16 @@ def discovery_exists(environment: str, version: str) -> bool:
 
 
 def copy_discovery_to_prod(source_environment: str, version: str) -> bool:
-    """Copy discovery file from source environment to prod, making it safe for production.
+    """Copy a discovery file from source environment to prod, making it safe for production."""
+    return copy_discovery(source_environment, "prod", version)
+
+
+def copy_discovery(source_environment: str, dest_environment: str, version: str) -> bool:
+    """Copy a discovery file between environments, making it safe for the destination.
 
     Args:
-        source_environment: Source environment (e.g., "staging", "beta")
+        source_environment: Source environment (e.g., "staging", "beta", "winstaging")
+        dest_environment: Destination environment (e.g., "prod", "winprod")
         version: Version string
 
     Returns:
@@ -40,7 +46,7 @@ def copy_discovery_to_prod(source_environment: str, version: str) -> bool:
     """
     s3_client = boto3.client("s3")
     source_key = s3_key_for_discovery(source_environment, version)
-    prod_key = s3_key_for_discovery("prod", version)
+    prod_key = s3_key_for_discovery(dest_environment, version)
 
     # S3 configuration for discovery files
     s3_config = {"ACL": "public-read", "StorageClass": "REDUCED_REDUNDANCY"}
@@ -49,8 +55,8 @@ def copy_discovery_to_prod(source_environment: str, version: str) -> bool:
         # Check if source discovery exists
         s3_client.head_object(Bucket="compiler-explorer", Key=source_key)
 
-        # Copy from source to prod
-        print(f"Copying discovery file from {source_environment} to prod for version {version}")
+        # Copy from source to destination
+        print(f"Copying discovery file from {source_environment} to {dest_environment} for version {version}")
         s3_client.copy_object(
             Bucket="compiler-explorer",
             CopySource={"Bucket": "compiler-explorer", "Key": source_key},

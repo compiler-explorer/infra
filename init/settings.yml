@@ -45,6 +45,12 @@ compiler:
     nvcc:
         version: ANY
         libcxx: ANY
+    scale-nvcc-nvidia:
+        version: ANY
+        libcxx: ANY
+    scale-nvcc-amd:
+        version: ANY
+        libcxx: ANY
     fortran:
         version: ANY
         libcxx: ANY

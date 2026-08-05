@@ -71,7 +71,7 @@ class TestHandleProdMissingDiscovery(unittest.TestCase):
             return BlueGreenDeployment(cfg)
 
     @patch("lib.blue_green_deploy.get_release_without_discovery_check")
-    @patch("lib.blue_green_deploy.copy_discovery_to_prod")
+    @patch("lib.blue_green_deploy.copy_discovery")
     @patch("lib.blue_green_deploy.check_compiler_discovery")
     @patch("lib.blue_green_deploy.discovery_exists")
     @patch("builtins.input", return_value="1")
@@ -88,13 +88,13 @@ class TestHandleProdMissingDiscovery(unittest.TestCase):
         result = deploy._handle_prod_missing_discovery(RuntimeError("no discovery"), "gh-123", None)
 
         assert result is not None
-        mock_copy.assert_called_once_with("staging", "gh-123")
+        mock_copy.assert_called_once_with("staging", "prod", "gh-123")
         calls = [call[0][0] for call in mock_print.call_args_list]
         assert any("Staging discovery IS available" in c for c in calls)
         assert any("Copy discovery from staging (recommended)" in c for c in calls)
 
     @patch("lib.blue_green_deploy.get_release_without_discovery_check")
-    @patch("lib.blue_green_deploy.copy_discovery_to_prod")
+    @patch("lib.blue_green_deploy.copy_discovery")
     @patch("lib.blue_green_deploy.check_compiler_discovery")
     @patch("lib.blue_green_deploy.discovery_exists")
     @patch("builtins.input", return_value="1")
@@ -109,7 +109,7 @@ class TestHandleProdMissingDiscovery(unittest.TestCase):
 
         deploy._handle_prod_missing_discovery(RuntimeError("no discovery"), "gh-123", None)
 
-        mock_copy.assert_called_once_with("beta", "gh-123")
+        mock_copy.assert_called_once_with("beta", "prod", "gh-123")
         calls = [call[0][0] for call in mock_print.call_args_list]
         assert any("Beta discovery IS available" in c for c in calls)
         assert any("Copy discovery from beta" in c for c in calls)
@@ -192,7 +192,7 @@ class TestCopyAndCheckDiscovery(unittest.TestCase):
             return BlueGreenDeployment(cfg)
 
     @patch("lib.blue_green_deploy.check_compiler_discovery")
-    @patch("lib.blue_green_deploy.copy_discovery_to_prod")
+    @patch("lib.blue_green_deploy.copy_discovery")
     @patch("builtins.print")
     def test_copy_success_check_passes(self, _mock_print, mock_copy, mock_check):
         """Copy succeeds and re-check passes: returns release from check."""
@@ -207,7 +207,7 @@ class TestCopyAndCheckDiscovery(unittest.TestCase):
 
     @patch("lib.blue_green_deploy.get_release_without_discovery_check")
     @patch("lib.blue_green_deploy.check_compiler_discovery")
-    @patch("lib.blue_green_deploy.copy_discovery_to_prod")
+    @patch("lib.blue_green_deploy.copy_discovery")
     @patch("builtins.print")
     def test_copy_success_check_fails(self, _mock_print, mock_copy, mock_check, mock_get):
         """Copy succeeds but re-check fails: falls back to get_release_without_discovery_check."""
@@ -222,10 +222,10 @@ class TestCopyAndCheckDiscovery(unittest.TestCase):
         assert result is expected_release
 
     @patch("lib.blue_green_deploy.get_release_without_discovery_check")
-    @patch("lib.blue_green_deploy.copy_discovery_to_prod")
+    @patch("lib.blue_green_deploy.copy_discovery")
     @patch("builtins.print")
     def test_copy_returns_false(self, _mock_print, mock_copy, mock_get):
-        """copy_discovery_to_prod returns False: falls back to get_release_without_discovery_check."""
+        """copy_discovery returns False: falls back to get_release_without_discovery_check."""
         mock_copy.return_value = False
         expected_release = MagicMock()
         mock_get.return_value = expected_release

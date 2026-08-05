@@ -4,8 +4,15 @@ compilers:
     compression: gz
     url: https://github.com/rems-project/sail/releases/download/{{name}}-linux-binary/sail.tar.gz
     check_exe: bin/sail --version
+    check_env:
+      - PATH=%PATH%/bin:/usr/bin:/bin
     dir: sail-{{name}}
     strip_components: 1
     create_untar_dir: true
     targets:
+      # 0.20.x changed its release: tag suffix is "-binary" (not "-linux-binary") and the
+      # asset is sail-Linux-x86_64.tar.gz (not sail.tar.gz), so override the URL for it.
+      - name: "0.20.2"
+        url: https://github.com/rems-project/sail/releases/download/{{name}}-binary/sail-Linux-x86_64.tar.gz
+      - "0.19.1"
       - "0.18"

@@ -65,19 +65,30 @@ _SSH_COMMAND = [
     "-oLogLevel=ERROR",
 ]
 
+DEFAULT_SSH_USER = "ubuntu"
+
+
+def ssh_user_for(instance) -> str:
+    """The login user for an instance; Windows instances override this with an admin user."""
+    return getattr(instance, "ssh_user", DEFAULT_SSH_USER)
+
+
+def ssh_target_for(instance) -> str:
+    return f"{ssh_user_for(instance)}@{ssh_address_for(instance)}"
+
 
 def run_remote_shell(instance, use_mosh: bool = False):
     logger.debug("Running remote shell on %s", instance)
     ssh_command = shlex.join(_SSH_COMMAND)
     if use_mosh:
         ssh_command = f"mosh --ssh='{ssh_command}'"
-    os.system(f"{ssh_command} ubuntu@{ssh_address_for(instance)}")
+    os.system(f"{ssh_command} {ssh_target_for(instance)}")
 
 
 def exec_remote(instance, command, ignore_errors: bool = False):
     command = shlex.join(command)
     logger.debug("Running '%s' on %s", command, instance)
-    ssh_command = _SSH_COMMAND + [f"ubuntu@{ssh_address_for(instance)}", command]
+    ssh_command = _SSH_COMMAND + [ssh_target_for(instance), command]
     with subprocess.Popen(
         args=ssh_command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
     ) as ssh_process:
@@ -94,7 +105,7 @@ def exec_remote(instance, command, ignore_errors: bool = False):
 def exec_remote_to_stdout(instance, command):
     command = shlex.join(command)
     logger.debug("Running '%s' on %s", command, instance)
-    ssh_command = _SSH_COMMAND + [f"ubuntu@{ssh_address_for(instance)}", command]
+    ssh_command = _SSH_COMMAND + [ssh_target_for(instance), command]
     with subprocess.Popen(args=ssh_command, stdin=subprocess.DEVNULL) as ssh_process:
         ssh_process.wait()
     status = ssh_process.returncode
@@ -112,7 +123,11 @@ def ssh_client_for(instance) -> paramiko.SSHClient:
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(
-        hostname=ssh_address_for(instance), username="ubuntu", timeout=0.2, banner_timeout=0.2, auth_timeout=0.2
+        hostname=ssh_address_for(instance),
+        username=ssh_user_for(instance),
+        timeout=0.2,
+        banner_timeout=0.2,
+        auth_timeout=0.2,
     )
     return client
 

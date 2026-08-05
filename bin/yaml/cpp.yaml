@@ -103,11 +103,15 @@ compilers:
           - assertions-14.2.0
           - 14.3.0
           - assertions-14.3.0
+          - 14.4.0
+          - assertions-14.4.0
           - 15.1.0
           - assertions-15.1.0
           - 15.2.0
-          - 16.1.0
           - assertions-15.2.0
+          - 15.3.0
+          - assertions-15.3.0
+          - 16.1.0
           - assertions-16.1.0
     cross:
       type: s3tarballs
@@ -1206,6 +1210,8 @@ compilers:
           - 7.1.0
           - 7.1.1
           - 7.2.0
+          - 7.2.1
+          - 7.14.0
     aocc:
       - type: tarballs
         check_exe: bin/clang++ --version
@@ -1294,6 +1300,10 @@ compilers:
             edg_version: '6.8'
             depends:
               - compilers/c++/x86/gcc 15.2.0
+          - name: 6.9-default-16
+            edg_version: '6.9'
+            depends:
+              - compilers/c++/x86/gcc 16.1.0
       gcc:
         compiler_type: gcc
         macro_output_dir: base/lib
@@ -1318,6 +1328,11 @@ compilers:
             macro_gen: edg-compiler/make_predef_macro_table_v1
             depends:
               - compilers/c++/x86/gcc 15.2.0
+          - name: 6.9-gcc-16
+            edg_version: '6.9'
+            macro_gen: edg-compiler/make_predef_macro_table_v1
+            depends:
+              - compilers/c++/x86/gcc 16.1.0
           - name: gcc-experimental-reflection
             edg_version: 'experimental-reflection'
             macro_gen: edg-compiler/make_predef_macro_table_v1
@@ -1364,14 +1379,60 @@ compilers:
       type: script
       dir: "ti-cgt-msp430_{{name}}"
       check_exe: bin/cl430 -version
+      fetch_user_agent: "curl/8.0.1"
+      fetch:
+        - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-p4jWEYpR8n/{{name}}/ti_cgt_msp430_{{name}}_linux-x64_installer.bin installer.bin
+      script: &ti-install-script |
+        chmod +x installer.bin
+        ./installer.bin --unattendedmodeui none --mode unattended --prefix .
+        rm installer.bin {{dir}}/*.log {{dir}}/*.run {{dir}}/*.dat
       targets:
-        - name: 21.6.1.LTS
+        - 21.6.1.LTS
+    c29clang:
+      type: script
+      dir: "ti-cgt-c29_{{name}}"
+      check_exe: bin/c29clang --version
+      fetch_user_agent: "curl/8.0.1"
+      fetch:
+        - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-CIrrlYTTGZ/{{name}}/ti_cgt_c29_{{name}}_linux-x64_installer.bin installer.bin
+      script: *ti-install-script
+      targets:
+        - 2.2.1.LTS
+        - 2.2.0.LTS
+        - 1.0.2.LTS
+        - 1.0.1.LTS
+        # Upstream dropped the dot before LTS in this one release's directory and installer name.
+        - name: 1.0.0.LTS
+          dir: "ti-cgt-c29_1.0.0LTS"
           fetch:
-            - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-p4jWEYpR8n/{{name}}/ti_cgt_msp430_{{name}}_linux-x64_installer.bin installer.bin
-          script: |
-            chmod +x installer.bin
-            ./installer.bin --unattendedmodeui none --mode unattended --prefix .
-            rm installer.bin {{dir}}/*.log {{dir}}/*.run {{dir}}/*.dat
+            - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-CIrrlYTTGZ/{{name}}/ti_cgt_c29_1.0.0LTS_linux-x64_installer.bin installer.bin
+    tiarmclang:
+      type: script
+      dir: "ti-cgt-armllvm_{{name}}"
+      check_exe: bin/tiarmclang --version
+      fetch_user_agent: "curl/8.0.1"
+      fetch:
+        - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-ayxs93eZNN/{{name}}/ti_cgt_armllvm_{{name}}_linux-x64_installer.bin installer.bin
+      script: *ti-install-script
+      targets:
+        - 5.1.1.LTS
+        - 5.1.0.LTS
+        - 4.0.5.LTS
+        - 4.0.4.LTS
+        - 4.0.3.LTS
+        - 4.0.2.LTS
+        - 4.0.1.LTS
+        - 4.0.0.LTS
+        - 3.2.3.LTS
+        - 3.2.2.LTS
+        - 3.2.1.LTS
+        - 3.2.0.LTS
+        - 2.1.3.LTS
+        - 2.1.2.LTS
+        - 2.1.1.LTS
+        - 2.1.0.LTS
+        - 1.3.1.LTS
+        - 1.3.0.LTS
     intel-cpp:
       type: script
       dir: "intel-cpp-{{name}}"
@@ -1540,185 +1601,39 @@ compilers:
             -g77 %DEP1%/bin/aarch64-unknown-linux-gnu-gfortran \
             ;
         fi
+      # Everything below is derived from each target's `version` and `ctk_ver`
+      # (the CUDA toolkit the SDK bundles), so a new release is a one-line addition.
+      arch: x86_64
+      name: "{{ arch }}_{{ version | replace('.', '_') }}"
+      year: "20{{ version.split('.')[0] }}"
+      dot_removed_version: "{{ version | replace('.', '') }}"
+      fetch:
+        - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
       targets:
-        - name: x86_64_22_7
-          arch: x86_64
-          version: "22.7"
-          dot_removed_version: "227"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_2022_{{dot_removed_version}}_Linux_{{arch}}_cuda_11.7.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_22_9
-          arch: x86_64
-          version: "22.9"
-          dot_removed_version: "229"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_2022_{{dot_removed_version}}_Linux_{{arch}}_cuda_11.7.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_22_11
-          arch: x86_64
-          version: "22.11"
-          dot_removed_version: "2211"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_2022_{{dot_removed_version}}_Linux_{{arch}}_cuda_11.8.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_1
-          arch: x86_64
-          version: "23.1"
-          dot_removed_version: "231"
-          year: "2023"
-          ctk_ver: "12.0"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_3
-          arch: x86_64
-          version: "23.3"
-          dot_removed_version: "233"
-          year: "2023"
-          ctk_ver: "12.0"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_5
-          arch: x86_64
-          version: "23.5"
-          dot_removed_version: "235"
-          year: "2023"
-          ctk_ver: "12.1"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_7
-          arch: x86_64
-          version: "23.7"
-          dot_removed_version: "237"
-          year: "2023"
-          ctk_ver: "12.2"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_9
-          arch: x86_64
-          version: "23.9"
-          dot_removed_version: "239"
-          year: "2023"
-          ctk_ver: "12.2"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_23_11
-          arch: x86_64
-          version: "23.11"
-          dot_removed_version: "2311"
-          year: "2023"
-          ctk_ver: "12.3"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_1
-          arch: x86_64
-          version: "24.1"
-          dot_removed_version: "241"
-          year: "2024"
-          ctk_ver: "12.3"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_3
-          arch: x86_64
-          version: "24.3"
-          dot_removed_version: "243"
-          year: "2024"
-          ctk_ver: "12.3"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_5
-          arch: x86_64
-          version: "24.5"
-          dot_removed_version: "245"
-          year: "2024"
-          ctk_ver: "12.4"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_7
-          arch: x86_64
-          version: "24.7"
-          dot_removed_version: "247"
-          year: "2024"
-          ctk_ver: "12.5"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_9
-          arch: x86_64
-          version: "24.9"
-          dot_removed_version: "249"
-          year: "2024"
-          ctk_ver: "12.6"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_24_11
-          arch: x86_64
-          version: "24.11"
-          dot_removed_version: "2411"
-          year: "2024"
-          ctk_ver: "12.6"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_1
-          arch: x86_64
-          version: "25.1"
-          dot_removed_version: "251"
-          year: "2025"
-          ctk_ver: "12.6"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_3
-          arch: x86_64
-          version: "25.3"
-          dot_removed_version: "253"
-          year: "2025"
-          ctk_ver: "12.8"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_5
-          arch: x86_64
-          version: "25.5"
-          dot_removed_version: "255"
-          year: "2025"
-          ctk_ver: "12.9"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_7
-          arch: x86_64
-          version: "25.7"
-          dot_removed_version: "257"
-          year: "2025"
-          ctk_ver: "12.9"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_9
-          arch: x86_64
-          version: "25.9"
-          dot_removed_version: "259"
-          year: "2025"
-          ctk_ver: "13.0"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_25_11
-          arch: x86_64
-          version: "25.11"
-          dot_removed_version: "2511"
-          year: "2025"
-          ctk_ver: "13.0"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_26_1
-          arch: x86_64
-          version: "26.1"
-          dot_removed_version: "261"
-          year: "2026"
-          ctk_ver: "13.1"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
-        - name: x86_64_26_3
-          arch: x86_64
-          version: "26.3"
-          dot_removed_version: "263"
-          year: "2026"
-          ctk_ver: "13.1"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
+        - {version: "22.7", ctk_ver: "11.7"}
+        - {version: "22.9", ctk_ver: "11.7"}
+        - {version: "22.11", ctk_ver: "11.8"}
+        - {version: "23.1", ctk_ver: "12.0"}
+        - {version: "23.3", ctk_ver: "12.0"}
+        - {version: "23.5", ctk_ver: "12.1"}
+        - {version: "23.7", ctk_ver: "12.2"}
+        - {version: "23.9", ctk_ver: "12.2"}
+        - {version: "23.11", ctk_ver: "12.3"}
+        - {version: "24.1", ctk_ver: "12.3"}
+        - {version: "24.3", ctk_ver: "12.3"}
+        - {version: "24.5", ctk_ver: "12.4"}
+        - {version: "24.7", ctk_ver: "12.5"}
+        - {version: "24.9", ctk_ver: "12.6"}
+        - {version: "24.11", ctk_ver: "12.6"}
+        - {version: "25.1", ctk_ver: "12.6"}
+        - {version: "25.3", ctk_ver: "12.8"}
+        - {version: "25.5", ctk_ver: "12.9"}
+        - {version: "25.7", ctk_ver: "12.9"}
+        - {version: "25.9", ctk_ver: "13.0"}
+        - {version: "25.11", ctk_ver: "13.0"}
+        - {version: "26.1", ctk_ver: "13.1"}
+        - {version: "26.3", ctk_ver: "13.1"}
+        - {version: "26.5", ctk_ver: "13.2"}
     nightly:
       if: nightly
       gcc:
@@ -1728,6 +1643,7 @@ compilers:
           - name: trunk
             symlink: gcc-snapshot
           - contracts-nonattr-trunk
+          - contracts-p4324-trunk
           - lambda-p2034-trunk
           - cxx-coroutines-trunk
           - cxx-modules-trunk
@@ -1739,6 +1655,7 @@ compilers:
           - contracts-GNUext-trunk
           - thomas-healy-trunk
           - trivial-relocation-trunk
+          - notadragon-contracts-p3850
           - thephd.dev
       clang:
         type: nightly
@@ -1777,6 +1694,7 @@ compilers:
           - p3372-trunk
           - p3385-trunk
           - p3412-trunk
+          - p3817-trunk
           - p3776-trunk
           - p3822-trunk
           - p3951-trunk
@@ -1786,6 +1704,7 @@ compilers:
           - dascandy-contracts-trunk
           - p1974-trunk
           - ericwf-contracts-trunk
+          - notadragon-contracts-p3850
           - chrisbazley-trunk
           - swiftlang-trunk
           - name: llvmflang-trunk

@@ -49,6 +49,7 @@ compilers:
           - '6.2'
           - '6.2.4'
           - '6.3'
+          - '6.3.3'
 
     static-sdk:
       url: https://download.swift.org/{{build}}/static-sdk/{{toolchain}}/{{toolchain}}_static-linux-{{sdk_version}}.artifactbundle.tar.gz
@@ -68,6 +69,7 @@ compilers:
         targets:
           - '6.2.4'
           - '6.3'
+          - '6.3.3'
     nightly:
       if: nightly
       type: restQueryTarballs
@@ -84,4 +86,4 @@ compilers:
         dir: swift-dev-snapshot
         toolchain: swift-{{name}}-branch
         targets:
-          - '6.3'
+          - '6.4.x'

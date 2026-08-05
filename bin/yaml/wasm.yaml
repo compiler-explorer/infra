@@ -18,6 +18,7 @@ compilers:
         - 43.0.1
         - 44.0.2
         - 45.0.0
+        - 46.0.1
     nightly:
       if: nightly
       wasmtime:

@@ -202,6 +202,8 @@ class TarballInstallable(Installable):
             decompress_flag = "j"
         elif self.config_get("compression") == "tar":
             decompress_flag = ""
+        elif self.config_get("compression") == "zstd":
+            decompress_flag = "--zstd"
         else:
             raise RuntimeError(f"Unknown compression {self.config_get('compression')}")
         self.configure_command = command_config(self.config_get("configure_command", []))
@@ -209,6 +211,10 @@ class TarballInstallable(Installable):
             self.tar_cmd = ["7z", "x"]
         elif is_windows() and decompress_flag == "j":
             self.tar_cmd = ["7z", "x"]
+        elif is_windows() and decompress_flag == "--zstd":
+            self.tar_cmd = ["7z", "x"]
+        elif decompress_flag == "--zstd":
+            self.tar_cmd = ["tar", "--zstd", "-xf", "-"]
         else:
             self.tar_cmd = ["tar", f"{decompress_flag}xf", "-"]
             strip_components = self.config_get("strip_components", 0)
@@ -370,12 +376,12 @@ class RestQueryTarballInstallable(TarballInstallable):
 
     @functools.cached_property
     def url(self) -> str:  # type: ignore[override]
-        document = self.install_context.fetch_rest_query(self._rest_query_url)
         try:
+            document = self.install_context.fetch_rest_query(self._rest_query_url)
             resolved = eval(self._rest_query, {}, dict(document=document))
         except Exception:  # noqa: BLE001
             self._logger.exception("Exception evaluating query '%s' for %s", self._rest_query, self)
-            raise
+            return ""
         if not resolved:
             self._logger.warning("No installation candidate found")
         else:
@@ -392,6 +398,11 @@ class RestQueryTarballInstallable(TarballInstallable):
         if not self.url:
             return False
         return super().should_install()
+
+    def stage(self, staging: StagingDir) -> None:
+        if not self.url:
+            raise RuntimeError(f"No installation candidate found for {self.name} from query '{self._rest_query}'")
+        super().stage(staging)
 
     def __repr__(self) -> str:
         return f"RestQueryTarballInstallable({self.name}, {self.install_path})"

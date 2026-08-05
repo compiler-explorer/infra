@@ -28,8 +28,14 @@ if ([string]::IsNullOrEmpty($env:CE_ENV)) {
 }
 Write-Host "Running in environment $($env:CE_ENV)"
 $DEPLOY_DIR = "/compilerexplorer"
+$COMPILERS_FILE = "$DEPLOY_DIR/discovered-compilers.json"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
+
+# Written at the end of this script; `ce win-runner start` waits on it. Cleared here because
+# C:\tmp survives a reboot, so a file left by the last boot would report ready immediately.
+$STARTUP_COMPLETE_FILE = "C:\tmp\ce-startup-complete"
+Remove-Item -Path $STARTUP_COMPLETE_FILE -Force -ErrorAction SilentlyContinue
 $env:PATH = "$env:PATH;C:\Program Files\Amazon\AWSCLIV2"
 $loghost = "todo"
 $logport = "80"
@@ -45,14 +51,46 @@ Write-Host "AWS Hostname $betterComputerName"
 
 function update_code {
     Write-Host "Current environment $CE_ENV"
-    Invoke-WebRequest -Uri "https://s3.amazonaws.com/compiler-explorer/version/$CE_ENV" -OutFile "/tmp/s3key.txt"
+    $versionUrl = "https://s3.amazonaws.com/compiler-explorer/version/$CE_ENV"
+    Remove-Item -Path "/tmp/s3key.txt" -Force -ErrorAction SilentlyContinue
+    Invoke-WebRequest -Uri $versionUrl -OutFile "/tmp/s3key.txt"
+
+    # Errors here are not terminating, so without these checks a missing or empty version file
+    # gets as far as unzipping the bucket listing, and the failure reads as an Expand-Archive
+    # problem rather than a missing build.
+    if (-not (Test-Path "/tmp/s3key.txt")) {
+        throw "No build set for $CE_ENV : could not fetch $versionUrl"
+    }
 
     $S3_KEY = Get-Content -Path "/tmp/s3key.txt"
+    if ([string]::IsNullOrWhiteSpace($S3_KEY)) {
+        throw "No build set for $CE_ENV : $versionUrl is empty"
+    }
 
     # should not be needed, but just in case we copy pasted the file
     $S3_KEY = $S3_KEY -replace ".tar.xz","zip"
 
     get_released_code -URL "https://s3.amazonaws.com/compiler-explorer/$S3_KEY"
+    get_discovered_compilers -S3_KEY $S3_KEY
+}
+
+function get_discovered_compilers {
+    param (
+        $S3_KEY
+    )
+
+    # dist/gh/main/18675.zip is discovered as gh-18675.json, uploaded by ce win-runner
+    # uploaddiscovery. Must follow get_released_code, which empties the deploy directory.
+    $buildnumber = [IO.Path]::GetFileNameWithoutExtension($S3_KEY)
+    $url = "https://s3.amazonaws.com/compiler-explorer/dist/discovery/$CE_ENV/gh-$buildnumber.json"
+    Write-Host "Discovered compilers from $url"
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $COMPILERS_FILE
+    } catch {
+        # Not having one is fine: Compiler Explorer discovers for itself, just more slowly.
+        Write-Host "No discovered compilers available: $_"
+        Remove-Item -Path $COMPILERS_FILE -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function get_released_code {
@@ -173,6 +211,19 @@ function RecreateUser {
     Add-LocalGroupMember -Group "Users" -Member $CE_USER;
 
     ConfigureUserRights -SID (Get-LocalUser $CE_USER).SID
+}
+
+function DisableSmbServer {
+    # Nothing connects to these instances over SMB, and leaving the server side up gives
+    # sandboxed code a loopback UNC target that the firewall cannot filter -- Windows exempts
+    # loopback. LanmanWorkstation is the client half, so Z: still mounts.
+    Set-Service -Name LanmanServer -StartupType Disabled
+    Stop-Service -Name LanmanServer -Force
+
+    $status = (Get-Service -Name LanmanServer).Status
+    if ($status -ne "Stopped") {
+        Write-Host "WARNING: LanmanServer is $status, expected Stopped; loopback UNC remains reachable"
+    }
 }
 
 function ConfigureSmbRights {
@@ -351,6 +402,17 @@ function GetLatestCEWrapper {
     Move-Item -Path "/tmp/cewrapper.exe" -Destination "/cewrapper/cewrapper.exe" -Force
 }
 
+function PrepareNulDevice {
+    # The kernel resets \Device\Null's DACL every boot, and the default does not grant the AppContainer
+    # SIDs, so anything sandboxed by cewrapper that touches NUL fails with access denied. Grants it to
+    # all app packages; machine wide, has to be redone on every boot, needs to run elevated.
+    Write-Host "Granting AppContainer access to the NUL device"
+    & /cewrapper/cewrapper.exe --prepare-nul
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Failed to prepare the NUL device (exit code $LASTEXITCODE)"
+    }
+}
+
 function InitializeAgentConfig {
     Write-Host "Setting up Grafana Agent"
     $config = Get-Content -Path "/tmp/infra/grafana/agent-win.yaml"
@@ -362,7 +424,15 @@ function InitializeAgentConfig {
     } catch {
     }
     $config = $config.Replace("@PROM_PASSWORD@", $prom_pass)
-    Set-Content -Path "C:\Program Files\Grafana Agent\agent-config.yaml" -Value $config
+    $agentConfig = "C:\Program Files\Grafana Agent\agent-config.yaml"
+    Set-Content -Path $agentConfig -Value $config
+
+    icacls.exe $agentConfig /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
+    $agentAccount = (Get-CimInstance Win32_Service -Filter "DisplayName='Grafana Agent'").StartName
+    if ($agentAccount -and $agentAccount -ne "LocalSystem") {
+        Write-Host "Grafana Agent runs as $agentAccount, granting it read"
+        icacls.exe $agentConfig /grant "${agentAccount}:R"
+    }
 
     Stop-Service "Grafana Agent"
     $started = (Start-Service "Grafana Agent") -as [bool]
@@ -455,6 +525,96 @@ function AddLocalHost {
     Set-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value $content
 }
 
+function ConfigureSSH {
+    # start.ps1 is pulled from main at every boot, so this runs on images predating the
+    # OpenSSH install in packer/InstallTools.ps1.
+    if (-not (Get-Service -Name sshd -ErrorAction SilentlyContinue)) {
+        Write-Host "No sshd service in this image, skipping SSH setup"
+        return
+    }
+
+    # Taken from the service rather than hardcoded: a Feature on Demand install puts these in
+    # System32\OpenSSH, the release zip in Program Files\OpenSSH.
+    $sshdExe = (Get-CimInstance Win32_Service -Filter "Name='sshd'").PathName.Trim('"')
+    $sshdBin = Split-Path -Parent $sshdExe
+
+    $sshDir = "C:\ProgramData\ssh"
+    New-Item -Path $sshDir -ItemType Directory -Force | Out-Null
+
+    Write-Host "Fetching authorized keys"
+    $keyDir = "C:\tmp\auth_keys"
+    Remove-Item -Path $keyDir -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -Path $keyDir -ItemType Directory -Force | Out-Null
+    aws s3 sync s3://compiler-explorer/authorized_keys $keyDir
+
+    # sshd ignores a user's own .ssh/authorized_keys for members of the administrators group;
+    # their keys have to live here instead. It also silently refuses the file if anyone other
+    # than Administrators or SYSTEM can write it, hence the icacls reset. ASCII, because sshd
+    # will not read a BOM.
+    $authKeys = "$sshDir\administrators_authorized_keys"
+    Get-Content -Path "$keyDir\*.key" | Set-Content -Path $authKeys -Encoding ascii
+    Remove-Item -Path $keyDir -Recurse -Force
+    icacls.exe $authKeys /inheritance:r /grant "Administrators:F" /grant "SYSTEM:F"
+
+    # The logging is not optional in practice: sshd rejects a badly-permissioned key file
+    # without telling the client why, and C:\ProgramData\ssh\logs\sshd.log is the only place
+    # that says so.
+    Set-Content -Path "$sshDir\sshd_config" -Encoding ascii -Value @(
+        "PubkeyAuthentication yes",
+        "PasswordAuthentication no",
+        "SyslogFacility LOCAL0",
+        "LogLevel INFO",
+        "Subsystem sftp sftp-server.exe",
+        "Match Group administrators",
+        "       AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys"
+    )
+
+    # Per instance rather than baked into the AMI.
+    & "$sshdBin\ssh-keygen.exe" -A
+
+    netsh advfirewall firewall add rule name="allow sshd in" dir=in program="$sshdExe" action=allow enable=yes
+
+    Set-Service -Name sshd -StartupType Automatic
+    Restart-Service -Name sshd
+}
+
+function GetAdjacentIPv4 {
+    param(
+        [string] $Address,
+        [int] $Offset
+    )
+
+    $bytes = ([System.Net.IPAddress]::Parse($Address)).GetAddressBytes()
+    [array]::Reverse($bytes)
+    $value = [System.BitConverter]::ToUInt32($bytes, 0) + $Offset
+    $result = [System.BitConverter]::GetBytes([uint32]$value)
+    [array]::Reverse($result)
+
+    return ([System.Net.IPAddress]::new([byte[]]$result)).ToString()
+}
+
+function BlockSmbExceptServer {
+    param(
+        [string] $SmbServer
+    )
+
+    $parsed = [System.Net.IPAddress]::Any
+    if (-not [System.Net.IPAddress]::TryParse($SmbServer, [ref]$parsed)) {
+        # GetConf returns "smb-address-unknown" if SSM is unreachable; block rather than open.
+        Write-Host "No usable SMB server address, blocking SMB outbound entirely"
+        netsh advfirewall firewall add rule name="Block SMB out" dir=out protocol=TCP remoteport=139,445 action=block enable=yes
+        return
+    }
+
+    # Block beats allow in Windows Firewall, so the server has to be excluded by address rather
+    # than allowed back in afterwards.
+    $below = GetAdjacentIPv4 -Address $SmbServer -Offset -1
+    $above = GetAdjacentIPv4 -Address $SmbServer -Offset 1
+    $except = "0.0.0.0-$below,$above-255.255.255.255"
+
+    netsh advfirewall firewall add rule name="Block SMB out except $SmbServer" dir=out protocol=TCP remoteport=139,445 remoteip="$except" action=block enable=yes
+}
+
 function ConfigureFirewall {
     netsh advfirewall firewall add rule name="TCP Port 80" dir=in action=allow protocol=TCP localport=80 enable=yes
     netsh advfirewall firewall add rule name="TCP Port 80" dir=out action=allow protocol=TCP localport=80 enable=yes
@@ -472,6 +632,8 @@ function ConfigureFirewall {
     $ip = GetSMBServerIP -CeEnv $CE_ENV
     netsh advfirewall firewall add rule name="Allow IP $ip out" dir=out remoteip="$ip" action=allow enable=yes
     netsh advfirewall firewall add rule name="Allow IP $ip in" dir=in remoteip="$ip" action=allow enable=yes
+
+    BlockSmbExceptServer -SmbServer $ip
 
     AddLocalHost
 
@@ -493,11 +655,19 @@ function ConfigureFirewall {
     netsh advfirewall set publicprofile firewallpolicy blockinbound,blockoutbound
 }
 
+# First, so an instance that later hangs mounting the share or fails to find a build is still
+# reachable to debug. Also has to precede ConfigureFirewall: the key sync talks to the bucket's
+# virtual-host name, which the pinned-IP allowlist does not cover.
+ConfigureSSH
+
+DisableSmbServer
+
 ConfigureSmbRights
 
 MountY
 
 GetLatestCEWrapper
+PrepareNulDevice
 GetLatestCeWinFileCache
 GetCeWinFileCacheConfig
 
@@ -517,5 +687,14 @@ $logport = GetLogPort
 
 ConfigureFirewall
 
-#CreateCredAndRun
-InstallAndRunCEAsSystem
+if ($CE_ENV -eq "winrunner") {
+    # As with runner/gpu-runner in init/start.sh: set the machine up but don't serve anything.
+    # Discovery is driven over SSH by `ce win-runner discovery`.
+    Write-Host "Runner environment, not starting Compiler Explorer"
+} else {
+    #CreateCredAndRun
+    InstallAndRunCEAsSystem
+}
+
+New-Item -Path $STARTUP_COMPLETE_FILE -ItemType File -Force | Out-Null
+Write-Host "Startup complete"

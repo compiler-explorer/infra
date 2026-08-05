@@ -193,11 +193,40 @@ function InstallWinFsp {
     Start-Process "msiexec" -argumentlist "/i winfsp.msi /quiet ALLUSERS=1" -wait
 }
 
+function InstallOpenSSH {
+    # Not Add-WindowsCapability: DISM wants a fully elevated token, which the packer WinRM
+    # session does not have, and it fails with "Access is denied".
+    $version = "10.0.0.0p2-Preview"
+    Write-Host "Downloading OpenSSH $version"
+    Invoke-WebRequest -Uri "https://github.com/PowerShell/Win32-OpenSSH/releases/download/$version/OpenSSH-Win64.zip" -OutFile "/tmp/openssh.zip"
+    Expand-Archive -Path "/tmp/openssh.zip" -DestinationPath "/tmp/openssh" -Force
+    Move-Item -Path "/tmp/openssh/OpenSSH-Win64" -Destination "C:\Program Files\OpenSSH"
+    Remove-Item -Force -Recurse -Path "/tmp/openssh.zip", "/tmp/openssh"
+
+    Write-Host "Installing sshd"
+    & powershell.exe -ExecutionPolicy Bypass -File "C:\Program Files\OpenSSH\install-sshd.ps1"
+
+    # install-sshd.ps1 registers the service as Manual and does not start it, which is what we
+    # want: init/start.ps1 installs the authorized keys and generates per-instance host keys
+    # before starting it, so no host identity ends up shared across the fleet via the AMI.
+    Set-Service -Name sshd -StartupType Manual
+
+    # Remote commands arrive as `<DefaultShell> <DefaultShellCommandOption> <command>`.
+    # Without this they run under cmd.exe, which mangles anything quoted for a POSIX shell.
+    # sftp is unaffected -- it goes via the subsystem, not the login shell.
+    New-Item -Path "HKLM:\SOFTWARE\OpenSSH" -Force | Out-Null
+    New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell `
+        -Value "C:\Program Files\PowerShell\7\pwsh.exe" -PropertyType String -Force | Out-Null
+    New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShellCommandOption `
+        -Value "-Command" -PropertyType String -Force | Out-Null
+}
+
 InstallWinFsp
 
 Disable-WindowsUpdatePermanent
 Disable-WindowsDefenderPermanent
 
+InstallOpenSSH
 InstallAwsTools
 InstallGIT
 InstallBuildTools

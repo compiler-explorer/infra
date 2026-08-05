@@ -21,8 +21,8 @@ jobs:
     runs-on: ['admin']
     steps:
       - name: Clean workspace
-        run: sudo find "$GITHUB_WORKSPACE" -mindepth 1 -delete
-      - uses: actions/checkout@v5
+        run: sudo find "${GITHUB_WORKSPACE:?}" -mindepth 1 -delete
+      - uses: actions/checkout@v7
       - name: Set up environment
         run: make ce
       - name: Run CEFS garbage collection

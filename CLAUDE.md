@@ -175,6 +175,24 @@ The `ce gpu-runner` command group manages the GPU runner instance (CEGPURunner, 
 - **`ce gpu-runner discovery`** - Run compiler discovery on the GPU runner
 - **`ce gpu-runner uploaddiscovery gpu VERSION`** - Download, validate, and upload discovery JSON to S3
 
+## Windows Runner Management
+
+The `ce win-runner` command group manages the Windows runner instance (CEWinRunner, m6i.large) used for Windows compiler discovery:
+
+- **`ce win-runner start`** - Start the Windows runner, wait for SSH and boot completion
+- **`ce win-runner stop`** - Stop the Windows runner instance
+- **`ce win-runner status`** - Show instance state
+- **`ce win-runner login`** - SSH into the Windows runner
+- **`ce win-runner exec REMOTE_CMD`** - Execute a command on the Windows runner
+- **`ce win-runner discovery`** - Run compiler discovery on the Windows runner
+- **`ce win-runner uploaddiscovery winprod|winstaging VERSION`** - Download, validate, and upload discovery JSON to S3
+
+There is deliberately no `pull`: `init/start.ps1` blocks outbound traffic to everything but a pinned allowlist, so github is unreachable on a running instance. Restart it to pick up infra changes.
+
+Remote commands run through a PowerShell, and `exec_remote` joins arguments with POSIX quoting, so anything containing spaces or quotes arrives mangled. Keep every argument a bare word.
+
+See `docs/windows_architecture.md` for how discovery fits into a Windows deployment.
+
 ## CLI Architecture
 
 The CLI system (`bin/ce`) uses Click framework with a modular command structure:

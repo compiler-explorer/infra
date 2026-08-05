@@ -8,7 +8,7 @@ jobs:
   package-fxc:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - shell: pwsh
         run: .\msvc-install\fxc-install.ps1
         env:

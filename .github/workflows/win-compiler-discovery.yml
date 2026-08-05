@@ -1,0 +1,47 @@
+name: Windows compiler discovery
+run-name: Windows discovery for ${{ inputs.environment }} ${{ inputs.branch }} build ${{ inputs.buildnumber }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        type: choice
+        default: winstaging
+        required: true
+        options:
+        - winstaging
+        - winprod
+      branch:
+        description: 'Branch'
+        default: 'main'
+        required: true
+      buildnumber:
+        description: 'Build number (run CE Windows Build in compiler-explorer for it first)'
+        default: ''
+        required: true
+
+jobs:
+  win-compiler-discovery:
+    runs-on: ['admin']
+
+    steps:
+    - name: Update infra
+      run: cd /home/ubuntu/infra && git pull && make ce
+    # Fails with "Unable to find version" if the Windows zip for this build number does not
+    # exist yet: it is built by deploy-win.yml in the compiler-explorer repo, separately from
+    # the normal pipeline. See docs/windows_architecture.md.
+    - name: Set build number ${{ github.event.inputs.buildnumber }}
+      run: ce --env winrunner builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
+    # Booting is what updates infra on the instance: packer/Startup.ps1 clones it before
+    # init/start.ps1 closes the firewall, and there is no reaching github afterwards.
+    - name: Start Windows runner
+      run: ce win-runner start
+    - name: Do compiler discovery
+      run: ce win-runner discovery
+    - name: Upload discovered compilers
+      run: ce win-runner uploaddiscovery ${{ github.event.inputs.environment }} ${{ github.event.inputs.buildnumber }}
+    - name: Shut down Windows runner
+      # Unconditionally: a failed discovery would otherwise leave the instance billing.
+      if: always()
+      run: ce win-runner stop

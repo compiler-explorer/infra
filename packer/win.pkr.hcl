@@ -45,11 +45,15 @@ source "amazon-ebs" "Server2022" {
   security_group_id    = "sg-f53f9f80"
   source_ami           = "${data.amazon-ami.Server2022.id}"
   subnet_id            = "subnet-1df1e135"
-  user_data_file       = "./packer/SetUpWinRM.ps1"
-  vpc_id               = "vpc-17209172"
-  winrm_insecure       = true
-  winrm_use_ssl        = true
-  winrm_username       = "Administrator"
+  tags = {
+    Site       = "CompilerExplorer"
+    AmiCleanup = "auto"
+  }
+  user_data_file = "./packer/SetUpWinRM.ps1"
+  vpc_id         = "vpc-17209172"
+  winrm_insecure = true
+  winrm_use_ssl  = true
+  winrm_username = "Administrator"
 }
 
 build {

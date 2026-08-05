@@ -102,6 +102,8 @@ async function handle_text_message(apiGwClient, connectionId, message) {
     } else if (message.startsWith('ack: ')) {
         const guid = message.substring(5);
         await handle_ack_message(apiGwClient, connectionId, guid);
+    } else if (message === 'ping') {
+        await send_message(apiGwClient, connectionId, 'pong');
     } else {
         await send_message(apiGwClient, connectionId, 'unknown text message');
     }

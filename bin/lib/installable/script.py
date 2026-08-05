@@ -48,6 +48,7 @@ class ScriptInstallable(Installable):
         self.install_path = self.config_get("dir")
         self.install_path_symlink = self.config_get("symlink", False)
         self.fetch = self.config_get("fetch", [])
+        self.fetch_user_agent = self.config_get("fetch_user_agent", "")
         self.script = self.config_get("script")
         self.strip = self.config_get("strip", False)
         self.relocate_paths = self.config_get("relocate_paths", [])
@@ -60,7 +61,7 @@ class ScriptInstallable(Installable):
                 shutil.copyfile(url, staging_path_filename)
             else:
                 with staging_path_filename.open("wb") as f:
-                    self.install_context.fetch_to(url, f)
+                    self.install_context.fetch_to(url, f, agent=self.fetch_user_agent)
             self._logger.info("%s -> %s", url, filename)
         cmd = ["bash", "-c", self.script]
         if self.install_context.cefs_enabled:

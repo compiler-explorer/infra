@@ -1,0 +1,12 @@
+compilers:
+  co2:
+    co2rustc:
+      if: nightly
+      type: nightlytarballs
+      url: https://github.com/hkalbasi/co2/releases/download/trunk/co2-ce.tar.zstd
+      dir: co2-trunk
+      compression: zstd
+      create_untar_dir: true
+      check_exe: bin/co2rustc --version
+      targets:
+        - trunk

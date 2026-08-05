@@ -19,6 +19,7 @@ from lib.library_builder import (
     build_timeout,
     fetch_all_annotations,
     fetch_failed_builds,
+    is_nvhpc_compiler,
     match_conan_settings,
     match_failed_build,
 )
@@ -403,6 +404,103 @@ def test_writebuildscript_nvcc_without_wrapper_uses_native_cuda(tmp_path, reques
     assert 'export CXX="/opt/compiler-explorer/gcc-14.1.0/bin/g++"' in script
     assert "CMAKE_CUDA_FLAGS" in script
     assert "nvcc_wrapper" not in script
+
+
+def _write_buildscript_for(tmp_path, requests_mock, *, compiler, exe, compiler_type, toolchain):
+    requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_test_build_config()
+    build_config.make_targets = ["all"]
+    builder = LibraryBuilder(
+        logger,
+        "cpp",
+        "googletest",
+        "trunk",
+        "/src/googletest",
+        install_context,
+        build_config,
+        False,
+        LibraryPlatform.Linux,
+    )
+    builder.writebuildscript(
+        str(tmp_path),
+        str(tmp_path / "install"),
+        "/src/googletest",
+        compiler,
+        "",
+        exe,
+        compiler_type,
+        toolchain,
+        "Linux",
+        "Debug",
+        "x86_64",
+        "",
+        "",
+        [""],
+        "",
+        {},
+    )
+    return (tmp_path / "cebuild.sh").read_text(encoding="utf-8")
+
+
+def test_writebuildscript_edg_leaves_c_compiler_undefined(tmp_path, requests_mock):
+    script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="edg69",
+        exe="/opt/compiler-explorer/edg-6.9-gcc-16/eccp-scripts/eccp-gcc",
+        compiler_type="edg",
+        toolchain="/opt/compiler-explorer/edg-6.9-gcc-16",
+    )
+    assert 'export CXX="/opt/compiler-explorer/edg-6.9-gcc-16/eccp-scripts/eccp-gcc"' in script
+    assert "export CC=" not in script
+
+
+def test_writebuildscript_gcc_defines_c_compiler(tmp_path, requests_mock):
+    script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="g151",
+        exe="/opt/compiler-explorer/gcc-15.1.0/bin/g++",
+        compiler_type="",
+        toolchain="/opt/compiler-explorer/gcc-15.1.0",
+    )
+    assert 'export CC="/opt/compiler-explorer/gcc-15.1.0/bin/gcc"' in script
+    assert 'export CXX="/opt/compiler-explorer/gcc-15.1.0/bin/g++"' in script
+
+
+def test_writebuildscript_nvhpc_omits_external_toolchain(tmp_path, requests_mock):
+    script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="nvcxx_x86_cxx26_5",
+        exe="/opt/compiler-explorer/hpc_sdk/Linux_x86_64/26.5/compilers/bin/nvc++",
+        compiler_type="",
+        toolchain="/opt/compiler-explorer/hpc_sdk/Linux_x86_64/26.5/compilers",
+    )
+    assert 'export CC="/opt/compiler-explorer/hpc_sdk/Linux_x86_64/26.5/compilers/bin/nvc"' in script
+    assert "COMPILER_EXTERNAL_TOOLCHAIN" not in script
+
+
+def test_writebuildscript_gcc_keeps_external_toolchain(tmp_path, requests_mock):
+    script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="g151",
+        exe="/opt/compiler-explorer/gcc-15.1.0/bin/g++",
+        compiler_type="",
+        toolchain="/opt/compiler-explorer/gcc-15.1.0",
+    )
+    assert '"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN=/opt/compiler-explorer/gcc-15.1.0"' in script
+    assert '"-DCMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN=/opt/compiler-explorer/gcc-15.1.0"' in script
+
+
+def test_is_nvhpc_compiler():
+    assert is_nvhpc_compiler("/opt/compiler-explorer/hpc_sdk/Linux_x86_64/26.5/compilers/bin/nvc++")
+    assert is_nvhpc_compiler("/opt/compiler-explorer/hpc_sdk/Linux_x86_64/26.5/compilers/bin/nvc")
+    assert not is_nvhpc_compiler("/opt/compiler-explorer/gcc-15.1.0/bin/g++")
+    assert not is_nvhpc_compiler("/opt/compiler-explorer/cuda/13.3.0/bin/nvcc")
 
 
 def test_get_sysroot_path_from_options(requests_mock):

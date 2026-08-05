@@ -35,6 +35,15 @@ from lib.staging import StagingDir
 _LOGGER = logging.getLogger(__name__)
 PathOrString = Path | str
 
+_CE_USER_AGENT_COMMENT = "Compiler Explorer"
+
+
+def _ce_user_agent(agent: str | None = None) -> str:
+    base = (agent or "").strip()
+    if not base:
+        base = f"python-requests/{requests.__version__}"
+    return f"{base} ({_CE_USER_AGENT_COMMENT})"
+
 
 def is_windows():
     return os.name == "nt"
@@ -178,23 +187,17 @@ class InstallationContext:
 
     def fetch_rest_query(self, url: str) -> dict:
         _LOGGER.debug("Fetching %s", url)
-        return yaml.load(self.fetcher.get(url).text, Loader=ConfigSafeLoader)
+        headers = {"User-Agent": _ce_user_agent()}
+        return yaml.load(self.fetcher.get(url, headers=headers).text, Loader=ConfigSafeLoader)
 
     def fetch_to(self, url: str, fd: IO[bytes], agent: str = "") -> None:
         _LOGGER.debug("Fetching %s", url)
 
-        if agent:
-            headers = {"User-Agent": agent}
-
-            if self.allow_unsafe_ssl:
-                request = self.fetcher.get(url, stream=True, verify=False, allow_redirects=True, headers=headers)
-            else:
-                request = self.fetcher.get(url, stream=True, allow_redirects=True, headers=headers)
+        headers = {"User-Agent": _ce_user_agent(agent)}
+        if self.allow_unsafe_ssl:
+            request = self.fetcher.get(url, stream=True, verify=False, allow_redirects=True, headers=headers)
         else:
-            if self.allow_unsafe_ssl:
-                request = self.fetcher.get(url, stream=True, verify=False, allow_redirects=True)
-            else:
-                request = self.fetcher.get(url, stream=True, allow_redirects=True)
+            request = self.fetcher.get(url, stream=True, allow_redirects=True, headers=headers)
 
         if not request.ok:
             _LOGGER.error("Failed to fetch %s: %s", url, request)

@@ -1,10 +1,11 @@
 locals {
-  runner_image_id        = "ami-05d4fb32368117b54"
-  gpu_runner_image_id    = "ami-05df317ba6d2893be"
-  conan_image_id         = "ami-0c7129c233b1564dd"
-  smbserver_image_id     = "ami-01e7c7963a9c4755d"
-  smbtestserver_image_id = "ami-0284c821376912369"
-  admin_subnet           = module.ce_network.subnet["1a"].id
+  runner_image_id     = local.staging_image_id
+  gpu_runner_image_id = local.gpu_image_id
+  conan_image_id      = "ami-0c7129c233b1564dd"
+  smbserver_image_id  = "ami-01e7c7963a9c4755d"
+  admin_subnet        = module.ce_network.subnet["1a"].id
+
+  win_runner_image_id = local.winstaging_image_id
 }
 
 resource "aws_instance" "AdminNode" {
@@ -184,6 +185,37 @@ resource "aws_instance" "CEGPURunner" {
 
 }
 
+resource "aws_instance" "CEWinRunner" {
+  ami                         = local.win_runner_image_id
+  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerWindowsRole.name
+  ebs_optimized               = false
+  instance_type               = "m6i.large"
+  monitoring                  = false
+  key_name                    = "mattgodbolt"
+  subnet_id                   = local.admin_subnet
+  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
+  associate_public_ip_address = true
+  source_dest_check           = false
+
+  lifecycle {
+    ignore_changes = [
+      // Seemingly needed to not replace stopped instances
+      associate_public_ip_address
+    ]
+  }
+
+  tags = {
+    Name        = "CEWinRunner"
+    Environment = "winrunner"
+  }
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
+  }
+
+}
+
 resource "aws_instance" "CESMBServer" {
   ami                         = local.smbserver_image_id
   iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
@@ -226,7 +258,7 @@ resource "aws_instance" "CESMBServer" {
 }
 
 //resource "aws_instance" "CESMBTestServer" {
-//  ami                         = local.smbtestserver_image_id
+//  ami                         = "<build a fresh smb AMI (make packer-smb) and put its id here>"
 //  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
 //  ebs_optimized               = false
 //  instance_type               = "t4g.micro"

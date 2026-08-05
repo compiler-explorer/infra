@@ -9,6 +9,7 @@ from lib.cli.workflows import (
     list_workflows,
     run_discovery,
     run_generic,
+    run_win_discovery,
     status,
     wait_for_workflow_completion,
     watch,
@@ -105,6 +106,32 @@ class TestWorkflowsCommands(unittest.TestCase):
         self.assertIn("environment=beta", result.output)
         self.assertIn("branch=develop", result.output)
         self.assertIn("buildnumber=789", result.output)
+
+    def test_run_win_discovery_dry_run(self):
+        result = self.runner.invoke(
+            run_win_discovery,
+            ["gh-18647", "--environment", "winprod", "--dry-run"],
+            obj=self.cfg,
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("gh workflow run win-compiler-discovery.yml", result.output)
+        self.assertIn("environment=winprod", result.output)
+        self.assertIn("branch=main", result.output)
+        self.assertIn("buildnumber=gh-18647", result.output)
+
+    def test_run_win_discovery_defaults_to_winstaging(self):
+        result = self.runner.invoke(run_win_discovery, ["gh-18647", "--dry-run"], obj=self.cfg)
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("environment=winstaging", result.output)
+
+    def test_run_win_discovery_rejects_a_linux_environment(self):
+        result = self.runner.invoke(
+            run_win_discovery, ["gh-18647", "--environment", "staging", "--dry-run"], obj=self.cfg
+        )
+
+        self.assertNotEqual(result.exit_code, 0)
 
     @patch("subprocess.run")
     def test_run_discovery_failure(self, mock_run):
