@@ -1,0 +1,67 @@
+name: Release operations
+run-name: ${{ inputs.command == 'staging-deploy' && format('{0} {1}', inputs.command, inputs.buildnumber) || inputs.command }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Operation to run'
+        type: choice
+        default: 'staging-deploy'
+        required: true
+        options:
+        - staging-deploy
+        - staging-shutdown
+        - staging-cleanup
+      branch:
+        description: 'Branch to deploy (staging-deploy only; ignored otherwise)'
+        default: 'main'
+        required: true
+      buildnumber:
+        description: 'Build number, or "latest" (staging-deploy only; ignored otherwise)'
+        default: 'latest'
+        required: true
+
+jobs:
+  release:
+    runs-on: ['admin']
+
+    steps:
+    # The environment comes from the command, never from a free-form input, so this
+    # workflow can only ever touch environments we have explicitly listed here.
+    # Adding e.g. prod-deploy later means adding an option above and a case below.
+    - name: Resolve command
+      id: resolve
+      env:
+        COMMAND: ${{ inputs.command }}
+        BUILDNUMBER: ${{ inputs.buildnumber }}
+      run: |
+        case "${COMMAND}" in
+          staging-deploy) environment=staging; action=deploy ;;
+          staging-shutdown) environment=staging; action=shutdown ;;
+          staging-cleanup) environment=staging; action=cleanup ;;
+          *) echo "::error::Unsupported command '${COMMAND}'"; exit 1 ;;
+        esac
+        if [[ "${action}" = "deploy" && -z "${BUILDNUMBER}" ]]; then
+          echo "::error::${COMMAND} needs a build number (or 'latest')"
+          exit 1
+        fi
+        echo "environment=${environment}" >> "${GITHUB_OUTPUT}"
+        echo "action=${action}" >> "${GITHUB_OUTPUT}"
+    - name: Update infra
+      run: cd /home/ubuntu/infra && git pull && make ce
+    - name: Blue-green deploy
+      if: steps.resolve.outputs.action == 'deploy'
+      env:
+        CE_ENVIRONMENT: ${{ steps.resolve.outputs.environment }}
+        BRANCH: ${{ inputs.branch }}
+        BUILDNUMBER: ${{ inputs.buildnumber }}
+      run: ce --env "${CE_ENVIRONMENT}" blue-green deploy --branch "${BRANCH}" --skip-confirmation --no-notify "${BUILDNUMBER}"
+    # shutdown and cleanup take neither a version nor --no-notify, so branch and
+    # buildnumber are deliberately ignored for them.
+    - name: Blue-green ${{ steps.resolve.outputs.action }}
+      if: steps.resolve.outputs.action != 'deploy'
+      env:
+        CE_ENVIRONMENT: ${{ steps.resolve.outputs.environment }}
+        ACTION: ${{ steps.resolve.outputs.action }}
+      run: ce --env "${CE_ENVIRONMENT}" blue-green "${ACTION}" --skip-confirmation
