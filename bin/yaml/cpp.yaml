@@ -1256,6 +1256,8 @@ compilers:
           - 2.0-clang-20.1.0
           - 2.1-clang-21.1.0
           - 2.2-clang-21.1.0
+          - 2.3-clang-21.1.0
+          - 2.4-clang-22.1.0
         nightly:
           if: nightly
           subdir: clang-plugins
