@@ -39,6 +39,9 @@ compiler:
     clang-hexagon:
         version: ANY
         libcxx: ANY
+    ticlang:
+        version: ANY
+        libcxx: ANY
     edg:
         version: ANY
         libcxx: ANY
