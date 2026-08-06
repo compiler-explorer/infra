@@ -544,7 +544,8 @@ The blue-green deployment system includes automatic post-deployment steps that e
 4. **Traffic Switch**: Switches load balancer traffic to new instances
 5. **Scale Down Protection**: Resets ASG minimum sizes
 6. **Compiler Routing Update**: Automatically updates the compiler routing table for the environment
-7. **GitHub Notifications**: Sends notifications for production deployments (when enabled)
+7. **CloudFront Invalidation**: Invalidates the environment's distributions (skip with `--skip-cloudfront`)
+8. **GitHub Notifications**: Sends notifications for production deployments (when enabled)
 
 ### Compiler Routing Integration
 
