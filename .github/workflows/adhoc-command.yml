@@ -31,7 +31,7 @@ jobs:
     name: Run command on linux-x64
     runs-on: ${{ inputs.size == 'large' && fromJSON('["self-hosted", "ce", "linux", "x64"]') || fromJSON(format('["self-hosted", "ce", "linux", "x64", "{0}"]', inputs.size)) }}
     # TODO in future consider github environments for this?
-    if: github.actor == 'mattgodbolt' || github.actor == 'partouf'
+    if: github.actor == 'mattgodbolt' || github.actor == 'mattgodbolt-molty' || github.actor == 'partouf'
     timeout-minutes: ${{ fromJSON(inputs.timeout_minutes) }}
 
     steps:

@@ -418,7 +418,7 @@ def list_workflows(cfg: Config):
         ("gpu-compiler-discovery.yml", "GPU compiler discovery workflow"),
         ("win-compiler-discovery.yml", "Windows compiler discovery workflow"),
         ("win-lib-build.yaml", "Windows library build"),
-        ("start_staging.yml", "Start staging environment"),
+        ("release.yml", "Release operations (staging deploy/shutdown/cleanup)"),
         ("update-compilers.yml", "Update compilers"),
         ("update-libs.yml", "Update libraries"),
     ]
