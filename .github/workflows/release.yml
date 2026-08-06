@@ -1,5 +1,5 @@
 name: Release operations
-run-name: ${{ inputs.command }} ${{ inputs.buildnumber }}
+run-name: ${{ inputs.command == 'staging-deploy' && format('{0} {1}', inputs.command, inputs.buildnumber) || inputs.command }}
 
 on:
   workflow_dispatch:
