@@ -113,6 +113,8 @@ compilers:
           - assertions-15.3.0
           - 16.1.0
           - assertions-16.1.0
+          - 16.2.0
+          - assertions-16.2.0
     cross:
       type: s3tarballs
       arch_prefix:
