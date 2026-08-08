@@ -15,13 +15,34 @@ compiler:
     clang:
         version: ANY
         libcxx: ANY
+    clang-intel:
+        version: ANY
+        libcxx: ANY
     ellcc:
         version: ANY
         libcxx: ANY
     zigcxx:
         version: ANY
         libcxx: ANY
+    zig:
+        version: ANY
+        libcxx: ANY
+    zigcc:
+        version: ANY
+        libcxx: ANY
     rust:
+        version: ANY
+        libcxx: ANY
+    mrustc:
+        version: ANY
+        libcxx: ANY
+    rustc-cg-gcc:
+        version: ANY
+        libcxx: ANY
+    rustc-cg-cranelift:
+        version: ANY
+        libcxx: ANY
+    c2rust:
         version: ANY
         libcxx: ANY
     gccrs:
@@ -39,16 +60,28 @@ compiler:
     clang-hexagon:
         version: ANY
         libcxx: ANY
+    ticlang:
+        version: ANY
+        libcxx: ANY
     edg:
         version: ANY
         libcxx: ANY
     nvcc:
         version: ANY
         libcxx: ANY
+    nvrtc:
+        version: ANY
+        libcxx: ANY
     scale-nvcc-nvidia:
         version: ANY
         libcxx: ANY
     scale-nvcc-amd:
+        version: ANY
+        libcxx: ANY
+    clang-cuda:
+        version: ANY
+        libcxx: ANY
+    clang-hip:
         version: ANY
         libcxx: ANY
     fortran:
@@ -84,7 +117,61 @@ compiler:
     tinygo:
         version: ANY
         libcxx: ANY
+    dmd:
+        version: ANY
+        libcxx: ANY
+    ldc:
+        version: ANY
+        libcxx: ANY
+    sway-compiler:
+        version: ANY
+        libcxx: ANY
     m68k:
+        version: ANY
+        libcxx: ANY
+    cc65:
+        version: ANY
+        libcxx: ANY
+    avrgcc6502:
+        version: ANY
+        libcxx: ANY
+    orca:
+        version: ANY
+        libcxx: ANY
+    z88dk:
+        version: ANY
+        libcxx: ANY
+    sdcc:
+        version: ANY
+        libcxx: ANY
+    cl430:
+        version: ANY
+        libcxx: ANY
+    msp430:
+        version: ANY
+        libcxx: ANY
+    tinyc:
+        version: ANY
+        libcxx: ANY
+    cproc:
+        version: ANY
+        libcxx: ANY
+    compcert:
+        version: ANY
+        libcxx: ANY
+    tendra:
+        version: ANY
+        libcxx: ANY
+    norcroft:
+        version: ANY
+        libcxx: ANY
+    ppci:
+        version: ANY
+        libcxx: ANY
+    movfuscator:
+        version: ANY
+        libcxx: ANY
+    co2cc:
         version: ANY
         libcxx: ANY
 
