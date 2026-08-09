@@ -9,7 +9,7 @@ compilers:
       - JAVA_HOME=%DEP0%
     check_exe: bin/kotlinc-jvm -version
     url: https://github.com/JetBrains/kotlin/releases/download/v{{name}}/kotlin-compiler-{{name}}.zip
-    targets:
+    targets: &kotlin_versions
       - 1.4.0
       - 1.4.10
       - 1.4.20
@@ -44,3 +44,19 @@ compilers:
       - 2.2.0
       - 2.2.10
       - 2.2.20
+
+tools:
+  kotlin-maven:
+    type: script
+    dir: kotlin-jvm-{{name}}-maven
+    depends:
+      - tools/maven 3.9.16
+      - compilers/kotlin {{name}}
+      - compilers/java 21.0.2
+      - compilers/java 15.0.2  # Kotlin 1.4.20 to 1.4.32 only build under a JDK of their own era
+    fetch:
+      - '{{resource_dir}}/maven/prime-kotlin.sh prime-kotlin.sh'
+    script: |
+      bash prime-kotlin.sh "{{name}}" "kotlin-jvm-{{name}}-maven" "%DEP0%" "%DEP1%" "%DEP2%" "%DEP3%"
+    check_file: .ce-supplied-by-installation
+    targets: *kotlin_versions

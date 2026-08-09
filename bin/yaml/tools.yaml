@@ -29,6 +29,20 @@ tools:
       check_exe: bin/cmake --help
       targets:
         - 3.29.20240506-g1ea8fa8
+  maven:
+    type: tarballs
+    compression: gz
+    url: https://archive.apache.org/dist/maven/maven-3/{{name}}/binaries/apache-maven-{{name}}-bin.tar.gz
+    dir: maven-{{name}}
+    untar_dir: apache-maven-{{name}}
+    depends:
+      - compilers/java 21.0.2
+    after_stage_script:
+      - '"{{resource_dir}}/maven/prime-repository.sh" apache-maven-{{name}} %DEP0%'
+    check_file: repository/.ce-primed-2
+    targets:
+      - name: 3.9.16
+        symlink: maven
   ninja:
     type: ziparchive
     extract_into_folder: true
