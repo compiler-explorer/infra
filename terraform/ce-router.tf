@@ -55,7 +55,8 @@ module "ce_router_beta" {
 #     path_pattern {
 #       values = [
 #         "/api/compiler/*/compile",
-#         "/api/compiler/*/cmake"
+#         "/api/compiler/*/cmake",
+#         "/api/compiler/*/build/*"
 #       ]
 #     }
 #   }
@@ -76,7 +77,8 @@ module "ce_router_beta" {
 #     path_pattern {
 #       values = [
 #         "/staging/api/compiler/*/compile",
-#         "/staging/api/compiler/*/cmake"
+#         "/staging/api/compiler/*/cmake",
+#         "/staging/api/compiler/*/build/*"
 #       ]
 #     }
 #   }
@@ -97,7 +99,8 @@ module "ce_router_beta" {
 #     path_pattern {
 #       values = [
 #         "/beta/api/compiler/*/compile",
-#         "/beta/api/compiler/*/cmake"
+#         "/beta/api/compiler/*/cmake",
+#         "/beta/api/compiler/*/build/*"
 #       ]
 #     }
 #   }

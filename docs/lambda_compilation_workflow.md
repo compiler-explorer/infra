@@ -319,7 +319,8 @@ resource "aws_alb_listener_rule" "compilation_beta" {
     path_pattern {
       values = [
         "/beta/api/compiler/*/compile",
-        "/beta/api/compiler/*/cmake"
+        "/beta/api/compiler/*/cmake",
+        "/beta/api/compiler/*/build/*"
       ]
     }
   }
@@ -781,7 +782,7 @@ ce ce-router status beta   # Shows specific environment
 The disable command modifies ALB listener rules directly (bypassing Terraform) for immediate effect:
 
 1. **Disable**: Changes path pattern to `/killswitch-disabled-*` (never matches)
-2. **Enable**: Restores original path patterns (`/api/compiler/*/compile`, `/api/compiler/*/cmake`)
+2. **Enable**: Restores original path patterns (`/api/compiler/*/compile`, `/api/compiler/*/cmake`, `/api/compiler/*/build/*`)
 3. **Status**: Shows actual ALB rule state with indicators:
    - 🟢 ENABLED: CE Router routing active
    - 🚨 DISABLED: Using instance routing

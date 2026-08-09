@@ -188,15 +188,29 @@ def _find_or_create_ce_router_rules(alb_client, listener_arn: str, target_groups
     return rules
 
 
+def compilation_path_patterns(env: str) -> list[str]:
+    """Path patterns for the compilation endpoints CE Router overrides."""
+    prefix = "" if env == "prod" else f"/{env}"
+    return [
+        f"{prefix}/api/compiler/*/compile",
+        f"{prefix}/api/compiler/*/cmake",
+        f"{prefix}/api/compiler/*/build/*",
+    ]
+
+
+def get_rule_path_patterns(rule) -> list[str]:
+    """Return the path patterns currently configured on a rule."""
+    patterns = []
+    for condition in rule.get("Conditions", []):
+        if condition.get("Field") == "path-pattern":
+            patterns.extend(condition.get("Values", []))
+    return patterns
+
+
 def _enable_ce_router_rule(alb_client, env: str, rule_arn: str) -> bool:
     """Enable ce-router rule to route compilation traffic for specific environment."""
     try:
-        # Set path patterns based on environment
-        if env == "prod":
-            path_patterns = ["/api/compiler/*/compile", "/api/compiler/*/cmake"]
-        else:
-            path_patterns = [f"/{env}/api/compiler/*/compile", f"/{env}/api/compiler/*/cmake"]
-
+        path_patterns = compilation_path_patterns(env)
         alb_client.modify_rule(RuleArn=rule_arn, Conditions=[{"Field": "path-pattern", "Values": path_patterns}])
         return True
     except ClientError as e:
@@ -257,11 +271,7 @@ def enable(cfg: Config, environment: str, skip_confirmation: bool):
     click.echo("🔧 CE ROUTER ROUTING CONTROL")
     click.echo("")
 
-    # Show correct paths for the environment
-    if environment == "prod":
-        paths = "/api/compiler/*/compile, /api/compiler/*/cmake"
-    else:
-        paths = f"/{environment}/api/compiler/*/compile, /{environment}/api/compiler/*/cmake"
+    paths = ", ".join(compilation_path_patterns(environment))
 
     click.echo(f"This will route {environment} compilation traffic to CE Router instances.")
     click.echo(f"Affected paths: {paths}")
@@ -305,10 +315,12 @@ def enable(cfg: Config, environment: str, skip_confirmation: bool):
         current_status = _get_ce_router_rule_status(rule)
 
         if current_status == "ENABLED":
-            click.echo(f"⚠️  CE Router routing for {env} is already enabled")
-            continue
-
-        click.echo(f"🔧 Enabling ce-router ALB routing for {env}...")
+            if set(get_rule_path_patterns(rule)) == set(compilation_path_patterns(env)):
+                click.echo(f"⚠️  CE Router routing for {env} is already enabled")
+                continue
+            click.echo(f"🔧 Updating ce-router ALB path patterns for {env}...")
+        else:
+            click.echo(f"🔧 Enabling ce-router ALB routing for {env}...")
         if _enable_ce_router_rule(alb_client, env, rule_arn):
             click.echo(f"✅ {env.upper()} ce-router routing enabled")
             success_count += 1
