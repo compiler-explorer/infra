@@ -36,18 +36,27 @@ CMake and Ninja are not `ce_install` installables on Windows. They are baked int
 * `packer/InstallTools.ps1` for the node image. This is what the site runs: CE's
   `compiler-explorer.amazonwin.properties` names them outright as
   `cmake=C:/BuildTools/CMake/bin/cmake.exe` and `ninjaPath=C:/BuildTools/Ninja`.
-* `packer/InstallBuilderTools.ps1` for the library builder image, on its own version.
-  `init/start-builder.ps1` puts it on PATH and `library_builder.py` invokes bare `cmake`. It affects
-  library builds rather than the site, and moves independently.
+* `packer/InstallBuilderTools.ps1` for the library builder image. `init/start-builder.ps1` puts it on
+  PATH and `library_builder.py` invokes bare `cmake`, so this one decides what library builds get.
 
-To bump the node image:
+The two are separate knobs and have drifted apart before. Keep them on the same version unless you
+have a reason not to, and remember the Linux builder is a third: it takes whichever cmake carries the
+`symlink: cmake` marker in `bin/yaml/tools.yaml`, via `init/start-builder.sh`.
 
-1. Update the download URL and the `Rename-Item` source directory in `InstallBuildTools`
-2. `make packer-win`
-3. Put the new AMI id in `winstaging_image_id` in `terraform/lc.tf`, apply, and restart winstaging
-4. Once it's proven, point `winprod_image_id` at it and restart winprod
+Both scripts bump the same way: edit the download URL and the `Rename-Item` source directory in
+`InstallBuildTools`. Getting the result deployed differs.
+
+For the node image:
+
+1. `make packer-win`
+2. Put the new AMI id in `winstaging_image_id` in `terraform/lc.tf`, apply, and restart winstaging
+3. Once it's proven, point `winprod_image_id` at it and restart winprod
 
 `ec2.tf` derives the win-runner image from `winstaging_image_id`, so that follows along.
+
+The builder image has no packer HCL -- nothing references `InstallBuilderTools.ps1` -- and its
+security group is a terraform `data` lookup rather than a managed resource. It is built by hand, so
+a bump there means rebuilding it yourself.
 
 The compiler share used to carry `cmake-v*` and `ninja-v*` installables as well. Nothing ever read
 them -- both images use their own `C:\BuildTools` copy -- so they were dropped from
