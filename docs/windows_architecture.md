@@ -28,6 +28,31 @@ winprod` and is uploaded to whichever environment is asked for.
 Windows instances are reachable over ssh as `Administrator` (see Bootstrapping), which is what
 the runner commands use.
 
+## Updating CMake and Ninja
+
+CMake and Ninja are not `ce_install` installables on Windows. They are baked into the images as
+`C:\BuildTools\CMake` and `C:\BuildTools\Ninja`, one copy per image:
+
+* `packer/InstallTools.ps1` for the node image. This is what the site runs: CE's
+  `compiler-explorer.amazonwin.properties` names them outright as
+  `cmake=C:/BuildTools/CMake/bin/cmake.exe` and `ninjaPath=C:/BuildTools/Ninja`.
+* `packer/InstallBuilderTools.ps1` for the library builder image, on its own version.
+  `init/start-builder.ps1` puts it on PATH and `library_builder.py` invokes bare `cmake`. It affects
+  library builds rather than the site, and moves independently.
+
+To bump the node image:
+
+1. Update the download URL and the `Rename-Item` source directory in `InstallBuildTools`
+2. `make packer-win`
+3. Put the new AMI id in `winstaging_image_id` in `terraform/lc.tf`, apply, and restart winstaging
+4. Once it's proven, point `winprod_image_id` at it and restart winprod
+
+`ec2.tf` derives the win-runner image from `winstaging_image_id`, so that follows along.
+
+The compiler share used to carry `cmake-v*` and `ninja-v*` installables as well. Nothing ever read
+them -- both images use their own `C:\BuildTools` copy -- so they were dropped from
+`bin/yaml/windows.yaml`. Don't add them back without a consumer.
+
 ## User code execution restrictions
 
 User code Executions runs through cewrapper. It creates an appcontainer environment and adds the user's temporary directory as the only directory where things can be executed within. The appcontainer also enables firewall rules and registry restrictions.
