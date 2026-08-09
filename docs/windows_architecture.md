@@ -54,9 +54,15 @@ For the node image:
 
 `ec2.tf` derives the win-runner image from `winstaging_image_id`, so that follows along.
 
-The builder image has no packer HCL -- nothing references `InstallBuilderTools.ps1` -- and its
-security group is a terraform `data` lookup rather than a managed resource. It is built by hand, so
-a bump there means rebuilding it yourself.
+The builder image is built in the ce-ci repo, not here. Its `packer/windows-provisioner.ps1` fetches
+`InstallBuilderTools.ps1` from this repo's main branch by raw URL, so a change only takes effect once
+it is merged and someone runs `./build-image-win-builder.sh` over there. Nothing needs an AMI id
+updating afterwards: `templates/runner-configs/windows-x64-win-builder.yaml` selects the image by the
+`github-runner-win-builder-*` name filter, and `win-lib-build.yaml` runs on whichever runner the
+ce-ci scaler hands it.
+
+`init/start-builder.ps1` behaves differently again. `win-lib-build.yaml` downloads it from main at job
+time, so changes to it land on the next build with no image rebuild at all.
 
 The compiler share used to carry `cmake-v*` and `ninja-v*` installables as well. Nothing ever read
 them -- both images use their own `C:\BuildTools` copy -- so they were dropped from
