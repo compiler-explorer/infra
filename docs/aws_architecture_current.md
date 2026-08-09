@@ -32,6 +32,7 @@ graph TB
 
             CompileRule["'/*/api/compiler/*/compile*' - CE Router TGs"]
             CMakeRule["'/*/api/compiler/*/cmake*' - CE Router TGs"]
+            BuildRule["'/*/api/compiler/*/build/*' - CE Router TGs"]
         end
     end
 
@@ -223,6 +224,7 @@ graph TB
 | **Compilation Endpoints** | | | | |
 | 10       | `/api/compiler/*/compile*` | CE Router | All envs | **Smart routing via CE Router** |
 | 11       | `/api/compiler/*/cmake*`   | CE Router | All envs | **Smart routing via CE Router** |
+| 11       | `/api/compiler/*/build/*`  | CE Router | All envs | **Generic build-system endpoint (same rule as cmake)** |
 | 12       | `/beta/api/compiler/*/compile*` | CE Router Beta | Beta | **Beta-specific routing** |
 | 13       | `/staging/api/compiler/*/compile*` | CE Router Staging | Staging | **Staging-specific routing** |
 | **General Routing** | | | | |
@@ -236,7 +238,7 @@ graph TB
 
 ### CE Router Architecture (Compilation Endpoints)
 
-The CE Router provides intelligent routing for compilation endpoints (`/api/compiler/*/compile` and `/api/compiler/*/cmake`) across all environments:
+The CE Router provides intelligent routing for compilation endpoints (`/api/compiler/*/compile`, `/api/compiler/*/cmake` and `/api/compiler/*/build/*`) across all environments:
 
 #### CE Router Components
 - **CE Router ASGs**: Dedicated Auto Scaling Groups per environment (prod, beta, staging)
