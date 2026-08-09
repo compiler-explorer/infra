@@ -9,7 +9,6 @@ compilers:
       - JAVA_HOME=%DEP0%
     check_exe: bin/kotlinc-jvm -version
     url: https://github.com/JetBrains/kotlin/releases/download/v{{name}}/kotlin-compiler-{{name}}.zip
-    # Adding a version here is all it takes: tools/kotlin-maven below builds from the same list.
     targets: &kotlin_versions
       - 1.4.0
       - 1.4.10
@@ -47,24 +46,17 @@ compilers:
       - 2.2.20
 
 tools:
-  # Maven builds Kotlin with a compiler kotlin-maven-plugin resolves from a repository, not with whatever is
-  # installed, so each version needs the few artifacts its own distribution does not carry -- the plugin above all.
-  # They live beside the compiler rather than inside maven so that a new Kotlin costs one small install of its own.
   kotlin-maven:
     type: script
     dir: kotlin-jvm-{{name}}-maven
     depends:
-      - tools/maven 3.9.16         # %DEP0%: the mvn to run, and the repository everything else reads through to
-      - compilers/kotlin {{name}}  # %DEP1%: the jars this is the complement of, and what it is verified against
-      - compilers/java 21.0.2      # %DEP2%
-      - compilers/java 15.0.2      # %DEP3%: Kotlin 1.4.20 to 1.4.32 only build under a JDK of their own era
-    # Copied into staging rather than run where it lies: this installs inside a sandbox that replaces
-    # /opt/compiler-explorer with an empty tmpfs, and the infra checkout is under there too.
+      - tools/maven 3.9.16
+      - compilers/kotlin {{name}}
+      - compilers/java 21.0.2
+      - compilers/java 15.0.2  # Kotlin 1.4.20 to 1.4.32 only build under a JDK of their own era
     fetch:
       - '{{resource_dir}}/maven/prime-kotlin.sh prime-kotlin.sh'
     script: |
       bash prime-kotlin.sh "{{name}}" "kotlin-jvm-{{name}}-maven" "%DEP0%" "%DEP1%" "%DEP2%" "%DEP3%"
-    # The record of what the installation has to supply: what a build actually reads, and so what says this was
-    # primed the way builds now expect. An install predating it redoes itself.
     check_file: .ce-supplied-by-installation
     targets: *kotlin_versions
