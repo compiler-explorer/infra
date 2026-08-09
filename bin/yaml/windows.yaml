@@ -51,28 +51,3 @@ windows:
           url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.10/rga-windows-x64-2.10.zip
         - name: "2.9.1"
           url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.9.1/rga-windows-x64-2.9.1.zip
-  tools:
-    cmake:
-      type: ziparchive
-      url: https://github.com/Kitware/CMake/releases/download/v{{name}}/cmake-{{name}}-windows-x86_64.zip
-      dir: cmake-v{{name}}
-      check_file: "bin/cmake.exe"
-      folder: "cmake-{{name}}-windows-x86_64"
-      targets:
-        - 3.27.6
-        - 3.27.9
-        - 3.28.4
-        - 3.29.2
-        - 3.30.7
-        - 3.31.5
-        - 4.1.2
-        - 4.4.2
-    ninja:
-      type: ziparchive
-      url: https://github.com/compiler-explorer/ninja/releases/download/v{{name}}/ninja-win.zip
-      dir: ninja-v{{name}}
-      folder: "bin"
-      extract_into_folder: true
-      check_file: "ninja.exe"
-      targets:
-        - 1.12.1

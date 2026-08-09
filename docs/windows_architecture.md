@@ -28,6 +28,46 @@ winprod` and is uploaded to whichever environment is asked for.
 Windows instances are reachable over ssh as `Administrator` (see Bootstrapping), which is what
 the runner commands use.
 
+## Updating CMake and Ninja
+
+CMake and Ninja are not `ce_install` installables on Windows. They are baked into the images as
+`C:\BuildTools\CMake` and `C:\BuildTools\Ninja`, one copy per image:
+
+* `packer/InstallTools.ps1` for the node image. This is what the site runs: CE's
+  `compiler-explorer.amazonwin.properties` names them outright as
+  `cmake=C:/BuildTools/CMake/bin/cmake.exe` and `ninjaPath=C:/BuildTools/Ninja`.
+* `packer/InstallBuilderTools.ps1` for the library builder image. `init/start-builder.ps1` puts it on
+  PATH and `library_builder.py` invokes bare `cmake`, so this one decides what library builds get.
+
+The two are separate knobs and have drifted apart before. Keep them on the same version unless you
+have a reason not to, and remember the Linux builder is a third: it takes whichever cmake carries the
+`symlink: cmake` marker in `bin/yaml/tools.yaml`, via `init/start-builder.sh`.
+
+Both scripts bump the same way: edit the download URL and the `Rename-Item` source directory in
+`InstallBuildTools`. Getting the result deployed differs.
+
+For the node image:
+
+1. `make packer-win`
+2. Put the new AMI id in `winstaging_image_id` in `terraform/lc.tf`, apply, and restart winstaging
+3. Once it's proven, point `winprod_image_id` at it and restart winprod
+
+`ec2.tf` derives the win-runner image from `winstaging_image_id`, so that follows along.
+
+The builder image is built in the ce-ci repo, not here. Its `packer/windows-provisioner.ps1` fetches
+`InstallBuilderTools.ps1` from this repo's main branch by raw URL, so a change only takes effect once
+it is merged and someone runs `./build-image-win-builder.sh` over there. Nothing needs an AMI id
+updating afterwards: `templates/runner-configs/windows-x64-win-builder.yaml` selects the image by the
+`github-runner-win-builder-*` name filter, and `win-lib-build.yaml` runs on whichever runner the
+ce-ci scaler hands it.
+
+`init/start-builder.ps1` behaves differently again. `win-lib-build.yaml` downloads it from main at job
+time, so changes to it land on the next build with no image rebuild at all.
+
+The compiler share used to carry `cmake-v*` and `ninja-v*` installables as well. Nothing ever read
+them -- both images use their own `C:\BuildTools` copy -- so they were dropped from
+`bin/yaml/windows.yaml`. Don't add them back without a consumer.
+
 ## User code execution restrictions
 
 User code Executions runs through cewrapper. It creates an appcontainer environment and adds the user's temporary directory as the only directory where things can be executed within. The appcontainer also enables firewall rules and registry restrictions.
