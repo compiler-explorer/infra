@@ -6,7 +6,7 @@ locals {
   aarch64prod_image_id    = "ami-0a3feaf88b426390e"
   aarch64staging_image_id = "ami-0a3feaf88b426390e"
   winprod_image_id        = "ami-0082e8641a9c012c7"
-  winstaging_image_id     = "ami-0082e8641a9c012c7"
+  winstaging_image_id     = "ami-0d8ac1735cde9ba9f"
   wintest_image_id        = "ami-0807541f025aad832"
   ce_router_image_id      = "ami-0d57d7a6a221012c5"
 
