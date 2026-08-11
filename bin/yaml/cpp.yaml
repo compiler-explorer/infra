@@ -1636,6 +1636,7 @@ compilers:
           - trivial-relocation-trunk
           - notadragon-contracts-p3850
           - thephd.dev
+          - ilazaric-enclosing_cast
       clang:
         type: nightly
         check_exe: bin/clang++ --version
