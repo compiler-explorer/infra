@@ -386,8 +386,14 @@ def blue_green_deploy(
                 if target_commit_hash is None:
                     print("No target commit hash available - skipping notifications.")
 
-    except DeploymentCancelledException:
-        # Deployment was cancelled - don't show success message or raise
+    except DeploymentCancelledException as e:
+        # Interactively, the caller was shown the problem and answered the prompt, so the
+        # cancellation is an outcome they already know about: exit cleanly. With
+        # --skip-confirmation no prompt was shown, so nothing announced that the deploy
+        # did not happen and the exit code is the only signal. Without this, release.yml
+        # reports a green tick for a deployment that was refused.
+        if skip_confirmation:
+            raise click.ClickException(str(e)) from e
         return
     except ClientError as e:
         print(f"\nDeployment failed: {e}")
