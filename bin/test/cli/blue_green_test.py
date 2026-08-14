@@ -38,7 +38,7 @@ class TestBlueGreenDeployCancellation(unittest.TestCase):
         self.assertIn("existing instances found", result.output)
 
     def test_interactive_cancellation_exits_zero(self):
-        # Without --skip-confirmation a cancellation is a deliberate human choice.
+        # Interactively the caller answered the prompt, so they already know it stopped.
         result = self._invoke([])
         self.assertEqual(result.exit_code, 0)
 
