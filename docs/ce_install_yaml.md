@@ -190,16 +190,18 @@ Common condition flags include:
 - `nightly` - For nightly/trunk builds
 - `non-free` - For proprietary compilers
 - `windows` - For Windows compilers installed to the SMB share
-- `daily-but-archived` - Deliberately never enabled, so the target is never installed.
-  Use it to keep an entry that no longer builds or installs, but whose dated S3 tarballs
-  must not be pruned: the nightly pruner reads every installable regardless of its `if:`,
-  so listing the target here is what marks its artifacts as owned. Commenting the entry
-  out instead makes the artifacts look unowned. Always add a same-line or preceding
-  comment saying why it is archived, and what would have to happen to restore it.
+- `daily-but-archived` - A marker, not a toggle. It is **never enabled anywhere** — no
+  job, cron or human passes it to `--enable` — so the target is never installed. Its only
+  purpose is to keep an entry *present* rather than commented out, for something that no
+  longer builds or installs but whose dated S3 tarballs must not be pruned: the nightly
+  pruner reads every installable regardless of its `if:`, so a listed target marks its
+  artifacts as owned, while a commented-out one makes them look unowned. Always add a
+  comment saying why it is archived and what would restore it (usually: put `if: nightly`
+  back once some upstream bug is fixed).
 
-Conditions are ANDed down the tree: a target inside a group with `if: nightly` needs that
-flag *as well as* its own. So reinstating an archived nightly by hand takes both, e.g.
-`ce_install --enable nightly --enable daily-but-archived install '<filter>'`.
+Conditions are ANDed down the tree, so a target inside a group with `if: nightly` would
+need that flag as well as its own — academic for `daily-but-archived`, which is not meant
+to be enabled at all.
 
 ## Dependencies
 
