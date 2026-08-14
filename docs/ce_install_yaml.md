@@ -189,6 +189,17 @@ ce_install --enable nightly install
 Common condition flags include:
 - `nightly` - For nightly/trunk builds
 - `non-free` - For proprietary compilers
+- `windows` - For Windows compilers installed to the SMB share
+- `daily-but-archived` - Deliberately never enabled, so the target is never installed.
+  Use it to keep an entry that no longer builds or installs, but whose dated S3 tarballs
+  must not be pruned: the nightly pruner reads every installable regardless of its `if:`,
+  so listing the target here is what marks its artifacts as owned. Commenting the entry
+  out instead makes the artifacts look unowned. Always add a same-line or preceding
+  comment saying why it is archived, and what would have to happen to restore it.
+
+Conditions are ANDed down the tree: a target inside a group with `if: nightly` needs that
+flag *as well as* its own. So reinstating an archived nightly by hand takes both, e.g.
+`ce_install --enable nightly --enable daily-but-archived install '<filter>'`.
 
 ## Dependencies
 
