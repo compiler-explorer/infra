@@ -8,7 +8,7 @@ PATH=/home/ubuntu/infra/.venv/bin:/home/ubuntu/infra/bin:/usr/local/sbin:/usr/lo
 30 23 * * 6 cronic bash -c "ce library-stats update"
 40 23 * * 6 cronic bash -c "ce compiler-stats update"
 30 01 * * * cronic bash -c "/home/ubuntu/infra/admin-daily-builds.sh"
-00 09 * * * cronic bash -c "/home/ubuntu/infra/remove_old_compilers.sh"
+00 09 * * * cronic bash -c "ce_install prune-nightlies --delete"
 05 09 * * * cronic bash -c "ce builds rm_old 7"
 # AMI/snapshot cleanup (see #2220)
 10 09 * * * cronic bash -c "ce admin cleanup --no-dry-run"

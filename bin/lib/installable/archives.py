@@ -12,6 +12,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 from lib import amazon
 from lib.amazon import list_compilers
@@ -106,6 +107,9 @@ class NightlyInstallable(Installable):
         self._logger.info("Most recent %s is %s", compiler_name, most_recent)
         path_name_prefix = self.config_get("path_name_prefix", compiler_name)
         s3_name = self.config_get("s3_name", compiler_name)
+        # s3_name is used as a URL path component and so may be percent-encoded (e.g.
+        # "6502-c%2B%2B-trunk"); decoding it gives the literal key prefix in the bucket.
+        self._dated_s3_prefix = unquote(s3_name)
         self.s3_path = f"{s3_name}-{most_recent}"
         self.local_path = f"{path_name_prefix}-{most_recent}"
         self.install_path = os.path.join(self.subdir, f"{path_name_prefix}-{most_recent}")
@@ -116,6 +120,10 @@ class NightlyInstallable(Installable):
     @property
     def nightly_like(self) -> bool:
         return True
+
+    @property
+    def dated_s3_prefix(self) -> str:
+        return self._dated_s3_prefix
 
     def stage(self, staging: StagingDir) -> None:
         self.install_context.fetch_s3_and_pipe_to(staging, f"{self.s3_path}.tar.xz", ["tar", "Jxf", "-"])

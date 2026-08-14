@@ -113,7 +113,8 @@ class InstallationContext:
         self,
         destination: Path,
         staging_root: Path,
-        s3_url: str,
+        s3_bucket: str,
+        s3_dir: str,
         dry_run: bool,
         is_nightly_enabled: bool,
         only_nightly: bool,
@@ -131,7 +132,9 @@ class InstallationContext:
         self._staging_root = staging_root
         self._keep_staging = keep_staging
         self.config = config
-        self.s3_url = s3_url
+        self.s3_bucket = s3_bucket
+        self.s3_dir = s3_dir
+        self.s3_url = f"https://s3.amazonaws.com/{s3_bucket}/{s3_dir}"
         self.dry_run = dry_run
         self.is_nightly_enabled = is_nightly_enabled
         self.only_nightly = only_nightly

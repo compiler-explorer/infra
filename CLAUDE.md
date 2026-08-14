@@ -625,6 +625,10 @@ Send 'now live' notifications to GitHub issues/PRs? [yes/dry-run/no] (yes):
 
 The `ce_install` command supports a filter system to narrow down installables. Filter syntax and usage patterns are documented in `docs/filter-system.md`.
 
+## Nightly Pruning
+
+`ce_install prune-nightlies` culls old dated nightly tarballs from S3, keeping the newest few builds of each family. Which families may be culled comes from the YAML (`type: nightly` installables), not from a name pattern; families nothing claims are reported and never deleted. Dry run unless `--delete` is passed. It runs daily from `crontab.admin`. See `docs/nightly_pruning.md`.
+
 ## Library Configuration
 
 Library YAML settings, build types, library types (`cshared`, `shared`, `static`, `headeronly`), `package_install` behavior, and per-language configuration are documented in `docs/library_configuration.md`.
