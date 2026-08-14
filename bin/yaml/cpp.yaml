@@ -1637,6 +1637,13 @@ compilers:
           - notadragon-contracts-p3850
           - thephd.dev
           - ilazaric-enclosing_cast
+          # No longer built or installed, but still serving live compilers from an old
+          # install. Listed so the S3 pruner counts their tarballs as owned;
+          # 'daily-but-archived' is never passed to --enable, so they are never installed.
+          - name: embed-trunk
+            if: daily-but-archived
+          - name: static-analysis-trunk
+            if: daily-but-archived
       clang:
         type: nightly
         check_exe: bin/clang++ --version
@@ -1719,12 +1726,15 @@ compilers:
         check_exe: bin/6502-c++ --help
         targets:
           - trunk
-      # https://github.com/compiler-explorer/misc-builder/issues/102
-      #vast:
-      #  type: nightly
-      #  check_exe: bin/vast-front --version
-      #  targets:
-      #    - trunk
+      vast:
+        type: nightly
+        check_exe: bin/vast-front --version
+        # Install disabled since 2025-01: vast-front cannot find libclang-cpp.so, see
+        # compiler-explorer/misc-builder#102. Listed rather than commented out so the S3
+        # pruner counts its tarballs as owned; restore 'if: nightly' once #102 is fixed.
+        if: daily-but-archived
+        targets:
+          - trunk
       llvmmos:
         type: nightlytarballs
         compression: xz
