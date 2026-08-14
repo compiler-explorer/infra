@@ -5,6 +5,7 @@ self-hosted-runner:
     - ce
     - small
     - medium
+    - large
     - admin
     - lin-builder
     - win-builder
