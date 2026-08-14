@@ -96,8 +96,8 @@ def test_nightly_dated_s3_prefix_follows_compiler_name(fake_context, available_n
     assert installable.dated_s3_prefix == "ncc-ng-trunk"
 
 
-def test_nightly_dated_s3_prefix_decodes_s3_name(fake_context, available_nightlies):
-    """s3_name is a URL path component; the key in the bucket is its decoded form."""
+def test_nightly_dated_s3_prefix_is_the_key_not_the_url_form(fake_context, available_nightlies):
+    """s3_name is a URL path component and may be percent-encoded; the prefix is the literal key."""
     installable = make_nightly(fake_context, dict(compiler_name="6502-c++-trunk", s3_name="6502-c%2B%2B-trunk"))
 
     assert installable.dated_s3_prefix == "6502-c++-trunk"
