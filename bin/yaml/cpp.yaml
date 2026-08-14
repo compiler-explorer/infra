@@ -1729,10 +1729,6 @@ compilers:
       vast:
         type: nightly
         check_exe: bin/vast-front --version
-        # Install disabled since 2025-01: vast-front cannot find libclang-cpp.so, see
-        # compiler-explorer/misc-builder#102. Listed rather than commented out so the S3
-        # pruner counts its tarballs as owned; restore 'if: nightly' once #102 is fixed.
-        if: daily-but-archived
         targets:
           - trunk
       llvmmos:
