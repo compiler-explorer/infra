@@ -98,14 +98,14 @@ class NightlyInstallable(Installable):
         super().__init__(install_context, config)
         self.subdir = self.config_get("subdir", "")
         self.strip = self.config_get("strip", False)
-        compiler_name = self.config_get("compiler_name", f"{self.context[-1]}-{self.target_name}")
+        self.compiler_name = self.config_get("compiler_name", f"{self.context[-1]}-{self.target_name}")
         current = s3_available_compilers()
-        if compiler_name not in current:
-            raise RuntimeError(f"Unable to find nightlies for {compiler_name}")
-        most_recent = max(current[compiler_name])
-        self._logger.info("Most recent %s is %s", compiler_name, most_recent)
-        path_name_prefix = self.config_get("path_name_prefix", compiler_name)
-        s3_name = self.config_get("s3_name", compiler_name)
+        if self.compiler_name not in current:
+            raise RuntimeError(f"Unable to find nightlies for {self.compiler_name}")
+        most_recent = max(current[self.compiler_name])
+        self._logger.info("Most recent %s is %s", self.compiler_name, most_recent)
+        path_name_prefix = self.config_get("path_name_prefix", self.compiler_name)
+        s3_name = self.config_get("s3_name", self.compiler_name)
         self.s3_path = f"{s3_name}-{most_recent}"
         self.local_path = f"{path_name_prefix}-{most_recent}"
         self.install_path = os.path.join(self.subdir, f"{path_name_prefix}-{most_recent}")
@@ -116,6 +116,13 @@ class NightlyInstallable(Installable):
     @property
     def nightly_like(self) -> bool:
         return True
+
+    @property
+    def dated_s3_prefix(self) -> str:
+        # compiler_name, not s3_name: the constructor above has already checked it against the
+        # keys in the bucket, whereas s3_name is a URL path component and may be percent-encoded
+        # ("6502-c%2B%2B-trunk"). Key space and URL space, and this is a key.
+        return self.compiler_name
 
     def stage(self, staging: StagingDir) -> None:
         self.install_context.fetch_s3_and_pipe_to(staging, f"{self.s3_path}.tar.xz", ["tar", "Jxf", "-"])

@@ -113,7 +113,8 @@ class InstallationContext:
         self,
         destination: Path,
         staging_root: Path,
-        s3_url: str,
+        s3_bucket: str,
+        s3_dir: str,
         dry_run: bool,
         is_nightly_enabled: bool,
         only_nightly: bool,
@@ -131,7 +132,8 @@ class InstallationContext:
         self._staging_root = staging_root
         self._keep_staging = keep_staging
         self.config = config
-        self.s3_url = s3_url
+        self.s3_bucket = s3_bucket
+        self.s3_dir = s3_dir
         self.dry_run = dry_run
         self.is_nightly_enabled = is_nightly_enabled
         self.only_nightly = only_nightly
@@ -260,6 +262,10 @@ class InstallationContext:
         env = os.environ.copy()
         env["CE_STAGING_DIR"] = str(staging.path)
         subprocess.check_call(command, cwd=str(cwd or staging.path), env=env)
+
+    @property
+    def s3_url(self) -> str:
+        return f"https://s3.amazonaws.com/{self.s3_bucket}/{self.s3_dir}"
 
     def fetch_s3_and_pipe_to(self, staging: StagingDir, s3: str, command: Sequence[str]) -> None:
         return self.fetch_url_and_pipe_to(staging, f"{self.s3_url}/{s3}", command)

@@ -441,7 +441,8 @@ def cli(
     context = InstallationContext(
         destination=dest,
         staging_root=staging_dir,
-        s3_url=f"https://s3.amazonaws.com/{s3_bucket}/{s3_dir}",
+        s3_bucket=s3_bucket,
+        s3_dir=s3_dir,
         dry_run=dry_run,
         is_nightly_enabled="nightly" in enable,
         only_nightly=only_nightly,
@@ -464,7 +465,7 @@ def cli(
 
 
 # Import CLI modules to register commands
-from lib.cli import cefs, conan_builds, cpp_libraries, fortran_libraries  # noqa: F401, E402
+from lib.cli import cefs, conan_builds, cpp_libraries, fortran_libraries, nightly_prune  # noqa: F401, E402
 
 
 def get_exe_path_for_installable(installable, destination) -> str | None:

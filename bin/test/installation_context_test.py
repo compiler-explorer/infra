@@ -4,7 +4,9 @@ import stat
 import tempfile
 from pathlib import Path
 
-from lib.installation_context import fix_permissions
+from lib.config import Config
+from lib.installation_context import InstallationContext, fix_permissions
+from lib.library_platform import LibraryPlatform
 
 
 def test_fix_permissions_skips_broken_symlinks():
@@ -100,3 +102,30 @@ def test_fix_permissions_fixes_root_directory():
         # Verify file permissions are fixed (should be 644)
         file_mode = stat.S_IMODE(test_file.stat().st_mode)
         assert file_mode == 0o644, f"Expected 0o644, got {oct(file_mode)}"
+
+
+def make_context(s3_bucket: str, s3_dir: str) -> InstallationContext:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        destination = Path(temp_dir)
+        return InstallationContext(
+            destination=destination,
+            staging_root=destination / "staging",
+            s3_bucket=s3_bucket,
+            s3_dir=s3_dir,
+            dry_run=True,
+            is_nightly_enabled=False,
+            only_nightly=False,
+            cache=None,
+            yaml_dir=destination,
+            allow_unsafe_ssl=False,
+            resource_dir=destination,
+            keep_staging=False,
+            check_user="",
+            platform=LibraryPlatform.Linux,
+            config=Config(),
+        )
+
+
+def test_s3_url_follows_the_bucket_and_directory():
+    assert make_context("compiler-explorer", "opt").s3_url == "https://s3.amazonaws.com/compiler-explorer/opt"
+    assert make_context("other-bucket", "opt-nonfree").s3_url == "https://s3.amazonaws.com/other-bucket/opt-nonfree"

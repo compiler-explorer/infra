@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
+from collections.abc import Iterator, Sequence
 from datetime import datetime
 from operator import attrgetter
 
@@ -10,6 +11,9 @@ from lib.env import Config, Environment
 from lib.releases import Hash, Release, Version, VersionSource
 
 S3_STORAGE_BUCKET = "storage.godbolt.org"
+
+# The DeleteObjects API takes at most this many keys per call.
+_MAX_DELETE_BATCH = 1000
 
 
 class LazyObjectWrapper:
@@ -393,12 +397,30 @@ def list_compilers(with_extension=False):
                 yield name
 
 
-def list_s3_artifacts(bucket, prefix):
+def list_s3_objects(bucket: str, prefix: str) -> Iterator[tuple[str, int]]:
+    """Yield (key, size in bytes) for every object under prefix."""
     s3_paginator = anon_s3_client.get_paginator("list_objects_v2")
     for page in s3_paginator.paginate(Bucket=bucket, Prefix=prefix):
         if page["KeyCount"]:
             for match in page["Contents"]:
-                yield match["Key"]
+                yield match["Key"], match["Size"]
+
+
+def list_s3_artifacts(bucket, prefix):
+    for key, _size in list_s3_objects(bucket, prefix):
+        yield key
+
+
+def delete_s3_objects(bucket: str, keys: Sequence[str]) -> None:
+    """Delete the given keys, in the batches of 1000 the API allows."""
+    for batch_start in range(0, len(keys), _MAX_DELETE_BATCH):
+        batch = keys[batch_start : batch_start + _MAX_DELETE_BATCH]
+        response = s3_client.delete_objects(
+            Bucket=bucket, Delete={"Objects": [{"Key": key} for key in batch], "Quiet": True}
+        )
+        errors = response.get("Errors", [])
+        if errors:
+            raise RuntimeError(f"Failed to delete {len(errors)} object(s) from {bucket}: {errors}")
 
 
 def get_ssm_param(param):

@@ -266,6 +266,15 @@ class Installable:
     def nightly_like(self) -> bool:
         return self.install_always or self.target_name in ["nightly", "trunk", "master", "main"]
 
+    @property
+    def dated_s3_prefix(self) -> str | None:
+        """The S3 key prefix whose dated `-YYYYMMDD` artifacts belong to this installable.
+
+        Only installables whose artifacts are dated daily builds in our own bucket have one;
+        it is what lets `ce_install prune-nightlies` know which builds it may cull.
+        """
+        return None
+
     def build(self, buildfor: str, popular_compilers_only: bool, platform: LibraryPlatform):
         if not self.is_library:
             raise RuntimeError("Nothing to build")
