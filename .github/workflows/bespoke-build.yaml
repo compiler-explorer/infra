@@ -65,7 +65,7 @@ on:
           - large
 jobs:
   bespoke-build:
-    runs-on: ${{ inputs.size == 'large' && fromJSON('["self-hosted", "ce", "linux", "x64"]') || fromJSON(format('["self-hosted", "ce", "linux", "x64", "{0}"]', inputs.size)) }}
+    runs-on: ${{ fromJSON(format('["self-hosted", "ce", "linux", "x64", "{0}"]', inputs.size)) }}
     steps:
       - name: Clean workspace
         run: find "$GITHUB_WORKSPACE" -mindepth 1 -delete
