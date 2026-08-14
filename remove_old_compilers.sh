@@ -3,7 +3,7 @@
 KEEP_LAST=5
 S3=s3://compiler-explorer/opt/
 
-for compiler_prefix in $(aws s3 ls ${S3} | grep -oE '[-a-zA-Z0-9_]+-(main|trunk|master)-' | sort -u); do
+for compiler_prefix in $(aws s3 ls ${S3} | grep -oE '[-a-zA-Z0-9_]+-(main|trunk|master|godbolt)-' | sort -u); do
   echo "Considering prefix ${compiler_prefix}"
   aws s3 ls "${S3}${compiler_prefix}"
   # Look for anything with a datelike bit going on for extra safety.

@@ -1697,6 +1697,11 @@ compilers:
         check_exe: bin/mlir-opt --version
         targets:
           - trunk
+      aburi:
+        type: nightly
+        check_exe: bin/aburi --version
+        targets:
+          - godbolt
       tinycc:
         type: nightly
         check_exe: bin/tcc -v
