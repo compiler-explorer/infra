@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import io
 import os
+import re
 from logging import Logger
 from pathlib import Path
 from subprocess import TimeoutExpired
@@ -19,6 +20,7 @@ from lib.library_builder import (
     build_timeout,
     fetch_all_annotations,
     fetch_failed_builds,
+    is_clang_variant,
     is_nvhpc_compiler,
     match_conan_settings,
     match_failed_build,
@@ -406,8 +408,20 @@ def test_writebuildscript_nvcc_without_wrapper_uses_native_cuda(tmp_path, reques
     assert "nvcc_wrapper" not in script
 
 
-def _write_buildscript_for(tmp_path, requests_mock, *, compiler, exe, compiler_type, toolchain):
+def _write_buildscript_for(
+    tmp_path,
+    requests_mock,
+    *,
+    compiler,
+    exe,
+    compiler_type,
+    toolchain,
+    options="",
+    stdlib="",
+    platform=LibraryPlatform.Linux,
+):
     requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
+    requests_mock.get(f"{BASE}cpp.amazonwin.properties", text="")
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
@@ -421,14 +435,14 @@ def _write_buildscript_for(tmp_path, requests_mock, *, compiler, exe, compiler_t
         install_context,
         build_config,
         False,
-        LibraryPlatform.Linux,
+        platform,
     )
     builder.writebuildscript(
         str(tmp_path),
         str(tmp_path / "install"),
         "/src/googletest",
         compiler,
-        "",
+        options,
         exe,
         compiler_type,
         toolchain,
@@ -436,16 +450,16 @@ def _write_buildscript_for(tmp_path, requests_mock, *, compiler, exe, compiler_t
         "Debug",
         "x86_64",
         "",
-        "",
+        stdlib,
         [""],
         "",
         {},
     )
-    return (tmp_path / "cebuild.sh").read_text(encoding="utf-8")
+    return builder, (tmp_path / builder.script_filename).read_text(encoding="utf-8")
 
 
 def test_writebuildscript_edg_leaves_c_compiler_undefined(tmp_path, requests_mock):
-    script = _write_buildscript_for(
+    _, script = _write_buildscript_for(
         tmp_path,
         requests_mock,
         compiler="edg69",
@@ -458,7 +472,7 @@ def test_writebuildscript_edg_leaves_c_compiler_undefined(tmp_path, requests_moc
 
 
 def test_writebuildscript_gcc_defines_c_compiler(tmp_path, requests_mock):
-    script = _write_buildscript_for(
+    _, script = _write_buildscript_for(
         tmp_path,
         requests_mock,
         compiler="g151",
@@ -471,7 +485,7 @@ def test_writebuildscript_gcc_defines_c_compiler(tmp_path, requests_mock):
 
 
 def test_writebuildscript_nvhpc_omits_external_toolchain(tmp_path, requests_mock):
-    script = _write_buildscript_for(
+    _, script = _write_buildscript_for(
         tmp_path,
         requests_mock,
         compiler="nvcxx_x86_cxx26_5",
@@ -484,7 +498,7 @@ def test_writebuildscript_nvhpc_omits_external_toolchain(tmp_path, requests_mock
 
 
 def test_writebuildscript_gcc_keeps_external_toolchain(tmp_path, requests_mock):
-    script = _write_buildscript_for(
+    _, script = _write_buildscript_for(
         tmp_path,
         requests_mock,
         compiler="g151",
@@ -494,6 +508,63 @@ def test_writebuildscript_gcc_keeps_external_toolchain(tmp_path, requests_mock):
     )
     assert '"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN=/opt/compiler-explorer/gcc-15.1.0"' in script
     assert '"-DCMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN=/opt/compiler-explorer/gcc-15.1.0"' in script
+
+
+def test_writebuildscript_clang_cuda_omits_external_toolchain(tmp_path, requests_mock):
+    _, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="cuclang1910",
+        exe="/opt/compiler-explorer/clang-19.1.0/bin/clang++",
+        compiler_type="clang-cuda",
+        toolchain="/opt/compiler-explorer/clang-19.1.0",
+        options="--cuda-path=/opt/compiler-explorer/cuda/12.5.1 --cuda-gpu-arch=sm_90 --cuda-device-only",
+    )
+    assert "COMPILER_EXTERNAL_TOOLCHAIN" not in script
+
+
+def test_writebuildscript_clang_cuda_keeps_explicit_external_toolchain(tmp_path, requests_mock):
+    _, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="cuclang900",
+        exe="/opt/compiler-explorer/clang-9.0.0/bin/clang++",
+        compiler_type="clang-cuda",
+        toolchain="/opt/compiler-explorer/gcc-9.2.0",
+        options="--gcc-toolchain=/opt/compiler-explorer/gcc-9.2.0 --cuda-gpu-arch=sm_75 --cuda-device-only",
+    )
+    assert '"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN=/opt/compiler-explorer/gcc-9.2.0"' in script
+    assert '"-DCMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN=/opt/compiler-explorer/gcc-9.2.0"' in script
+
+
+def test_writebuildscript_clang_cuda_fixed_libcxx_is_tagged_libcxx(tmp_path, requests_mock):
+    # Runtime reads -stdlib= straight out of the compiler options with no compilerType check, so a
+    # clang-cuda built against libc++ must be uploaded as libcxx=libc++ or the lookup never matches.
+    builder, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="cuclang1810",
+        exe="/opt/compiler-explorer/clang-18.1.0/bin/clang++",
+        compiler_type="clang-cuda",
+        toolchain="/opt/compiler-explorer/clang-18.1.0",
+        options="--cuda-device-only -stdlib=libc++ -D_ALLOW_UNSUPPORTED_LIBCPP",
+        stdlib="libc++",
+    )
+    assert builder.current_buildparameters_obj["libcxx"] == "libc++"
+    assert "-s compiler.libcxx=libc++" in " ".join(builder.current_buildparameters)
+    # -stdlib is already in the compiler options, so it must not be appended a second time.
+    cxx_flags = re.search(r'-DCMAKE_CXX_FLAGS_DEBUG=([^"]*)', script).group(1)
+    assert cxx_flags.count("-stdlib=libc++") == 1
+
+
+def test_is_clang_variant():
+    assert is_clang_variant("clang")
+    assert is_clang_variant("clang-cuda")
+    assert is_clang_variant("clang-hip")
+    assert is_clang_variant("win32-mingw-clang")
+    assert not is_clang_variant("gcc")
+    assert not is_clang_variant("nvcc")
+    assert not is_clang_variant("win32-mingw-gcc")
 
 
 def test_is_nvhpc_compiler():

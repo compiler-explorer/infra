@@ -409,6 +409,11 @@ def is_nvhpc_compiler(exe: str) -> bool:
     return os.path.basename(exe) in ("nvc", "nvc++", "nvc.exe", "nvc++.exe")
 
 
+def is_clang_variant(compiler_type: str) -> bool:
+    """Clang under a compilerType of its own: the cuda, hip and mingw drivers are all clang."""
+    return compiler_type in ("clang", "win32-mingw-clang") or compiler_type.startswith("clang-")
+
+
 @contextlib.contextmanager
 def open_script(script: Path) -> Generator[TextIO, None, None]:
     with script.open("w", encoding="utf-8") as f:
@@ -912,7 +917,7 @@ class LibraryBuilder:
                 stdverflag = f"-std={stdver}"
 
             stdlibflag = ""
-            if stdlib and compilerType == "clang":
+            if stdlib and is_clang_variant(compilerType):
                 libcxx = stdlib
                 stdlibflag = f"-stdlib={stdlib}"
                 if stdlibflag in compileroptions:
@@ -966,9 +971,12 @@ class LibraryBuilder:
                 extracmakeargs = " ".join(expanded_cmake_args)
                 # CMake turns EXTERNAL_TOOLCHAIN into --gcc-toolchain= for clang and nvhpc. Both locate
                 # their own gcc -- nvhpc's is baked into its localrc by makelocalrc at install time --
-                # and the toolchain we derive for nvc++ is its own install root, which holds no gcc.
-                # Only pass one when the compiler options name a specific one.
-                picks_own_gcc = compilerTypeOrGcc == "clang" or is_nvhpc_compiler(compilerexe)
+                # and the toolchain we derive for them is their own install root, which holds no gcc.
+                # Only pass one when the compiler options name a specific one. win32-mingw-clang is
+                # the exception: its install root is the mingw toolchain, so the derived path is right.
+                picks_own_gcc = (
+                    is_clang_variant(compilerTypeOrGcc) and compilerTypeOrGcc != "win32-mingw-clang"
+                ) or is_nvhpc_compiler(compilerexe)
                 if picks_own_gcc and "--gcc-toolchain=" not in compileroptions:
                     toolchainparam = ""
                 else:
