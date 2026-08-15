@@ -568,6 +568,12 @@ class LibraryBuilder:
             return match[1]
         return False
 
+    def getCudaPathFromOptions(self, options):
+        match = re.search(r"--cuda-path=(\S*)", options)
+        if match:
+            return match[1]
+        return False
+
     def getStdVerFromOptions(self, options):
         match = re.search(r"-std=(\S*)", options)
         if match:
@@ -1023,9 +1029,17 @@ class LibraryBuilder:
                 cudaflagsparam = ""
                 if compilerType == "nvcc" and not self.buildconfig.cxx_compiler_wrapper:
                     cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}"'
+
+                # clang finds the toolkit through --cuda-path, which find_package(CUDAToolkit) does
+                # not read, so name the root for it. nvcc builds don't need this: their toolkit is
+                # already on PATH because nvcc itself lives in it.
+                cuda_path = self.getCudaPathFromOptions(compileroptions)
+                cudatoolkitparam = f'"-DCUDAToolkit_ROOT={cuda_path}"' if cuda_path else ""
+
                 cmakecmd = (
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
                     f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
+                    f"{cudatoolkitparam} "
                     f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
                     f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'
                 )

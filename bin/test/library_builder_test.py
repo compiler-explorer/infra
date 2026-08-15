@@ -557,6 +557,51 @@ def test_writebuildscript_clang_cuda_fixed_libcxx_is_tagged_libcxx(tmp_path, req
     assert cxx_flags.count("-stdlib=libc++") == 1
 
 
+def test_writebuildscript_clang_cuda_names_the_cuda_toolkit_root(tmp_path, requests_mock):
+    # find_package(CUDAToolkit) does not look at --cuda-path, so it needs the root spelled out.
+    _, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="cuclang1910",
+        exe="/opt/compiler-explorer/clang-19.1.0/bin/clang++",
+        compiler_type="clang-cuda",
+        toolchain="/opt/compiler-explorer/clang-19.1.0",
+        options="--cuda-path=/opt/compiler-explorer/cuda/12.5.1 --cuda-gpu-arch=sm_90 --cuda-device-only",
+    )
+    assert '"-DCUDAToolkit_ROOT=/opt/compiler-explorer/cuda/12.5.1"' in script
+
+
+def test_writebuildscript_without_cuda_path_omits_the_toolkit_root(tmp_path, requests_mock):
+    _, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="g151",
+        exe="/opt/compiler-explorer/gcc-15.1.0/bin/g++",
+        compiler_type="",
+        toolchain="/opt/compiler-explorer/gcc-15.1.0",
+    )
+    assert "CUDAToolkit_ROOT" not in script
+
+
+def test_get_cuda_path_from_options(requests_mock):
+    requests_mock.get(f"{BASE}cuda.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    builder = LibraryBuilder(
+        logger,
+        "cuda",
+        "testlib",
+        "1.0.0",
+        "/tmp/source",
+        install_context,
+        create_test_build_config(),
+        False,
+        LibraryPlatform.Linux,
+    )
+    assert builder.getCudaPathFromOptions("--cuda-path=/opt/cuda/12.5.1 --cuda-device-only") == "/opt/cuda/12.5.1"
+    assert builder.getCudaPathFromOptions("--compiler-bindir /opt/gcc/bin") is False
+
+
 def test_is_clang_variant():
     assert is_clang_variant("clang")
     assert is_clang_variant("clang-cuda")
