@@ -4192,6 +4192,15 @@ libraries:
       - 0.66.7
       - 0.68.9
       type: github
+  solidity:
+    openzeppelin:
+      build_type: none
+      check_file: contracts/token/ERC20/ERC20.sol
+      repo: OpenZeppelin/openzeppelin-contracts
+      target_prefix: v
+      targets:
+      - 5.4.0
+      type: github
   zig:
     nightly:
       if: nightly
