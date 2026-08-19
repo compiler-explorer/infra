@@ -609,6 +609,7 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
         statement {
           regex_match_statement {
             regex_string = "^([a-z0-9_-]+\\.)?(godbolt\\.org|compiler-explorer\\.com|godbo\\.lt)(:[0-9]+)?$"
+            field_to_match {
               single_header {
                 name = "host"
               }
