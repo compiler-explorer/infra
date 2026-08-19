@@ -144,6 +144,8 @@ setup_cgroups() {
 
 mount_nosym() {
     mkdir -p /nosym
+    # Idempotent so a service restart doesn't stack another bind mount.
+    mountpoint -q /nosym && return
     mount -onosymfollow --bind / /nosym
     # seems to need a remount to pick it up properly on our version of Ubuntu (but not 23.10)
     mount -oremount,nosymfollow --bind / /nosym
