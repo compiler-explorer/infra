@@ -595,6 +595,39 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
+  # Scanners hit *.godbolt.org with multi-label hosts (dev.app.godbolt.org etc); CloudFront
+  # then fails origin TLS against the ALB's *.godbolt.org cert and synthesises 502s that trip
+  # High5xx (infra#2310). Costs $1/month; consider removing if the scanner traffic goes away.
+  rule {
+    name     = "deny-bogus-host"
+    priority = 3
+    action {
+      block {}
+    }
+    statement {
+      not_statement {
+        statement {
+          regex_match_statement {
+            regex_string = "^([a-z0-9_-]+\\.)?(godbolt\\.org|compiler-explorer\\.com|godbo\\.lt)(:[0-9]+)?$"
+              single_header {
+                name = "host"
+              }
+            }
+            text_transformation {
+              priority = 0
+              type     = "LOWERCASE"
+            }
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "deny-bogus-host"
+      sampled_requests_enabled   = true
+    }
+  }
+
   custom_response_body {
     content      = "Your request has hit our rate limit. Please reduce the load you're putting on our site. Contact us on Discord if you feel this is in error."
     content_type = "TEXT_PLAIN"
