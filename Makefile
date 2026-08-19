@@ -190,6 +190,18 @@ terraform-apply:  upload-lambda upload-events-lambda ## Applies terraform
 terraform-plan:  upload-lambda upload-events-lambda ## Plans terraform changes
 	terraform -chdir=terraform plan
 
+.PHONY: grafana-init
+grafana-init:  ## Initialises the Grafana Cloud terraform root (terraform/grafana)
+	terraform -chdir=terraform/grafana init
+
+.PHONY: grafana-plan
+grafana-plan:  ## Plans Grafana Cloud changes (alert rules etc; see docs/grafana_terraform.md)
+	terraform -chdir=terraform/grafana plan
+
+.PHONY: grafana-apply
+grafana-apply:  ## Applies Grafana Cloud changes
+	terraform -chdir=terraform/grafana apply
+
 .PHONY: pre-commit
 pre-commit: ce  ## Runs all pre-commit hooks
 	$(UV_BIN) run pre-commit run --all-files
