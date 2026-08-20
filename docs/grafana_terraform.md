@@ -10,10 +10,20 @@ stack is invisible to it.
 
 ## What is managed today
 
-- Folder **CE Alerts (terraform-managed)** (`grafana_folder.ce_alerts`) and
-  the rule groups in it: "Instance Restarts" (app restarted in place,
-  infra#2313) and "Host Disk" (root filesystem low, infra#2310). The folder
-  name says who owns it, because provisioned rules are read-only in the UI.
+- Folder **CE Alerts** (`grafana_folder.ce_alerts`) and the rule groups in it:
+  "Instance Restarts" (app restarted in place, infra#2313) and "Host Disk"
+  (root filesystem and conan server disk low, infra#2310). The UI marks these
+  rules "Provisioned", which is how you can tell they live here.
+
+All other alert rules have been adopted or replaced: the legacy hand-made
+"Instance Disk Space" and "Conan Disk Space" rules were recreated here (with
+fixed labels and real annotations) and the originals deleted. The remaining
+`ProbeFailedExecutionsTooHigh` rule belongs to the Synthetic Monitoring app,
+which owns and regenerates it -- leave it alone.
+
+Contact points ("Discord Admins", "Discord Admins Microsoft", "Mail MS") are
+still hand-made; rules reference "Discord Admins" by name. Adopting them is
+the natural next step but puts the webhook URLs in state (see below).
 
 ## Adopting existing things
 
