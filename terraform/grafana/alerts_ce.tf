@@ -20,7 +20,7 @@ resource "grafana_rule_group" "instance_restarts" {
 
     annotations = {
       summary     = "CE app restarted on {{ $labels.agent_hostname }} ({{ $labels.env }})"
-      description = "process_start_time_seconds changed in the last 15m, i.e. systemd restarted compiler-explorer.service in place (infra#2313). Check Papertrail host:{{ $labels.agent_hostname }} or journalctl -u compiler-explorer on the host. New instances booting do not trigger this; only same-host restarts do."
+      description = "process_start_time_seconds changed in the last 15m, i.e. systemd restarted compiler-explorer.service in place (infra#2313). Check Papertrail host:{{ $labels.agent_hostname }} or journalctl -u compiler-explorer. New instances booting do not trigger this; only same-host restarts do."
     }
     labels = {
       severity = "warning"
