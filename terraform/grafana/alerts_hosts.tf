@@ -21,7 +21,7 @@ resource "grafana_rule_group" "host_disk" {
     exec_err_state = "Error"
 
     annotations = {
-      summary     = "/ has {{ printf \"%.1f\" $values.A }}% free on {{ $labels.agent_hostname }} ({{ $labels.env }})"
+      summary     = "/ has {{ printf \"%.1f\" $values.A.Value }}% free on {{ $labels.agent_hostname }} ({{ $labels.env }})"
       description = "node_filesystem_avail_bytes / node_filesystem_size_bytes for mountpoint=/ has been below 10% for 10 minutes (infra#2310)."
     }
     labels = {
@@ -80,7 +80,7 @@ resource "grafana_rule_group" "host_disk" {
     exec_err_state = "Error"
 
     annotations = {
-      summary     = "Conan server disk has {{ printf \"%.1f\" $values.A }}% free"
+      summary     = "Conan server disk has {{ printf \"%.1f\" $values.A.Value }}% free"
       description = "/home/ce/.conan_server is below 10% free. See docs/resizing_conan_disk.md in infra for the resize procedure."
     }
     labels = {
