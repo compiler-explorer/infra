@@ -1,12 +1,13 @@
 # Terraform
 
-Stores state on S3, and can be applied with:
+Two roots, each with state on S3:
 
-## Setup
+* `.` -- AWS. Needs AWS credentials (`~/.aws/credentials` or SSO).
+* `grafana/` -- Grafana Cloud alerting. Same AWS credentials (the Grafana
+  token comes from SSM); see `docs/grafana_terraform.md`.
 
-Make sure you have a valid AWS credentials file in ` ~/.aws/credentials` and then type `terraform init`.
+In either directory:
 
-## Running
-
+* `terraform init` -> once, to set up
 * `terraform plan` -> previews changes
 * `terraform apply` -> applies changes
