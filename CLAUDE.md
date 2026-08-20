@@ -74,6 +74,7 @@ This repository has extensive documentation in the `docs/` directory. Before mak
 ## Terraform Guidelines
 
 - When changing terraform .tf files, always run `terraform fmt` and `terraform validate` before committing (from the terraform directory)
+- There are two roots: `terraform/` (AWS) and `terraform/grafana/` (Grafana Cloud: alert rules, contact points, dashboards; separate state). See `docs/grafana_terraform.md` before touching the latter
 
 ## Testing Guidelines
 
