@@ -25,6 +25,7 @@ from lib.builds_core import (
     set_version_for_deployment,
 )
 from lib.ce_utils import is_running_on_admin_node
+from lib.cloudfront_utils import invalidate_cloudfront_distributions
 from lib.compiler_routing import update_compiler_routing_table
 from lib.deployment_utils import (
     check_instance_health,
@@ -330,6 +331,7 @@ class BlueGreenDeployment:
         ignore_hash_mismatch: bool = False,
         skip_compiler_check: bool = False,
         compiler_timeout: int = 600,
+        skip_cloudfront: bool = False,
     ) -> None:
         """Perform a blue-green deployment with optional version setting."""
         active_color = self.get_active_color()
@@ -592,6 +594,13 @@ class BlueGreenDeployment:
                 LOGGER.warning(f"Failed to update compiler routing table: {e}")
                 LOGGER.warning("Deployment will continue, but compiler routing may be out of date")
                 print(f"  ⚠️  Warning: Compiler routing update failed: {e}")
+
+            # Step 6.5: Invalidate CloudFront so the edge stops serving the old version's assets
+            if skip_cloudfront:
+                print("\nStep 6.5: Skipping CloudFront invalidation (--skip-cloudfront)")
+            else:
+                print("\nStep 6.5: Invalidating CloudFront caches")
+                invalidate_cloudfront_distributions(self.cfg)
 
             print(f"\n✅ Blue-green deployment complete! Now serving from {inactive_color}")
             print(f"Old {active_color} ASG remains running for rollback if needed")

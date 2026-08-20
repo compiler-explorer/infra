@@ -209,6 +209,7 @@ def blue_green_status(cfg: Config, detailed: bool):
     default=600,
     help="Timeout in seconds for compiler registration check (default: 600)",
 )
+@click.option("--skip-cloudfront", is_flag=True, help="Skip CloudFront invalidation after switching traffic")
 @click.argument("version", required=False)
 @click.pass_obj
 def blue_green_deploy(
@@ -222,6 +223,7 @@ def blue_green_deploy(
     ignore_hash_mismatch: bool,
     skip_compiler_check: bool,
     compiler_timeout: int,
+    skip_cloudfront: bool,
     version: str | None,
 ):
     """Deploy to the inactive color using blue-green strategy.
@@ -351,6 +353,7 @@ def blue_green_deploy(
             ignore_hash_mismatch=ignore_hash_mismatch,
             skip_compiler_check=skip_compiler_check,
             compiler_timeout=compiler_timeout,
+            skip_cloudfront=skip_cloudfront,
         )
         print("\nDeployment successful!")
         print("Run 'ce blue-green rollback' if you need to revert")
