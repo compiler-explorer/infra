@@ -78,12 +78,14 @@ written to disk. The token value ends up in `grafana.tfstate` (private,
 versioned bucket), the same exposure as the other secrets the AWS state already
 holds.
 
-Service account roles (stack UI, Administration > Users and access > Service
-accounts): no basic role, plus `fixed:alerting.provisioning:writer` and
-`fixed:folders:writer`. Add `fixed:dashboards:writer` only if dashboards are
-ever managed here.
+The service account (stack UI, Administration > Users and access > Service
+accounts) has basic role **Editor**: it covers folders, alert rules and
+dashboards in one go, so adopting more objects later needs no permission
+changes. Roles attach to the service account, not the token, so they can be
+adjusted without rotating anything.
 
-Rotation: create a new token on the service account, then
+The current token **expires 2026-12-31**; set a reminder to rotate before
+then. Rotation: create a new token on the service account, then
 `aws ssm put-parameter --name /admin/grafanaTerraformToken --type SecureString --overwrite --value ...`,
 then delete the old token. Nothing in the repo changes.
 
