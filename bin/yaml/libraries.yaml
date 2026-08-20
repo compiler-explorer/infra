@@ -647,6 +647,26 @@ libraries:
       targets:
       - 2.9.11
       type: github
+    dispenso:
+      build_type: cmake
+      check_file: CMakeLists.txt
+      extra_cmake_arg:
+      - -DDISPENSO_WERROR=OFF
+      - -DDISPENSO_SHARED_LIB=OFF
+      - -DDISPENSO_BUILD_TESTS=OFF
+      - -DDISPENSO_BUILD_BENCHMARKS=OFF
+      - -DDISPENSO_BUILD_EXAMPLES=OFF
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      lib_type: static
+      make_utility: ninja
+      package_install: true
+      repo: facebookincubator/dispenso
+      staticliblink:
+      - dispenso
+      target_prefix: v
+      targets:
+      - 1.6.2
+      type: github
     dlib:
       build_type: cmake
       method: clone_branch
