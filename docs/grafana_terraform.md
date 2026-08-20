@@ -32,7 +32,7 @@ role Editor) from SSM `/admin/grafanaTerraformToken`, so anyone with AWS
 credentials can plan and apply. The token lands in the grafana state file,
 same exposure as other secrets in the AWS state. Current token expires
 **2026-12-31**; rotate by creating a new service-account token and
-`aws ssm put-parameter --overwrite`.
+`aws ssm put-parameter --overwrite`, and update this date.
 
 Folders with restricted permissions are invisible to the service account;
 rules in them cannot be listed, adopted or deleted with this token.
