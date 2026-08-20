@@ -21,9 +21,13 @@ resource "aws_alb_target_group" "ce" {
   deregistration_delay          = 20
   load_balancing_algorithm_type = "least_outstanding_requests"
   health_check {
-    path                = "/healthcheck"
-    timeout             = 8
-    unhealthy_threshold = 3
+    path    = "/healthcheck"
+    timeout = 8
+    # 5x10s of failures before a target is marked unhealthy: an in-place app
+    # restart (Restart=on-failure, ~20s to serving) must never trip the ASG
+    # replacement path. Verified 2026-08-20: with the old threshold of 3 a
+    # kill -9 test lost the race by seconds and the node was replaced.
+    unhealthy_threshold = 5
     healthy_threshold   = 2
     interval            = 10
     protocol            = "HTTP"
