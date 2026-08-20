@@ -11,9 +11,14 @@ stack is invisible to it.
 ## What is managed today
 
 - Folder **CE Alerts** (`grafana_folder.ce_alerts`) and the rule groups in it:
-  "Instance Restarts" (app restarted in place, infra#2313) and "Host Disk"
-  (root filesystem and conan server disk low, infra#2310). The UI marks these
-  rules "Provisioned", which is how you can tell they live here.
+  "Instance Restarts" (app restarted in place, infra#2313), "Host Disk"
+  (root filesystem and conan server disk low, infra#2310) and "Staging
+  Instances" (staging left running for hours). The UI marks these rules
+  "Provisioned", which is how you can tell they live here.
+
+Note that folders with restricted permissions (e.g. the old "General
+Alerting") are invisible to the Editor service account; rules in them cannot
+be listed, adopted or deleted with the Terraform token.
 
 All other alert rules have been adopted or replaced: the legacy hand-made
 "Instance Disk Space" and "Conan Disk Space" rules were recreated here (with
