@@ -1691,6 +1691,7 @@ compilers:
           - hana-clang-trunk
           - implicit-constexpr-trunk
           - dascandy-contracts-trunk
+          - cppa-contracts-p4324
           - p1974-trunk
           - ericwf-contracts-trunk
           - notadragon-contracts-p3850
