@@ -179,6 +179,12 @@ libraries:
       - '20250127.0'
       - '20260107.1'
       type: github
+    anyxx:
+      check_file: README.md
+      repo: bitfactory-software/anyxx
+      targets:
+      - 0.7.0
+      type: github
     async_simple:
       build_type: none
       check_file: README.md
@@ -236,11 +242,6 @@ libraries:
       - 4.31.0.0
       type: github
     beman:
-      build_type: none
-      check_file: README.md
-      repo: bemanproject/{{ context[-1] | replace('beman_', '', 1) }}
-      target_prefix: v
-      type: github
       beman_any_view:
         targets:
         - name: 1.0.0
@@ -318,6 +319,11 @@ libraries:
         targets:
         - 0.1.0
         - 0.2.0
+      build_type: none
+      check_file: README.md
+      repo: bemanproject/{{ context[-1] | replace('beman_', '', 1) }}
+      target_prefix: v
+      type: github
     benchmark:
       build_type: cmake
       extra_cmake_arg:
@@ -1426,11 +1432,6 @@ libraries:
         - trunk
         type: github
       beman:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: bemanproject/{{ context[-1] | replace('beman_', '', 1) }}
-        type: github
         beman_any_view:
           targets:
           - main
@@ -1533,6 +1534,11 @@ libraries:
         beman_utf_view:
           targets:
           - main
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: bemanproject/{{ context[-1] | replace('beman_', '', 1) }}
+        type: github
       benchmark:
         build_type: cmake
         check_file: README.md
@@ -2504,19 +2510,7 @@ libraries:
     proxy:
       build_type: cmake
       check_file: README.md
-      subdir: proxy
-      ngcpp:
-        repo: ngcpp/proxy
-        targets:
-        - 4.0.2
-        - 4.1.0
       microsoft:
-        repo: microsoft/proxy
-        targets:
-        - 3.3.0
-        - 3.4.0
-        - 4.0.0
-        - 4.0.1
         older:
           build_type: none
           targets:
@@ -2524,6 +2518,18 @@ libraries:
           - 3.1.0
           - 3.2.0
           - 3.2.1
+        repo: microsoft/proxy
+        targets:
+        - 3.3.0
+        - 3.4.0
+        - 4.0.0
+        - 4.0.1
+      ngcpp:
+        repo: ngcpp/proxy
+        targets:
+        - 4.0.2
+        - 4.1.0
+      subdir: proxy
       type: github
     pugixml:
       build_type: cmake
@@ -2588,9 +2594,6 @@ libraries:
       depends:
       - libraries/c++/boost 1.84.0
       extra_cmake_arg:
-      # QuantLib's public headers include boost/, and CMake 4 dropped the FindBoost
-      # module in favour of config mode; our boost installable is headers only and
-      # ships no BoostConfig.cmake, so ask for the old module and point it at the tree.
       - -DCMAKE_POLICY_DEFAULT_CMP0167=OLD
       - -DBoost_NO_BOOST_CMAKE=ON
       - -DBoost_NO_SYSTEM_PATHS=ON
@@ -3091,13 +3094,13 @@ libraries:
       type: github
     kokkos-cuda:
       build_type: cmake
-      lib_type: static
       cxx_compiler_wrapper: bin/nvcc_wrapper
-      make_targets:
-      - all
       extra_cmake_arg:
       - -DKokkos_ENABLE_CUDA=ON
       - -DKokkos_ARCH_TURING75=ON
+      lib_type: static
+      make_targets:
+      - all
       package_install: true
       repo: kokkos/kokkos
       staticliblink:
