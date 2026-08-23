@@ -86,7 +86,7 @@ resource "aws_instance" "ConanNode" {
 # aws_volume_attachment.ebs_conanserver below and don't touch this resource.
 resource "aws_ebs_volume" "conan_data" {
   availability_zone = "us-east-1a"
-  size              = 600
+  size              = 1000
   type              = "gp2"
   encrypted         = false
 
