@@ -227,8 +227,8 @@ resource "aws_glue_catalog_table" "cloudfront_logs" {
       serialization_library = "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe"
 
       parameters = {
-        "serialization.format" = "	"
-        "field.delim"          = "	"
+        "serialization.format" = "\t"
+        "field.delim"          = "\t"
       }
     }
 
@@ -567,7 +567,7 @@ resource "aws_glue_catalog_table" "compile_stats" {
   table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    EXTERNAL = "TRUE"
+    "EXTERNAL" = "TRUE"
   }
 
   partition_keys {
@@ -594,7 +594,7 @@ resource "aws_glue_catalog_table" "compile_stats" {
       serialization_library = "org.openx.data.jsonserde.JsonSerDe"
 
       parameters = {
-        "serialization.format"  = 1
+        "serialization.format"  = "1"
         "case.insensitive"      = "TRUE"
         "dots.in.keys"          = "FALSE"
         "ignore.malformed.json" = "FALSE"
