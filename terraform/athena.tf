@@ -673,35 +673,3 @@ moved {
   from = aws_glue_catalog_table.compile_stats_table
   to   = aws_glue_catalog_table.compile_stats
 }
-
-# One-shot adoption of the existing objects. Safe to leave in place: once the
-# resources are in state these blocks are no-ops.
-import {
-  to = aws_glue_catalog_database.default
-  id = "${data.aws_caller_identity.current.account_id}:default"
-}
-
-import {
-  to = aws_athena_workgroup.primary
-  id = "primary"
-}
-
-import {
-  to = aws_glue_catalog_table.alb_logs
-  id = "${data.aws_caller_identity.current.account_id}:default:alb_logs"
-}
-
-import {
-  to = aws_glue_catalog_table.cloudfront_logs
-  id = "${data.aws_caller_identity.current.account_id}:default:cloudfront_logs"
-}
-
-import {
-  to = aws_glue_catalog_table.stats
-  id = "${data.aws_caller_identity.current.account_id}:default:stats"
-}
-
-import {
-  to = aws_glue_catalog_table.cloudtrail_logs
-  id = "${data.aws_caller_identity.current.account_id}:default:cloudtrail_logs_cloudtrailgodboltorg"
-}
