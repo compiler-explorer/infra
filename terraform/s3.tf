@@ -109,10 +109,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "compiler-explorer-logs" {
   dynamic "rule" {
     # Keep only one month of these logs (See the privacy policy in the compiler explorer project)
     for_each = {
-      cloudfront     = "cloudfront"
-      elb            = "elb"
-      elb-internal   = "elb-internal"
-      athena-results = "athena-results"
+      cloudfront   = "cloudfront"
+      elb          = "elb"
+      elb-internal = "elb-internal"
     }
     content {
       id     = "delete_${rule.value}_per_log_policy"
@@ -145,6 +144,20 @@ resource "aws_s3_bucket_lifecycle_configuration" "compiler-explorer-logs" {
       filter {
         prefix = "${rule.value}/"
       }
+    }
+  }
+
+  rule {
+    id     = "delete_athena-results_per_log_policy"
+    status = "Enabled"
+    expiration {
+      days = local.log_file_retention_days
+    }
+    noncurrent_version_expiration {
+      noncurrent_days = 1
+    }
+    filter {
+      prefix = "athena-results/"
     }
   }
 }
