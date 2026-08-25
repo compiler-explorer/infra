@@ -5,7 +5,7 @@ compilers:
       dir: glslang-{{name}}
       if: nightly
       install_always: true
-      url: https://github.com/KhronosGroup/glslang/releases/download/main-tot/glslang-main-linux-Release.zip
+      url: https://github.com/KhronosGroup/glslang/releases/download/main-tot/glslang-main-linux-x86_64-release.zip
       folder: bin
       check_exe: glslang --version
       targets:
