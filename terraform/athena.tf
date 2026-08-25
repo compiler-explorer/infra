@@ -686,3 +686,64 @@ moved {
   from = aws_glue_catalog_table.compile_stats_table
   to   = aws_glue_catalog_table.compile_stats
 }
+
+locals {
+  athena_queries = {
+    posts_by_ip            = <<-SQL
+      SELECT request_ip, COUNT(*) count
+      FROM cloudfront_logs
+      WHERE method = 'POST' AND host != 'd357rrqhqvdcrj.cloudfront.net' AND status = 200
+      GROUP BY request_ip
+      ORDER BY count DESC
+    SQL
+    pageloads_by_day       = <<-SQL
+      SELECT date, COUNT(*) page_views
+      FROM stats
+      WHERE type = 'PageLoad'
+      GROUP BY date
+      ORDER BY date DESC
+    SQL
+    unique_ips_by_week     = <<-SQL
+      SELECT DATE_TRUNC('week', date) week, COUNT(DISTINCT request_ip) unique_ips
+      FROM cloudfront_logs
+      GROUP BY 1
+      ORDER BY week
+    SQL
+    api_unique_ips_by_week = <<-SQL
+      SELECT DATE_TRUNC('week', date) week, COUNT(DISTINCT request_ip) unique_ips
+      FROM cloudfront_logs
+      WHERE uri LIKE '/api/%'
+      GROUP BY 1
+      ORDER BY week
+    SQL
+    root_page_by_week      = <<-SQL
+      SELECT DATE_TRUNC('week', date) week, COUNT(*) count
+      FROM cloudfront_logs
+      WHERE uri = '/'
+      GROUP BY 1
+      ORDER BY week
+    SQL
+    recent_errors          = <<-SQL
+      SELECT date, time, status, host_header, uri, referrer
+      FROM cloudfront_logs
+      WHERE status >= 500 AND NOT uri LIKE '%beta%'
+      ORDER BY date DESC, time DESC
+      LIMIT 50
+    SQL
+    sponsor_views          = <<-SQL
+      SELECT value, COUNT(*) count
+      FROM stats
+      WHERE type = 'SponsorView' AND date >= current_date - interval '7' day
+      GROUP BY value
+      ORDER BY count DESC
+    SQL
+  }
+}
+
+resource "aws_athena_named_query" "queries" {
+  for_each  = local.athena_queries
+  name      = each.key
+  workgroup = aws_athena_workgroup.primary.name
+  database  = aws_glue_catalog_database.default.name
+  query     = each.value
+}
