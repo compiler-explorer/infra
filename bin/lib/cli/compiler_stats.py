@@ -26,9 +26,6 @@ def compiler_stats_update():
     response = client.start_query_execution(
         QueryString=f"SELECT {fields} FROM alb_logs {where} {group_by} {order_by};",
         QueryExecutionContext={"Database": "default"},
-        ResultConfiguration={
-            "OutputLocation": "s3://compiler-explorer/public/",
-        },
         WorkGroup="primary",
     )
 
@@ -40,8 +37,10 @@ def compiler_stats_update():
         status = response["QueryExecution"]["Status"]["State"]
 
     if status == "SUCCEEDED":
-        query_csv_url = f"s3://compiler-explorer/public/{query_execution_id}.csv"
-        query_meta_url = f"s3://compiler-explorer/public/{query_execution_id}.csv.metadata"
+        # The workgroup decides where results go (a private, expiring prefix); only the
+        # published CSV below is public.
+        query_csv_url = response["QueryExecution"]["ResultConfiguration"]["OutputLocation"]
+        query_meta_url = f"{query_csv_url}.metadata"
         usage_csv_url = "s3://compiler-explorer/public/compiler_usage.csv"
 
         os.system(f'aws s3 cp --acl public-read "{query_csv_url}" "{usage_csv_url}"')

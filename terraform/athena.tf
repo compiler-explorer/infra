@@ -15,9 +15,17 @@ resource "aws_athena_workgroup" "primary" {
   state = "ENABLED"
 
   configuration {
-    enforce_workgroup_configuration    = false
+    # Enforced so that every query's raw results, console or CLI, land in a
+    # private prefix that expires with the logs (see the lifecycle rule in
+    # s3.tf), rather than wherever the caller asked for. The stats CLIs read
+    # the location back from the query execution.
+    enforce_workgroup_configuration    = true
     publish_cloudwatch_metrics_enabled = false
     requester_pays_enabled             = false
+
+    result_configuration {
+      output_location = "s3://${aws_s3_bucket.compiler-explorer-logs.bucket}/athena-results/"
+    }
 
     engine_version {
       selected_engine_version = "AUTO"
@@ -568,6 +576,18 @@ resource "aws_glue_catalog_table" "compile_stats" {
 
   parameters = {
     "EXTERNAL" = "TRUE"
+    # Partition projection: Athena derives the partitions from the key ranges
+    # and the location template instead of the catalog, so nobody has to run
+    # MSCK REPAIR TABLE after each day's data lands. The month range is 0-11
+    # because the writer uses getUTCMonth().
+    "projection.enabled"        = "true"
+    "projection.year.type"      = "integer"
+    "projection.year.range"     = "2024,2040"
+    "projection.month.type"     = "integer"
+    "projection.month.range"    = "0,11"
+    "projection.date.type"      = "integer"
+    "projection.date.range"     = "1,31"
+    "storage.location.template" = "s3://compiler-explorer-logs/compile-stats/year=$${year}/month=$${month}/date=$${date}/"
   }
 
   partition_keys {
