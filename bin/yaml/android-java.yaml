@@ -68,6 +68,9 @@ compilers:
       if: nightly
       type: script
       script: |
+        # Fail at the first broken step: without this a failed fetch cascades into
+        # unzip/rm errors and a misleading "exit 127" from create_boot_images.sh.
+        set -euo pipefail
         mkdir dex2oat-{{name}}
         cd dex2oat-{{name}}
         {{yaml_dir}}/android-java/fetch_art_release_from_head.sh
