@@ -15,9 +15,13 @@ resource "aws_athena_workgroup" "primary" {
   state = "ENABLED"
 
   configuration {
-    enforce_workgroup_configuration    = false
+    enforce_workgroup_configuration    = true
     publish_cloudwatch_metrics_enabled = false
     requester_pays_enabled             = false
+
+    result_configuration {
+      output_location = "s3://${aws_s3_bucket.compiler-explorer-logs.bucket}/athena-results/"
+    }
 
     engine_version {
       selected_engine_version = "AUTO"
@@ -568,6 +572,15 @@ resource "aws_glue_catalog_table" "compile_stats" {
 
   parameters = {
     "EXTERNAL" = "TRUE"
+    # month is 0-based (getUTCMonth)
+    "projection.enabled"        = "true"
+    "projection.year.type"      = "integer"
+    "projection.year.range"     = "2024,2040"
+    "projection.month.type"     = "integer"
+    "projection.month.range"    = "0,11"
+    "projection.date.type"      = "integer"
+    "projection.date.range"     = "1,31"
+    "storage.location.template" = "s3://compiler-explorer-logs/compile-stats/year=$${year}/month=$${month}/date=$${date}/"
   }
 
   partition_keys {
