@@ -179,6 +179,12 @@ libraries:
       - '20250127.0'
       - '20260107.1'
       type: github
+    anyxx:
+      check_file: README.md
+      repo: bitfactory-software/anyxx
+      targets:
+      - 0.7.0
+      type: github
     async_simple:
       build_type: none
       check_file: README.md
