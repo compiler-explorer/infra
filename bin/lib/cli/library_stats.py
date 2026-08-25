@@ -40,8 +40,6 @@ def library_stats_update():
         status = response["QueryExecution"]["Status"]["State"]
 
     if status == "SUCCEEDED":
-        # The workgroup decides where results go (a private, expiring prefix); only the
-        # published CSV below is public.
         query_csv_url = response["QueryExecution"]["ResultConfiguration"]["OutputLocation"]
         query_meta_url = f"{query_csv_url}.metadata"
         library_usage_csv_url = "s3://compiler-explorer/public/library_usage.csv"
