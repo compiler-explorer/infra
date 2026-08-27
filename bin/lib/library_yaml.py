@@ -290,6 +290,11 @@ class LibraryYaml:
                 libverprops += f"{description_property_key}={linux_lib['description']}\n"
             packagedheaders_property_key = generate_library_property_key(linux_libid, "packagedheaders")
             libverprops += f"{packagedheaders_property_key}=true\n"
+            # The conan recipe name can differ from the libid (e.g. boost -> boost_bin); without this
+            # the Windows instances would look up a recipe that doesn't exist on the conan server.
+            if linux_lib.get("lookupname"):
+                lookupname_property_key = generate_library_property_key(linux_libid, "lookupname")
+                libverprops += f"{lookupname_property_key}={linux_lib['lookupname']}\n"
 
             all_libver_ids: list[str] = []
             for yamllibid in yamllibids:
@@ -317,6 +322,10 @@ class LibraryYaml:
                             linux_lib_version = get_specific_library_version_details(
                                 linux_libraries, linux_libid, libvername
                             )
+
+                        if linux_lib_version and linux_lib_version.get("lookupname"):
+                            lookupname_property_key = generate_version_property_key(linux_libid, libverid, "lookupname")
+                            libverprops += f"{lookupname_property_key}={linux_lib_version['lookupname']}\n"
 
                         prefix = generate_version_property_key(linux_libid, libverid, "")
                         prefix = prefix.rstrip(".")
