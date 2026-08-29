@@ -34,7 +34,7 @@ on:
 jobs:
     librarybuild:
       runs-on: ['lin-builder']
-      timeout-minutes: 720
+      timeout-minutes: 1440
 
       steps:
       - name: Extract language and library name
