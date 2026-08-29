@@ -1013,6 +1013,7 @@ libraries:
       - 7.2.0
       - 7.2.1
       - 7.14.0
+      - 10.0.0
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
     hpx:
