@@ -71,6 +71,13 @@ EOF
 apparmor_parser -r /etc/apparmor.d/usr.local.bin.nsjail
 popd
 
+pushd /tmp
+git clone --branch ce https://github.com/narpfel/dumb-init
+cd dumb-init
+make
+cp dumb-init /usr/local/bin/dumb-init
+popd
+
 
 pushd /opt
 # node.js
