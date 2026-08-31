@@ -47,6 +47,7 @@ windows:
           url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.14.2/rga-windows-x64-2.14.2.zip
         - name: "2.14.1"
           url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.14.1/rga-windows-x64-2.14.1.zip
+          extract_into_folder: false
           folder: rga-windows-x64-2.14.1
         - name: "2.14"
           url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.14/rga-windows-x64-2.14.zip
