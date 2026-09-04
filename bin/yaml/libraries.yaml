@@ -446,6 +446,7 @@ libraries:
       - name: 1.91.0
         untar_dir: boost-1.91.0-1
         url: https://github.com/boostorg/boost/releases/download/boost-1.91.0-1/boost-1.91.0-1-cmake.tar.xz
+      - 1.92.0
       type: tarballs
       untar_dir: boost-{{name}}
       url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
