@@ -11,10 +11,16 @@ systemctl disable apt-daily{,-upgrade}.{service,timer} unattended-upgrades.servi
 # Disable installing recommended packages by default
 echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99-no-install-recommends
 
+# The regional ec2 mirrors 503 often enough to matter, and apt demotes a failed
+# index fetch to a warning: the install then resolves against whatever pocket
+# did come down and reports the missing packages as uninstallable. Retry each
+# URI, and refuse to continue on a partial index.
+echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/99-retries
+
 # Disable unattended upgrades
 apt purge -y --auto-remove unattended-upgrades
 
-apt-get -y update
+apt-get -y -o APT::Update::Error-Mode=any update
 apt-get -y dist-upgrade --force-yes
 
 apt-get -y install \

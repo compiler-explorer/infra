@@ -34,7 +34,11 @@ wait_for_apt
 sleep 5
 wait_for_apt
 
-apt-get -y update
+# Same reasoning as setup-common.sh: a 503 from the regional mirror is only a
+# warning, and the install below then blames the packages rather than the index.
+echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/99-retries
+
+apt-get -y -o APT::Update::Error-Mode=any update
 apt-get -y upgrade
 apt-get -y install \
     unzip wget mosh fish jq ssmtp cronic upx \
