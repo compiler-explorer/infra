@@ -5,6 +5,27 @@ compilers:
       check_exe: d8 --help
       targets:
         - '11.3'
+    porffor:
+      type: tarballs
+      dir: porffor-{{name}}
+      untar_dir: package
+      compression: gz
+      check_exe: porf --version
+      url: https://registry.npmjs.org/porffor/-/porffor-{{name}}.tgz
+      targets:
+        - 0.57.24
+      nightly:
+        if: nightly
+        type: restQueryTarballs
+        install_always: true
+        url: https://registry.npmjs.org/porffor
+        # Since porffor publishes a new npm version per commit, this is essentially nightly.
+        query: |
+          'https://registry.npmjs.org/porffor/-/porffor-' \
+          + document['dist-tags']['latest'] \
+          + '.tgz'
+        targets:
+          - nightly
     nightly:
       if: nightly
       d8:
