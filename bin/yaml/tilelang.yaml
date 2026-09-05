@@ -1,0 +1,12 @@
+compilers:
+  tilelang:
+    depends:
+      - compilers/python 3.12.1
+    type: pip
+    dir: tilelang/v{{name}}
+    python: "%DEP0%/bin/python3.12"
+    package:
+      - tilelang=={{name}}
+    check_exe: [ "bin/python3.12", "-c", "import tilelang; print(tilelang.__version__)" ]
+    targets:
+      - 0.1.13
