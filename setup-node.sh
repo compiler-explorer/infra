@@ -83,7 +83,7 @@ fi
 popd
 
 pushd /tmp
-git clone --branch ce https://github.com/narpfel/dumb-init
+git clone --branch ce https://github.com/compiler-explorer/dumb-init
 cd dumb-init
 make
 cp dumb-init /usr/local/bin/dumb-init
