@@ -80,7 +80,9 @@ build {
       "cloud-init status --wait",
       "export DEBIAN_FRONTEND=noninteractive", "mkdir -p /root/.ssh",
       "cp /home/ubuntu/packer/known_hosts /root/.ssh/", "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
-      "rm -rf /home/ubuntu/packer", "apt-get -y update", "apt-get -y install git",
+      "rm -rf /home/ubuntu/packer",
+      "sed -i -E 's|https?://[a-z0-9.-]+[.]ec2[.]ports[.]ubuntu[.]com/|http://ports.ubuntu.com/|g' /etc/apt/sources.list.d/ubuntu.sources",
+      "apt-get -y update", "apt-get -y install git",
       "git clone -b ${var.BRANCH} https://github.com/compiler-explorer/infra.git /infra", "cd /infra",
       "env PACKER_SETUP=yes bash setup-aarch64-node.sh 2>&1 | tee /tmp/setup.log"
     ]

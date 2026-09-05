@@ -11,11 +11,19 @@ systemctl disable apt-daily{,-upgrade}.{service,timer} unattended-upgrades.servi
 # Disable installing recommended packages by default
 echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99-no-install-recommends
 
-# The regional ec2 mirrors 503 often enough to matter, and apt demotes a failed
-# index fetch to a warning: the install then resolves against whatever pocket
-# did come down and reports the missing packages as uninstallable. Retry each
-# URI, and refuse to continue on a partial index.
+# apt demotes a failed index fetch to a warning, so an install then resolves
+# against whatever pockets did come down. Retry, and stop on a partial index.
 echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/99-retries
+
+# The regional ec2 ports mirrors front an often-empty backend pool, and arm64
+# has no second tier to fall back on.
+if [ "$(dpkg --print-architecture)" = arm64 ]; then
+  for sources in /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
+    if [ -f "${sources}" ]; then
+      sed -i -E 's|https?://[a-z0-9.-]+\.ec2\.ports\.ubuntu\.com/|http://ports.ubuntu.com/|g' "${sources}"
+    fi
+  done
+fi
 
 # Disable unattended upgrades
 apt purge -y --auto-remove unattended-upgrades
