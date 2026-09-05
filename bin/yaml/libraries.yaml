@@ -1636,6 +1636,15 @@ libraries:
         - Catch2WithMain
         method: nightlyclone
         repo: catchorg/Catch2
+        # Catch2 v3 needs C++14 and a hosted standard library, so these can never
+        # build it and only add noise to the nightly build log.
+        skip_compilers:
+        - g485
+        - g510
+        - g550
+        - avrg1610
+        - m68kg1610
+        - shg1610
         targets:
         - trunk
         type: github
