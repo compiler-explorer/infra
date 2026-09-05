@@ -86,4 +86,20 @@ build {
     ]
   }
 
+  provisioner "shell" {
+    execute_command   = "{{ .Vars }} sudo -E bash '{{ .Path }}'"
+    expect_disconnect = true
+    inline            = ["reboot"]
+  }
+
+  provisioner "shell" {
+    execute_command = "{{ .Vars }} sudo -E bash '{{ .Path }}'"
+    pause_before    = "30s"
+    inline = [
+      "set -euo pipefail",
+      "cloud-init status --wait",
+      "bash /infra/verify-gpu-node.sh 2>&1 | tee /tmp/verify.log"
+    ]
+  }
+
 }
