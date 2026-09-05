@@ -24,12 +24,25 @@ apt-get -y update
 # Note the hyphen in the CUDA version number, not a period.
 DRIVER_VERSION=580
 CUDA_VERSION=13-0
+
+# nvidia-modprobe loads the kernel module and creates the /dev nodes on demand,
+# so it has to come from the same driver branch rather than the repo's newest.
+cat >/etc/apt/preferences.d/nvidia-modprobe <<EOF
+Package: nvidia-modprobe
+Pin: version ${DRIVER_VERSION}.*
+Pin-Priority: 1001
+EOF
+
 apt install -y \
     nvidia-headless-${DRIVER_VERSION}-open \
     nvidia-utils-${DRIVER_VERSION} \
     nvidia-driver-assistant \
     cuda-compiler-${CUDA_VERSION} \
     cuda-runtime-${CUDA_VERSION}
+
+apt-cache policy nvidia-modprobe
+modprobe nvidia || true
+nvidia-smi || true
 
 # Ensure the above worked.
 cat <<EOF > /tmp/cuda-test.cu
