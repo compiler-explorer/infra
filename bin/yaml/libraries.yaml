@@ -1370,6 +1370,13 @@ libraries:
       targets:
       - '4.7'
       type: github
+    micm:
+      check_file: include/micm/version.hpp
+      repo: NCAR/micm
+      target_prefix: v
+      targets:
+      - 3.13.0
+      type: github
     mimicpp:
       check_file: README.md
       repo: DNKpp/mimicpp
