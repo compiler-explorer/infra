@@ -110,15 +110,29 @@ resource "aws_security_group" "InternalServicesAlb" {
   }
 }
 
-resource "aws_security_group_rule" "ALB_HttpsFromAnywhere" {
+# AWS-managed list of the addresses CloudFront uses to reach origins (pl-3b927c52 in us-east-1).
+data "aws_ec2_managed_prefix_list" "cloudfront_origin_facing" {
+  name = "com.amazonaws.global.cloudfront.origin-facing"
+}
+
+# Only CloudFront may reach the main ALB. Every public hostname (godbolt.org, compiler-explorer.com,
+# godbo.lt and their subdomains) is a CloudFront distribution with this ALB as origin, so direct
+# access only ever came from scanners hitting the ALB's raw IPs. Forcing the CloudFront path means
+# the WAF applies to everything, and the app sees exactly two trusted X-Forwarded-For hops
+# (CloudFront, then the ALB), which is what compiler-explorer's trustProxy=2 relies on to stop
+# clients spoofing the IP we log.
+#
+# The ALB is IPv4-only, so the IPv6 origin-facing list is not needed. This prefix list counts as
+# 55 rules against the security group's 60-rule quota; ALB_IngressFromCE is the only other ingress
+# rule, so there is no room for more ingress on this group without a quota increase.
+resource "aws_security_group_rule" "ALB_HttpsFromCloudFront" {
   security_group_id = aws_security_group.CompilerExplorerAlb.id
   type              = "ingress"
   from_port         = 443
   to_port           = 443
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
+  prefix_list_ids   = [data.aws_ec2_managed_prefix_list.cloudfront_origin_facing.id]
   protocol          = "tcp"
-  description       = "Allow HTTPS access from anywhere"
+  description       = "Allow HTTPS access from CloudFront only"
 }
 
 resource "aws_security_group_rule" "ALB_EgressToAnywhere" {
@@ -132,8 +146,7 @@ resource "aws_security_group_rule" "ALB_EgressToAnywhere" {
   description       = "Allow egress to anywhere"
 }
 
-# TODO: Consider restricting these ports to CloudFront IP ranges only for better security.
-# Can use AWS managed prefix list: prefix_list_ids = ["pl-3b927c52"] instead of cidr_blocks.
+# TODO: Consider restricting these ports to CloudFront only, as ALB_HttpsFromCloudFront does above.
 # Ports 1080/1443 are only used by conan via CloudFront, so there's no legitimate direct access.
 # Check with CE team before tightening to ensure no one is using direct ALB access for debugging.
 
