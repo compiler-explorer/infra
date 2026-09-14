@@ -925,6 +925,7 @@ libraries:
       target_prefix: v
       targets:
       - 1.1.0
+      - 1.1.1
       type: github
     gsl:
       check_file: README.md
