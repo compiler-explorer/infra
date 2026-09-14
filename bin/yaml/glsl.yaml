@@ -1,12 +1,15 @@
 compilers:
   glsl:
     glslang:
-      type: ziparchive
+      type: tarballs
       dir: glslang-{{name}}
       if: nightly
       install_always: true
-      url: https://github.com/KhronosGroup/glslang/releases/download/main-tot/glslang-main-linux-x86_64-release.zip
-      folder: bin
+      # Upstream's main-tot release publishes both .zip and .tar.gz per platform,
+      # but the linux release .zip is not reliably present (infra#2299).
+      url: https://github.com/KhronosGroup/glslang/releases/download/main-tot/glslang-main-linux-x86_64-release.tar.gz
+      compression: gz
+      untar_dir: bin
       check_exe: glslang --version
       targets:
         - trunk
