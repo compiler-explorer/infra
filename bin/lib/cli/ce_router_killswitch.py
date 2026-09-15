@@ -35,6 +35,14 @@ def _origin_verify_condition() -> dict:
     return {"Field": "http-header", "HttpHeaderConfig": {"HttpHeaderName": ORIGIN_VERIFY_HEADER, "Values": [secret]}}
 
 
+def rule_requires_origin_header(rule: dict) -> bool:
+    return any(
+        condition.get("Field") == "http-header"
+        and condition.get("HttpHeaderConfig", {}).get("HttpHeaderName", "").lower() == ORIGIN_VERIFY_HEADER.lower()
+        for condition in rule.get("Conditions", [])
+    )
+
+
 def rule_conditions_with_paths(rule: dict, path_patterns: Sequence[str]) -> list[dict]:
     """The rule's conditions with its path patterns replaced and everything else kept.
 
@@ -42,20 +50,16 @@ def rule_conditions_with_paths(rule: dict, path_patterns: Sequence[str]) -> list
     ce-router can never expose its compilation endpoints to direct ALB requests.
     """
     conditions: list[dict] = [{"Field": "path-pattern", "Values": list(path_patterns)}]
-    has_origin_header = False
     for condition in rule.get("Conditions", []):
         field = condition.get("Field")
         if field == "path-pattern":
             continue
         if field == "http-header":
-            config = condition.get("HttpHeaderConfig", {})
-            if config.get("HttpHeaderName", "").lower() == ORIGIN_VERIFY_HEADER.lower():
-                has_origin_header = True
             # describe_rules also returns an empty legacy "Values" list, which modify_rule rejects
-            conditions.append({"Field": "http-header", "HttpHeaderConfig": config})
+            conditions.append({"Field": "http-header", "HttpHeaderConfig": condition.get("HttpHeaderConfig", {})})
         else:
             conditions.append({key: value for key, value in condition.items() if key != "Values" or value})
-    if not has_origin_header:
+    if not rule_requires_origin_header(rule):
         conditions.append(_origin_verify_condition())
     return conditions
 
@@ -345,10 +349,14 @@ def enable(cfg: Config, environment: str, skip_confirmation: bool):
         current_status = _get_ce_router_rule_status(rule)
 
         if current_status == "ENABLED":
-            if set(get_rule_path_patterns(rule)) == set(compilation_path_patterns(env)):
+            patterns_current = set(get_rule_path_patterns(rule)) == set(compilation_path_patterns(env))
+            if patterns_current and rule_requires_origin_header(rule):
                 click.echo(f"⚠️  CE Router routing for {env} is already enabled")
                 continue
-            click.echo(f"🔧 Updating ce-router ALB path patterns for {env}...")
+            if patterns_current:
+                click.echo(f"🔧 Adding the CloudFront origin header requirement to the {env} ce-router rule...")
+            else:
+                click.echo(f"🔧 Updating ce-router ALB path patterns for {env}...")
         else:
             click.echo(f"🔧 Enabling ce-router ALB routing for {env}...")
         if _enable_ce_router_rule(alb_client, env, rule):

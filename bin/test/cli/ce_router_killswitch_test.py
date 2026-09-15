@@ -291,11 +291,24 @@ class TestCERouterEnable(unittest.TestCase):
         self.alb_client.modify_rule.assert_called_once()
 
     def test_enable_leaves_up_to_date_rule_alone(self):
-        result = self._invoke([{"Field": "path-pattern", "Values": compilation_path_patterns("prod")}])
+        result = self._invoke([
+            {"Field": "path-pattern", "Values": compilation_path_patterns("prod")},
+            ORIGIN_CONDITION,
+        ])
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("already enabled", result.output)
         self.alb_client.modify_rule.assert_not_called()
+
+    def test_enable_adds_origin_header_to_enabled_rule_lacking_it(self):
+        result = self._invoke([{"Field": "path-pattern", "Values": compilation_path_patterns("prod")}])
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Adding the CloudFront origin header requirement", result.output)
+        self.alb_client.modify_rule.assert_called_once_with(
+            RuleArn="rule-arn",
+            Conditions=[{"Field": "path-pattern", "Values": compilation_path_patterns("prod")}, ORIGIN_CONDITION],
+        )
 
 
 class TestCERouterVersion(unittest.TestCase):
