@@ -644,6 +644,37 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
+  # Vulnerability scanners stamp X-Forwarded-For: 127.0.0.1 on every probe (infra#2353). No real
+  # client claims to be localhost, and after CloudFront and the ALB append their hops the app
+  # would ignore it anyway, so this just saves the origin the trouble. Corporate proxies add a
+  # legitimate X-Forwarded-For with an internal address, hence matching on content, not presence.
+  rule {
+    name     = "deny-loopback-forwarded-for"
+    priority = 4
+    action {
+      block {}
+    }
+    statement {
+      regex_match_statement {
+        regex_string = "(^|[, ])((::ffff:)?127\\.[0-9.]+|::1|localhost)([, ]|$)"
+        field_to_match {
+          single_header {
+            name = "x-forwarded-for"
+          }
+        }
+        text_transformation {
+          priority = 0
+          type     = "LOWERCASE"
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "deny-loopback-forwarded-for"
+      sampled_requests_enabled   = true
+    }
+  }
+
   custom_response_body {
     content      = "Your request has hit our rate limit. Please reduce the load you're putting on our site. Contact us on Discord if you feel this is in error."
     content_type = "TEXT_PLAIN"
