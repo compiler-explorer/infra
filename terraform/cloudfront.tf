@@ -56,6 +56,11 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   origin {
     domain_name = aws_alb.GccExplorerApp.dns_name
     origin_id   = "ALB-compiler-explorer"
+    # Proves to the ALB that the request came through our CloudFront; see alb.tf.
+    custom_header {
+      name  = local.cloudfront_origin_header_name
+      value = random_password.cloudfront_origin_secret.result
+    }
     custom_origin_config {
       http_port                = 80
       https_port               = 443
@@ -187,6 +192,11 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   origin {
     domain_name = aws_alb.GccExplorerApp.dns_name
     origin_id   = "ALB-compiler-explorer"
+    # Proves to the ALB that the request came through our CloudFront; see alb.tf.
+    custom_header {
+      name  = local.cloudfront_origin_header_name
+      value = random_password.cloudfront_origin_secret.result
+    }
     custom_origin_config {
       http_port                = 80
       https_port               = 443
@@ -316,6 +326,11 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
   origin {
     domain_name = aws_alb.GccExplorerApp.dns_name
     origin_id   = "ALB-compiler-explorer"
+    # Proves to the ALB that the request came through our CloudFront; see alb.tf.
+    custom_header {
+      name  = local.cloudfront_origin_header_name
+      value = random_password.cloudfront_origin_secret.result
+    }
     custom_origin_config {
       http_port                = 80
       https_port               = 443
@@ -625,6 +640,37 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     visibility_config {
       cloudwatch_metrics_enabled = true
       metric_name                = "deny-bogus-host"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Vulnerability scanners stamp X-Forwarded-For: 127.0.0.1 on every probe (infra#2353). No real
+  # client claims to be localhost, and after CloudFront and the ALB append their hops the app
+  # would ignore it anyway, so this just saves the origin the trouble. Corporate proxies add a
+  # legitimate X-Forwarded-For with an internal address, hence matching on content, not presence.
+  rule {
+    name     = "deny-loopback-forwarded-for"
+    priority = 4
+    action {
+      block {}
+    }
+    statement {
+      regex_match_statement {
+        regex_string = "(^|[, ])((::ffff:)?127\\.[0-9.]+|::1|localhost)([, ]|$)"
+        field_to_match {
+          single_header {
+            name = "x-forwarded-for"
+          }
+        }
+        text_transformation {
+          priority = 0
+          type     = "LOWERCASE"
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "deny-loopback-forwarded-for"
       sampled_requests_enabled   = true
     }
   }
