@@ -15,13 +15,49 @@ import boto3
 import click
 from botocore.exceptions import ClientError
 
-from lib.amazon import as_client, ec2
+from lib.amazon import as_client, ec2, ssm_client
 from lib.ce_utils import are_you_sure
 from lib.cli import cli
 from lib.env import Config
 from lib.ssh import exec_remote, exec_remote_all
 
 LOGGER = logging.getLogger(__name__)
+
+# Every forwarding rule on the main ALB must require the header CloudFront stamps on origin
+# requests, otherwise the rule is reachable by anything that addresses the ALB directly.
+# Both are defined in terraform/alb.tf.
+ORIGIN_VERIFY_HEADER = "X-CE-Origin-Verify"
+ORIGIN_SECRET_SSM_PARAM = "/compiler-explorer/cloudfrontOriginSecret"
+
+
+def _origin_verify_condition() -> dict:
+    secret = ssm_client.get_parameter(Name=ORIGIN_SECRET_SSM_PARAM, WithDecryption=True)["Parameter"]["Value"]
+    return {"Field": "http-header", "HttpHeaderConfig": {"HttpHeaderName": ORIGIN_VERIFY_HEADER, "Values": [secret]}}
+
+
+def rule_conditions_with_paths(rule: dict, path_patterns: Sequence[str]) -> list[dict]:
+    """The rule's conditions with its path patterns replaced and everything else kept.
+
+    A rule that predates the origin header requirement gets the condition added, so enabling
+    ce-router can never expose its compilation endpoints to direct ALB requests.
+    """
+    conditions: list[dict] = [{"Field": "path-pattern", "Values": list(path_patterns)}]
+    has_origin_header = False
+    for condition in rule.get("Conditions", []):
+        field = condition.get("Field")
+        if field == "path-pattern":
+            continue
+        if field == "http-header":
+            config = condition.get("HttpHeaderConfig", {})
+            if config.get("HttpHeaderName", "").lower() == ORIGIN_VERIFY_HEADER.lower():
+                has_origin_header = True
+            # describe_rules also returns an empty legacy "Values" list, which modify_rule rejects
+            conditions.append({"Field": "http-header", "HttpHeaderConfig": config})
+        else:
+            conditions.append({key: value for key, value in condition.items() if key != "Values" or value})
+    if not has_origin_header:
+        conditions.append(_origin_verify_condition())
+    return conditions
 
 
 @cli.group()
@@ -174,7 +210,8 @@ def _find_or_create_ce_router_rules(alb_client, listener_arn: str, target_groups
                     {
                         "Field": "path-pattern",
                         "Values": [f"/killswitch-disabled-{env}-*"],  # Start disabled
-                    }
+                    },
+                    _origin_verify_condition(),
                 ],
                 Actions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
             )
@@ -207,29 +244,23 @@ def get_rule_path_patterns(rule) -> list[str]:
     return patterns
 
 
-def _enable_ce_router_rule(alb_client, env: str, rule_arn: str) -> bool:
+def _enable_ce_router_rule(alb_client, env: str, rule: dict) -> bool:
     """Enable ce-router rule to route compilation traffic for specific environment."""
     try:
-        path_patterns = compilation_path_patterns(env)
-        alb_client.modify_rule(RuleArn=rule_arn, Conditions=[{"Field": "path-pattern", "Values": path_patterns}])
+        conditions = rule_conditions_with_paths(rule, compilation_path_patterns(env))
+        alb_client.modify_rule(RuleArn=rule["RuleArn"], Conditions=conditions)
         return True
     except ClientError as e:
         click.echo(f"Error enabling ce-router rule for {env}: {e}", err=True)
         return False
 
 
-def _disable_ce_router_rule(alb_client, env: str, rule_arn: str) -> bool:
+def _disable_ce_router_rule(alb_client, env: str, rule: dict) -> bool:
     """Disable ce-router rule by making conditions never match."""
     try:
-        alb_client.modify_rule(
-            RuleArn=rule_arn,
-            Conditions=[
-                {
-                    "Field": "path-pattern",
-                    "Values": [f"/killswitch-disabled-{env}-*"],  # Path that will never match
-                }
-            ],
-        )
+        # A path that will never match
+        conditions = rule_conditions_with_paths(rule, [f"/killswitch-disabled-{env}-*"])
+        alb_client.modify_rule(RuleArn=rule["RuleArn"], Conditions=conditions)
         return True
     except ClientError as e:
         click.echo(f"Error disabling ce-router rule for {env}: {e}", err=True)
@@ -311,7 +342,6 @@ def enable(cfg: Config, environment: str, skip_confirmation: bool):
     # Enable ce-router routing for each environment
     success_count = 0
     for env, rule in rules.items():
-        rule_arn = rule["RuleArn"]
         current_status = _get_ce_router_rule_status(rule)
 
         if current_status == "ENABLED":
@@ -321,7 +351,7 @@ def enable(cfg: Config, environment: str, skip_confirmation: bool):
             click.echo(f"🔧 Updating ce-router ALB path patterns for {env}...")
         else:
             click.echo(f"🔧 Enabling ce-router ALB routing for {env}...")
-        if _enable_ce_router_rule(alb_client, env, rule_arn):
+        if _enable_ce_router_rule(alb_client, env, rule):
             click.echo(f"✅ {env.upper()} ce-router routing enabled")
             success_count += 1
         else:
@@ -391,7 +421,6 @@ def disable(cfg: Config, environment: str, skip_confirmation: bool):
     # Disable ce-router routing for each environment
     success_count = 0
     for env, rule in rules.items():
-        rule_arn = rule["RuleArn"]
         current_status = _get_ce_router_rule_status(rule)
 
         if current_status == "DISABLED":
@@ -399,7 +428,7 @@ def disable(cfg: Config, environment: str, skip_confirmation: bool):
             continue
 
         click.echo(f"🔧 Disabling ce-router ALB routing for {env}...")
-        if _disable_ce_router_rule(alb_client, env, rule_arn):
+        if _disable_ce_router_rule(alb_client, env, rule):
             click.echo(f"✅ {env.upper()} ce-router routing disabled")
             success_count += 1
         else:

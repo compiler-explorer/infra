@@ -34,15 +34,55 @@ resource "aws_alb" "InternalServices" {
   }
 }
 
-resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
-  lifecycle {
-    # Ignore changes to the default_action since it's managed by blue-green deployment
-    ignore_changes = [default_action]
-  }
+# Only CloudFront should reach this ALB, but it is internet-facing with an open security group,
+# so anything can address it directly and anyone's CloudFront distribution can use it as an
+# origin. CloudFront stamps a secret header on every origin request (see cloudfront.tf); every
+# forwarding rule below requires it and whatever is left over gets a fixed 403. This is the
+# pattern from
+# https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/restrict-access-to-load-balancer.html
+# and it is what lets the app trust exactly two X-Forwarded-For hops (CloudFront, then the ALB).
+#
+# The value is kept in SSM so it can be inspected and so the ce-router killswitch can add the
+# condition to the rules it creates. To rotate: terraform apply -replace=random_password.cloudfront_origin_secret
+resource "random_password" "cloudfront_origin_secret" {
+  length = 32
+  # ALB header conditions treat * and ? as wildcards, and values are compared case-insensitively.
+  special = false
+}
 
+resource "aws_ssm_parameter" "cloudfront_origin_secret" {
+  name        = "/compiler-explorer/cloudfrontOriginSecret"
+  description = "Value of the ${local.cloudfront_origin_header_name} header CloudFront sends to the GccExplorerApp ALB"
+  type        = "SecureString"
+  value       = random_password.cloudfront_origin_secret.result
+}
+
+locals {
+  cloudfront_origin_header_name = "X-CE-Origin-Verify"
+}
+
+# Every distribution must be sending the header before any rule starts requiring it, otherwise
+# real traffic gets refused mid-apply. The distributions wait for their own deployment to finish,
+# so anything that depends on this is sequenced after them.
+resource "terraform_data" "cloudfront_sends_origin_secret" {
+  depends_on = [
+    aws_cloudfront_distribution.ce-godbolt-org,
+    aws_cloudfront_distribution.compiler-explorer-com,
+    aws_cloudfront_distribution.godbo-lt,
+  ]
+}
+
+# Nothing talks to the ALB over plain HTTP: CloudFront's origin protocol is https-only and the
+# security group only admits CE nodes on this port (an hour of access logs showed no port-80
+# requests at all). It used to forward to prod, so refuse instead of leaving a side door.
+resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
   default_action {
-    type             = "forward"
-    target_group_arn = module.prod_blue_green.target_group_arns["blue"]
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Access denied"
+      status_code  = "403"
+    }
   }
 
   load_balancer_arn = aws_alb.GccExplorerApp.arn
@@ -50,9 +90,10 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
   protocol          = "HTTP"
 }
 
+# The default action is unreachable: compiler-explorer-alb-listen-https-deny-unverified catches
+# everything the forwarding rules did not. Blue-green deployments switch the prod rule, not this.
 resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
   lifecycle {
-    # Ignore changes to the default_action since it's managed by blue-green deployment
     ignore_changes = [default_action]
   }
 
@@ -87,7 +128,14 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
       ]
     }
   }
+  condition {
+    http_header {
+      http_header_name = local.cloudfront_origin_header_name
+      values           = [random_password.cloudfront_origin_secret.result]
+    }
+  }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [terraform_data.cloudfront_sends_origin_secret]
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-staging" {
@@ -110,7 +158,14 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-staging" {
       ]
     }
   }
+  condition {
+    http_header {
+      http_header_name = local.cloudfront_origin_header_name
+      values           = [random_password.cloudfront_origin_secret.result]
+    }
+  }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [terraform_data.cloudfront_sends_origin_secret]
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-gpu" {
@@ -133,7 +188,14 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-gpu" {
       ]
     }
   }
+  condition {
+    http_header {
+      http_header_name = local.cloudfront_origin_header_name
+      values           = [random_password.cloudfront_origin_secret.result]
+    }
+  }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [terraform_data.cloudfront_sends_origin_secret]
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-wintest" {
@@ -156,7 +218,14 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-wintest" {
       ]
     }
   }
+  condition {
+    http_header {
+      http_header_name = local.cloudfront_origin_header_name
+      values           = [random_password.cloudfront_origin_secret.result]
+    }
+  }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [terraform_data.cloudfront_sends_origin_secret]
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winstaging" {
@@ -179,7 +248,14 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winstaging"
       ]
     }
   }
+  condition {
+    http_header {
+      http_header_name = local.cloudfront_origin_header_name
+      values           = [random_password.cloudfront_origin_secret.result]
+    }
+  }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [terraform_data.cloudfront_sends_origin_secret]
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winprod" {
@@ -202,7 +278,14 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winprod" {
       ]
     }
   }
+  condition {
+    http_header {
+      http_header_name = local.cloudfront_origin_header_name
+      values           = [random_password.cloudfront_origin_secret.result]
+    }
+  }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [terraform_data.cloudfront_sends_origin_secret]
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64prod" {
@@ -225,7 +308,14 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64prod
       ]
     }
   }
+  condition {
+    http_header {
+      http_header_name = local.cloudfront_origin_header_name
+      values           = [random_password.cloudfront_origin_secret.result]
+    }
+  }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [terraform_data.cloudfront_sends_origin_secret]
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64staging" {
@@ -248,7 +338,63 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64stag
       ]
     }
   }
+  condition {
+    http_header {
+      http_header_name = local.cloudfront_origin_header_name
+      values           = [random_password.cloudfront_origin_secret.result]
+    }
+  }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [terraform_data.cloudfront_sends_origin_secret]
+}
+
+# Prod is the catch-all. It used to be the listener's default action, but a rule can carry the
+# origin header condition and a default action cannot. Blue-green deployments switch its target
+# group (bin/lib/blue_green_deploy.py), hence ignore_changes on the action.
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-prod" {
+  lifecycle {
+    ignore_changes = [action]
+  }
+
+  priority = 1000
+  action {
+    type             = "forward"
+    target_group_arn = module.prod_blue_green.target_group_arns["blue"]
+  }
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+  condition {
+    http_header {
+      http_header_name = local.cloudfront_origin_header_name
+      values           = [random_password.cloudfront_origin_secret.result]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [terraform_data.cloudfront_sends_origin_secret]
+}
+
+# Anything that reached this point did not carry the CloudFront origin header. Created after the
+# prod rule so there is never a moment where prod traffic has nothing to match.
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-deny-unverified" {
+  priority = 50000
+  action {
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Access denied"
+      status_code  = "403"
+    }
+  }
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [aws_alb_listener_rule.compiler-explorer-alb-listen-https-prod]
 }
 
 resource "aws_alb_listener" "ceconan-alb-listen-http" {
@@ -296,7 +442,14 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-lambda" {
       values = ["lambda.compiler-explorer.com"]
     }
   }
+  condition {
+    http_header {
+      http_header_name = local.cloudfront_origin_header_name
+      values           = [random_password.cloudfront_origin_secret.result]
+    }
+  }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [terraform_data.cloudfront_sends_origin_secret]
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-stats" {
@@ -332,5 +485,12 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-status" {
       ]
     }
   }
+  condition {
+    http_header {
+      http_header_name = local.cloudfront_origin_header_name
+      values           = [random_password.cloudfront_origin_secret.result]
+    }
+  }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  depends_on   = [terraform_data.cloudfront_sends_origin_secret]
 }

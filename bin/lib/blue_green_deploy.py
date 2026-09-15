@@ -46,6 +46,20 @@ class DeploymentCancelledException(Exception):
     pass
 
 
+def rule_forwards_for_path(rule: dict[str, Any], path_pattern: str) -> bool:
+    """Whether an ALB rule forwards traffic and has path_pattern among its path conditions.
+
+    The catch-all deny rule shares prod's "/*" pattern but has a fixed-response action, so the
+    action type is what tells the two apart.
+    """
+    if not any(action.get("Type") == "forward" for action in rule.get("Actions", [])):
+        return False
+    return any(
+        condition.get("Field") == "path-pattern" and path_pattern in condition.get("Values", [])
+        for condition in rule.get("Conditions", [])
+    )
+
+
 class BlueGreenDeployment:
     """Manages blue-green deployments for Compiler Explorer environments."""
 
@@ -152,28 +166,17 @@ class BlueGreenDeployment:
 
     def get_listener_rule_arn(self) -> str | None:
         """Get the ALB listener rule ARN for this environment."""
-        # Get listeners for the load balancer
         listeners = elb_client.describe_listeners(LoadBalancerArn=self._get_load_balancer_arn())
-
-        # Find HTTPS listener
         https_listeners = [listener for listener in listeners["Listeners"] if listener["Port"] == 443]
-        if not https_listeners:
-            return None
 
-        # For production, we return the listener ARN itself (to modify default action)
-        if not self.cfg.env.path_pattern:
-            return https_listeners[0]["ListenerArn"]
-
-        # For other environments, find the specific rule for their path pattern
+        # Every environment, prod included, is served by a forwarding rule: the listener's own
+        # default action only refuses requests that did not come through CloudFront.
         target_pattern = self.cfg.env.path_pattern
-        # Check rules for path pattern matching
         for listener in https_listeners:
             rules = elb_client.describe_rules(ListenerArn=listener["ListenerArn"])
             for rule in rules["Rules"]:
-                conditions = rule.get("Conditions", [])
-                for condition in conditions:
-                    if condition.get("Field") == "path-pattern" and target_pattern in condition.get("Values", []):
-                        return rule["RuleArn"]
+                if rule_forwards_for_path(rule, target_pattern):
+                    return rule["RuleArn"]
 
         return None
 
@@ -185,30 +188,16 @@ class BlueGreenDeployment:
 
     def switch_target_group(self, new_color: str) -> None:
         """Switch the ALB to point to the new color's target group."""
-        rule_or_listener_arn = self.get_listener_rule_arn()
-        if not rule_or_listener_arn:
-            raise ValueError(f"No listener rule/listener found for environment {self.env}")
+        rule_arn = self.get_listener_rule_arn()
+        if not rule_arn:
+            path_pattern = self.cfg.env.path_pattern
+            raise ValueError(f"No forwarding listener rule for {path_pattern!r} found for environment {self.env}")
 
         new_tg_arn = self.get_target_group_arn(new_color)
 
         print(f"Switching {self.env} to {new_color} target group")
 
-        if self.env == "prod":
-            # For production, modify both HTTP and HTTPS listeners' default actions
-            listeners = elb_client.describe_listeners(LoadBalancerArn=self._get_load_balancer_arn())
-
-            for listener in listeners["Listeners"]:
-                if listener["Port"] in [80, 443]:
-                    LOGGER.debug(f"  Updating {listener['Protocol']} listener on port {listener['Port']}")
-                    elb_client.modify_listener(
-                        ListenerArn=listener["ListenerArn"],
-                        DefaultActions=[{"Type": "forward", "TargetGroupArn": new_tg_arn}],
-                    )
-        else:
-            # For beta (and other environments with rules), modify the rule
-            elb_client.modify_rule(
-                RuleArn=rule_or_listener_arn, Actions=[{"Type": "forward", "TargetGroupArn": new_tg_arn}]
-            )
+        elb_client.modify_rule(RuleArn=rule_arn, Actions=[{"Type": "forward", "TargetGroupArn": new_tg_arn}])
 
         # Update SSM parameters
         self._update_ssm_parameters(new_color, new_tg_arn)

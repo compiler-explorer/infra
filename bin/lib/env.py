@@ -103,8 +103,8 @@ class Environment(Enum):
     def path_pattern(self) -> str:
         """Get the ALB path pattern for this environment."""
         if self == Environment.PROD:
-            # Production uses the default listener (no path pattern)
-            return ""
+            # Production is the catch-all rule (the listener default action refuses everything)
+            return "/*"
         return f"/{self.value}*"
 
     @property
