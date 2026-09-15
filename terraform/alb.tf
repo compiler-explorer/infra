@@ -90,16 +90,17 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
   protocol          = "HTTP"
 }
 
-# The default action is unreachable: compiler-explorer-alb-listen-https-deny-unverified catches
-# everything the forwarding rules did not. Blue-green deployments switch the prod rule, not this.
+# Fails closed: a request that matched no forwarding rule did not carry the CloudFront origin
+# header. Prod is served by compiler-explorer-alb-listen-https-prod, which blue-green
+# deployments switch; nothing modifies this default action any more.
 resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
-  lifecycle {
-    ignore_changes = [default_action]
-  }
-
   default_action {
-    type             = "forward"
-    target_group_arn = module.prod_blue_green.target_group_arns["blue"]
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Access denied"
+      status_code  = "403"
+    }
   }
   load_balancer_arn = aws_alb.GccExplorerApp.arn
   port              = 443
