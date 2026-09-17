@@ -629,6 +629,37 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
+  # AWS-maintained bot classification, in COUNT mode: nothing is blocked, every request is labelled and
+  # counted per category so we can see what a block would have hit (CloudWatch AWS/WAFV2, Rule=<name>,
+  # plus sampled requests in the console). Added after the 2026-09-15..17 subdomain scan, in which 78% of
+  # ~40k junk requests/hour impersonated named crawlers (GPTBot, Claude-SearchBot, Google-Extended, CCBot...)
+  # from Google Cloud addresses; Bot Control verifies such claims against the operators' real IP ranges.
+  # Flipping a category to block is a per-rule override change here, once the counts show no legitimate
+  # traffic in it. Costs $10/month plus $1 per million requests beyond 10 million.
+  rule {
+    name     = "bot-control-observe"
+    priority = 10
+    override_action {
+      count {}
+    }
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesBotControlRuleSet"
+        managed_rule_group_configs {
+          aws_managed_rules_bot_control_rule_set {
+            inspection_level = "COMMON"
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "bot-control-observe"
+      sampled_requests_enabled   = true
+    }
+  }
+
   custom_response_body {
     content      = "Your request has hit our rate limit. Please reduce the load you're putting on our site. Contact us on Discord if you feel this is in error."
     content_type = "TEXT_PLAIN"
