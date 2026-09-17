@@ -244,6 +244,29 @@ resource "aws_cloudwatch_metric_alarm" "no_prod_nodes_blue_green" {
   }
 }
 
+# Fires if a request Bot Control classed as an HTTP library (curl, python-requests, ...) is ever blocked.
+# Today that cannot happen: those requests stop at their category rule before the non-browser signal is
+# applied, so the non-browser rate limit never sees them. A non-zero here means that ordering changed.
+resource "aws_cloudwatch_metric_alarm" "waf_http_library_blocked" {
+  alarm_name         = "WafBlockedHttpLibrary"
+  alarm_description  = "The WAF blocked a request from a recognised HTTP library, which the non-browser rate limit is meant to exempt"
+  evaluation_periods = 1
+  period             = 60
+  namespace          = "AWS/WAFV2"
+  metric_name        = "BlockedRequests"
+  statistic          = "Maximum"
+  dimensions = {
+    WebACL         = aws_wafv2_web_acl.compiler-explorer.name
+    LabelNamespace = "awswaf:managed:aws:bot-control:bot:category"
+    LabelName      = "http_library"
+  }
+
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+}
+
 resource "aws_cloudwatch_metric_alarm" "waf_throttled" {
   alarm_name         = "WafIsThrottling"
   alarm_description  = "We're seeing some amount of WAF client throttling, which may indicate a DoS or a WAF rate limit too low"
