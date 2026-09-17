@@ -2349,6 +2349,15 @@ libraries:
         targets:
         - trunk
         type: github
+      xvec:
+        description: "Intel's Extensible Vectorization Library (std::simd implementation)"
+        type: github
+        method: nightlyclone
+        repo: intel/xvec
+        check_file: README.md
+        build_type: none
+        targets:
+        - main
       yomm2:
         build_type: none
         check_file: include/yorel/yomm2.hpp
