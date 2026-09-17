@@ -629,6 +629,34 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
+  # No real client arrives via its own loopback; only scanners forge X-Forwarded-For: 127.0.0.1.
+  rule {
+    name     = "deny-loopback-forwarded-for"
+    priority = 4
+    action {
+      block {}
+    }
+    statement {
+      regex_match_statement {
+        regex_string = "(^|[, ])(127\\.[0-9]+\\.[0-9]+\\.[0-9]+|::ffff:127\\.[0-9]+\\.[0-9]+\\.[0-9]+|::1|localhost)($|[, ])"
+        field_to_match {
+          single_header {
+            name = "x-forwarded-for"
+          }
+        }
+        text_transformation {
+          priority = 0
+          type     = "LOWERCASE"
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "deny-loopback-forwarded-for"
+      sampled_requests_enabled   = true
+    }
+  }
+
   # AWS-maintained bot classification, in count mode: per-rule metrics and labels only. To block, set
   # override_action to none and keep any rule you still only want counted with rule_action_override.
   rule {
