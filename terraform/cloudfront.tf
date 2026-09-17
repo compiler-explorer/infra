@@ -656,7 +656,8 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
   }
 
   # Keyed by TLS fingerprint, not IP: scanner farms rotate addresses faster than a rate rule reacts
-  # but keep one fingerprint. Verified crawlers never carry the label, so they are exempt.
+  # but keep one fingerprint. Verified crawlers never carry the label; HTTP libraries (curl, Ruby,
+  # python-requests...) are excluded so API scripts are never throttled here.
   rule {
     name     = "rate-limit-non-browser"
     priority = 11
@@ -683,9 +684,23 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
           }
         }
         scope_down_statement {
-          label_match_statement {
-            scope = "LABEL"
-            key   = "awswaf:managed:aws:bot-control:signal:non_browser_user_agent"
+          and_statement {
+            statement {
+              label_match_statement {
+                scope = "LABEL"
+                key   = "awswaf:managed:aws:bot-control:signal:non_browser_user_agent"
+              }
+            }
+            statement {
+              not_statement {
+                statement {
+                  label_match_statement {
+                    scope = "LABEL"
+                    key   = "awswaf:managed:aws:bot-control:bot:category:http_library"
+                  }
+                }
+              }
+            }
           }
         }
       }
