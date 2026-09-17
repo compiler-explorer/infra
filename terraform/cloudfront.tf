@@ -655,10 +655,11 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
-  # Throttle non-browser clients that burst. Scanners fire hundreds of requests a minute from one
-  # address; API clients and MCP agents run at a small fraction of that. Verified crawlers never
-  # carry the label, so they are exempt. Count mode until the counts are seen to track scanners only;
-  # to enforce, swap the action for the block used by RateLimitPost.
+  # Throttle non-browser clients that burst, aggregated by TLS client fingerprint rather than IP: a
+  # scanner farm rotates addresses every minute, faster than a rate rule can react, but keeps one
+  # fingerprint for hours. All curl users together run at a small fraction of this limit. Verified
+  # crawlers never carry the label, so they are exempt. Count mode until the count is seen to track
+  # scanners only; to enforce, swap the action for the block used by RateLimitPost.
   rule {
     name     = "rate-limit-non-browser"
     priority = 11
@@ -667,9 +668,14 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
     statement {
       rate_based_statement {
-        limit                 = 50
+        limit                 = 300
         evaluation_window_sec = 60
-        aggregate_key_type    = "IP"
+        aggregate_key_type    = "CUSTOM_KEYS"
+        custom_key {
+          ja4_fingerprint {
+            fallback_behavior = "NO_MATCH"
+          }
+        }
         scope_down_statement {
           label_match_statement {
             scope = "LABEL"
