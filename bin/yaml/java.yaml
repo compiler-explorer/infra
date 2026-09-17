@@ -64,3 +64,6 @@ compilers:
       - name: 26.0.1
         url: https://download.oracle.com/java/26/archive/jdk-26.0.1_linux-x64_bin.tar.gz
         untar_dir: jdk-26.0.1
+      - name: 27.0.0
+        url: https://download.java.net/java/GA/jdk27/55ce5470a6294008af0057ff4626d0e5/35/GPL/openjdk-27_linux-x64_bin.tar.gz
+        untar_dir: jdk-27
