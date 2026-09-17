@@ -629,6 +629,34 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
+  # No real client arrives via its own loopback; only scanners forge X-Forwarded-For: 127.0.0.1.
+  rule {
+    name     = "deny-loopback-forwarded-for"
+    priority = 4
+    action {
+      block {}
+    }
+    statement {
+      regex_match_statement {
+        regex_string = "(^|[, ])(127\\.[0-9]+\\.[0-9]+\\.[0-9]+|::ffff:127\\.[0-9]+\\.[0-9]+\\.[0-9]+|::1|localhost)($|[, ])"
+        field_to_match {
+          single_header {
+            name = "x-forwarded-for"
+          }
+        }
+        text_transformation {
+          priority = 0
+          type     = "LOWERCASE"
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "deny-loopback-forwarded-for"
+      sampled_requests_enabled   = true
+    }
+  }
+
   # AWS-maintained bot classification, in count mode: per-rule metrics and labels only. To block, set
   # override_action to none and keep any rule you still only want counted with rule_action_override.
   rule {
@@ -656,7 +684,8 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
   }
 
   # Keyed by TLS fingerprint, not IP: scanner farms rotate addresses faster than a rate rule reacts
-  # but keep one fingerprint. Verified crawlers never carry the label, so they are exempt.
+  # but keep one fingerprint. Verified crawlers never carry the label; HTTP libraries (curl, Ruby,
+  # python-requests...) are excluded so API scripts are never throttled here.
   rule {
     name     = "rate-limit-non-browser"
     priority = 11
@@ -683,9 +712,23 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
           }
         }
         scope_down_statement {
-          label_match_statement {
-            scope = "LABEL"
-            key   = "awswaf:managed:aws:bot-control:signal:non_browser_user_agent"
+          and_statement {
+            statement {
+              label_match_statement {
+                scope = "LABEL"
+                key   = "awswaf:managed:aws:bot-control:signal:non_browser_user_agent"
+              }
+            }
+            statement {
+              not_statement {
+                statement {
+                  label_match_statement {
+                    scope = "LABEL"
+                    key   = "awswaf:managed:aws:bot-control:bot:category:http_library"
+                  }
+                }
+              }
+            }
           }
         }
       }
