@@ -655,6 +655,36 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
+  # Throttle non-browser clients that burst. Scanners fire hundreds of requests a minute from one
+  # address; API clients and MCP agents run at a small fraction of that. Verified crawlers never
+  # carry the label, so they are exempt. Count mode until the counts are seen to track scanners only;
+  # to enforce, swap the action for the block used by RateLimitPost.
+  rule {
+    name     = "rate-limit-non-browser"
+    priority = 11
+    action {
+      count {}
+    }
+    statement {
+      rate_based_statement {
+        limit                 = 50
+        evaluation_window_sec = 60
+        aggregate_key_type    = "IP"
+        scope_down_statement {
+          label_match_statement {
+            scope = "LABEL"
+            key   = "awswaf:managed:aws:bot-control:signal:non_browser_user_agent"
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "rate-limit-non-browser"
+      sampled_requests_enabled   = true
+    }
+  }
+
   custom_response_body {
     content      = "Your request has hit our rate limit. Please reduce the load you're putting on our site. Contact us on Discord if you feel this is in error."
     content_type = "TEXT_PLAIN"
