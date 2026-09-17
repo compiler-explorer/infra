@@ -655,10 +655,8 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
-  # Throttle non-browser clients that burst, aggregated by TLS client fingerprint rather than IP: a
-  # scanner farm rotates addresses every minute, faster than a rate rule can react, but keeps one
-  # fingerprint for hours. All curl users together run at about half this limit. Verified
-  # crawlers never carry the label, so they are exempt.
+  # Keyed by TLS fingerprint, not IP: scanner farms rotate addresses faster than a rate rule reacts
+  # but keep one fingerprint. Verified crawlers never carry the label, so they are exempt.
   rule {
     name     = "rate-limit-non-browser"
     priority = 11
