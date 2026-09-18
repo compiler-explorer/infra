@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import contextlib
 import glob
+import hashlib
 import logging
 import os
+import re
 import shlex
 import shutil
 import stat
@@ -104,6 +106,22 @@ class FetchFailure(RuntimeError):
     pass
 
 
+class ChecksumMismatch(FetchFailure):
+    pass
+
+
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def parse_sha256(value: str | None) -> str | None:
+    if value is None:
+        return None
+    digest = value.strip().lower()
+    if not _SHA256_RE.match(digest):
+        raise ValueError(f"Invalid sha256 {value!r}: expected 64 hex digits")
+    return digest
+
+
 class PostFailure(RuntimeError):
     pass
 
@@ -192,8 +210,9 @@ class InstallationContext:
         headers = {"User-Agent": _ce_user_agent()}
         return yaml.load(self.fetcher.get(url, headers=headers).text, Loader=ConfigSafeLoader)
 
-    def fetch_to(self, url: str, fd: IO[bytes], agent: str = "") -> None:
+    def fetch_to(self, url: str, fd: IO[bytes], agent: str = "", sha256: str | None = None) -> None:
         _LOGGER.debug("Fetching %s", url)
+        hasher = hashlib.sha256()
 
         headers = {"User-Agent": _ce_user_agent(agent)}
         if self.allow_unsafe_ssl:
@@ -211,6 +230,7 @@ class InstallationContext:
         report_time = time.time() + report_every_secs
         for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
             fd.write(chunk)
+            hasher.update(chunk)
             fetched += len(chunk)
             now = time.time()
             if now >= report_time:
@@ -219,9 +239,19 @@ class InstallationContext:
                 report_time = now + report_every_secs
         _LOGGER.info("100%% of %s", url)
         fd.flush()
+        if sha256 is not None:
+            actual = hasher.hexdigest()
+            if actual != sha256:
+                raise ChecksumMismatch(f"Checksum mismatch for {url}: expected sha256 {sha256}, got {actual}")
 
     def fetch_url_and_pipe_to(
-        self, staging: StagingDir, url: str, command: Sequence[str], subdir: Path | str = ".", agent: str = ""
+        self,
+        staging: StagingDir,
+        url: str,
+        command: Sequence[str],
+        subdir: Path | str = ".",
+        agent: str = "",
+        sha256: str | None = None,
     ) -> None:
         untar_dir = staging.path / subdir
         untar_dir.mkdir(parents=True, exist_ok=True)
@@ -232,7 +262,7 @@ class InstallationContext:
             # download the file first
             with tempfile.NamedTemporaryFile(delete=False) as temp_file:
                 temp_file_path = temp_file.name
-                self.fetch_to(url, temp_file, agent)
+                self.fetch_to(url, temp_file, agent, sha256)
 
             # create a powershell script to extract the file
             with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False) as script_file:
@@ -252,7 +282,7 @@ class InstallationContext:
             # We stream to a temporary file first before then piping this to the command
             # as sometimes the command can take so long the URL endpoint closes the door on us
             with tempfile.TemporaryFile() as fd:
-                self.fetch_to(url, fd, agent)
+                self.fetch_to(url, fd, agent, sha256)
                 fd.seek(0)
                 _LOGGER.info("Piping to %s", shlex.join(command))
                 subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
