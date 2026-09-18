@@ -629,6 +629,74 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
+  # AWS-maintained bot classification, in count mode: per-rule metrics and labels only. To block, set
+  # override_action to none and keep any rule you still only want counted with rule_action_override.
+  rule {
+    name     = "bot-control-observe"
+    priority = 10
+    override_action {
+      count {}
+    }
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesBotControlRuleSet"
+        managed_rule_group_configs {
+          aws_managed_rules_bot_control_rule_set {
+            inspection_level = "COMMON"
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "bot-control-observe"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Keyed by TLS fingerprint, not IP: scanner farms rotate addresses faster than a rate rule reacts
+  # but keep one fingerprint. Verified crawlers never carry the label, so they are exempt.
+  rule {
+    name     = "rate-limit-non-browser"
+    priority = 11
+    action {
+      block {
+        custom_response {
+          response_code            = 429
+          custom_response_body_key = "blocked-ratelimit"
+          response_header {
+            name  = "Retry-After"
+            value = "60"
+          }
+        }
+      }
+    }
+    statement {
+      rate_based_statement {
+        limit                 = 100
+        evaluation_window_sec = 60
+        aggregate_key_type    = "CUSTOM_KEYS"
+        custom_key {
+          ja4_fingerprint {
+            fallback_behavior = "NO_MATCH"
+          }
+        }
+        scope_down_statement {
+          label_match_statement {
+            scope = "LABEL"
+            key   = "awswaf:managed:aws:bot-control:signal:non_browser_user_agent"
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "rate-limit-non-browser"
+      sampled_requests_enabled   = true
+    }
+  }
+
   custom_response_body {
     content      = "Your request has hit our rate limit. Please reduce the load you're putting on our site. Contact us on Discord if you feel this is in error."
     content_type = "TEXT_PLAIN"
