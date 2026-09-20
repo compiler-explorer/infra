@@ -1,5 +1,5 @@
 locals {
-  prod_image_id           = "ami-054eec0f4bf19e310"
+  prod_image_id           = "ami-02edb9f478c7fa250"
   staging_image_id        = "ami-02edb9f478c7fa250"
   beta_image_id           = "ami-02edb9f478c7fa250"
   gpu_image_id            = "ami-024b80a3337216424"
