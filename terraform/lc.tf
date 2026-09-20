@@ -3,7 +3,7 @@ locals {
   staging_image_id        = "ami-02edb9f478c7fa250"
   beta_image_id           = "ami-02edb9f478c7fa250"
   gpu_image_id            = "ami-024b80a3337216424"
-  aarch64prod_image_id    = "ami-0c8bb8bcc0d924304"
+  aarch64prod_image_id    = "ami-09b8aeeea7ab23beb"
   aarch64staging_image_id = "ami-09b8aeeea7ab23beb"
   winprod_image_id        = "ami-0d8ac1735cde9ba9f"
   winstaging_image_id     = "ami-0d8ac1735cde9ba9f"
