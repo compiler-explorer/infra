@@ -122,6 +122,25 @@ if [ "$ARCH" == 'amd64' ]; then
   rm -rf /tmp/libtinfo5
 fi
 
+# Qt's Conan packages are built against ICU 70. ICU version-suffixes every
+# exported symbol and bumps its soname each release, so the 74 that 24.04 ships
+# cannot satisfy their libicu*.so.70 needs -- there is no symbol overlap at all.
+# The two are co-installable by design, so put our mirror of the jammy package
+# next to the default one on both architectures.
+if [ "$ARCH" == 'amd64' ]; then
+  ICU_TRIPLET=x86_64-linux-gnu
+else
+  ICU_TRIPLET=aarch64-linux-gnu
+fi
+mkdir -p /tmp/libicu70
+pushd /tmp/libicu70
+aws s3 cp "s3://compiler-explorer/dependencies/libicu70_70.1-2_${ARCH}.deb" libicu70.deb
+dpkg-deb -x libicu70.deb extracted
+cp -a "extracted/usr/lib/${ICU_TRIPLET}"/libicu*.so.70* "/usr/lib/${ICU_TRIPLET}/"
+ldconfig
+popd
+rm -rf /tmp/libicu70
+
 get_conf() {
   aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
 }

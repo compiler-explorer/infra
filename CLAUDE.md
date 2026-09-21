@@ -533,6 +533,15 @@ The codebase supports multiple environments defined in `lib/env.py`:
 
 Each environment has properties like `keep_builds`, `is_windows`, `is_prod`, etc.
 
+### Reaching an environment over HTTP
+
+Environments are selected by path: beta is `https://godbolt.org/beta`, staging is
+`https://godbolt.org/staging`. There are no per-environment hostnames --
+`beta.godbolt.org` and `beta.compiler-explorer.com` return 200 but match no path
+rule, so they silently serve prod. Check `/api/version` against
+`ce --env <env> builds current` before trusting any result you got over HTTP.
+See the Environment URLs section in `docs/aws_architecture_current.md`.
+
 ## Blue-Green Deployment Process
 
 The blue-green deployment system includes automatic post-deployment steps that ensure the environment is fully configured.

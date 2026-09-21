@@ -236,6 +236,34 @@ graph TB
 | 7        | `/winstaging*` | WinStaging | Windows staging | Direct routing |
 | 8        | `/winprod*` | WinProd      | Windows prod | Direct routing |
 
+### Environment URLs
+
+Environments are selected by **path**, not by hostname. To reach one, use:
+
+| Environment | URL | API example |
+|-------------|-----|-------------|
+| Prod        | `https://godbolt.org`         | `https://godbolt.org/api/compiler/g142/compile` |
+| Beta        | `https://godbolt.org/beta`    | `https://godbolt.org/beta/api/compiler/g142/compile` |
+| Staging     | `https://godbolt.org/staging` | `https://godbolt.org/staging/api/compiler/g142/compile` |
+| GPU         | `https://godbolt.org/gpu`     | |
+| WinProd / WinStaging / WinTest | `https://godbolt.org/winprod` etc. | |
+
+There are no per-environment hostnames. `beta.godbolt.org` and
+`beta.compiler-explorer.com` resolve and return 200, but they match no
+path rule and fall through to the default rule, so they serve **prod**.
+Nothing in the response says so, which makes this an easy way to spend a long
+time testing the wrong fleet.
+
+Confirm which environment answered before trusting a result:
+
+```bash
+curl -s https://godbolt.org/beta/api/version   # beta's deployed commit
+curl -s https://godbolt.org/api/version        # prod's; differs if beta is on its own build
+```
+
+Cross-check against `ce --env beta builds current`, which prints the hash beta
+is meant to be running.
+
 ### CE Router Architecture (Compilation Endpoints)
 
 The CE Router provides intelligent routing for compilation endpoints (`/api/compiler/*/compile`, `/api/compiler/*/cmake` and `/api/compiler/*/build/*`) across all environments:
