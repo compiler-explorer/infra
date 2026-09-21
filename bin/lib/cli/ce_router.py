@@ -18,9 +18,11 @@ import boto3
 import click
 from botocore.exceptions import ClientError
 
+from lib import ce_router_smoke
 from lib.amazon import as_client, ec2, ec2_client, elb_client
 from lib.ce_utils import are_you_sure
 from lib.cli import cli
+from lib.compiler_routing import CompilerRoutingError, get_current_routing_table
 from lib.env import Config
 from lib.ssh import exec_remote, exec_remote_all, run_remote_shell
 
@@ -874,3 +876,87 @@ def ce_router_healthcheck(cfg: Config) -> None:
 
     except ClientError as e:
         print(f"Error checking CE Router healthcheck: {e}")
+
+
+@ce_router.command(name="smoke")
+@click.option("--compiler", help="Queue-routed compiler to exercise (default: picked from the routing table)")
+@click.option("--url-compiler", help="URL-routed compiler to exercise (default: picked from the routing table)")
+@click.option("--unrouted-compiler", help="Compiler deliberately absent from the routing table")
+@click.option("--url", "base_override", help="API root to hit, e.g. https://alb.godbolt.org to bypass CloudFront")
+@click.option("--build-system", "build_systems", multiple=True, default=("cmake",), show_default=True)
+@click.option("--iterations", default=50, show_default=True, help="Repeats for the cache-hit loop")
+@click.option("--skip-slow", is_flag=True, help="Skip the oversized request/response and boundary-sweep checks")
+@click.pass_obj
+def smoke(
+    cfg: Config,
+    compiler: str | None,
+    url_compiler: str | None,
+    unrouted_compiler: str | None,
+    base_override: str | None,
+    build_systems: Sequence[str],
+    iterations: int,
+    skip_slow: bool,
+):
+    """
+    Run the functional checks from docs/ce-router-cutover-checklist.md section C.
+
+    Exercises each distinct path through the router - queue routing, URL routing, the S3
+    overflow path for oversized requests and the s3Key path for oversized results - and
+    asserts on what the caller actually receives, since several of these failures return
+    HTTP 200 with a broken body.
+
+    Example:
+        ce --env beta ce-router smoke
+        ce --env beta ce-router smoke --compiler g132 --skip-slow
+    """
+    environment = cfg.env.value
+    base = ce_router_smoke.base_url(environment, base_override)
+
+    cpp_ids = ce_router_smoke.cpp_compiler_ids(base)
+    if not compiler:
+        compiler = ce_router_smoke.pick_cpp_compiler(base, candidates=cpp_ids)
+    if not url_compiler:
+        click.echo("Reading the routing table for a URL-routed C++ compiler...")
+        try:
+            table = get_current_routing_table(environment)
+        except CompilerRoutingError as e:
+            click.echo(f"Could not read the routing table: {e}", err=True)
+            table = {}
+        for key, entry in sorted(table.items()):
+            compiler_id = key.split("#", 1)[-1]
+            # Language matters: a URL-routed Go compiler cannot build the C++ these checks send.
+            if entry.get("routingType") == "url" and (not cpp_ids or compiler_id in cpp_ids):
+                url_compiler = compiler_id
+                break
+
+    if not compiler:
+        click.echo("No queue-routed compiler found or given; pass --compiler", err=True)
+        raise SystemExit(2)
+
+    click.echo(f"Environment : {environment}")
+    click.echo(f"API root    : {base}")
+    click.echo(f"Queue-routed: {compiler}")
+    click.echo(f"URL-routed  : {url_compiler or '(none - skipping that check)'}")
+    click.echo("")
+
+    findings = ce_router_smoke.run_checks(
+        base=base,
+        queue_compiler=compiler,
+        url_compiler=url_compiler,
+        unrouted_compiler=unrouted_compiler,
+        build_systems=tuple(build_systems),
+        loop_iterations=iterations,
+        skip_slow=skip_slow,
+    )
+
+    click.echo("")
+    for result in findings.results:
+        mark = "PASS" if result.ok else "FAIL"
+        timing = f"{result.seconds:6.2f}s" if result.seconds else "       "
+        click.echo(f"  [{mark}] {timing}  {result.name}: {result.detail}")
+
+    click.echo("")
+    if findings.failed:
+        click.echo(f"{len(findings.failed)} of {len(findings.results)} checks failed.", err=True)
+        raise SystemExit(1)
+    click.echo(f"All {len(findings.results)} checks passed.")

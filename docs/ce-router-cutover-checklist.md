@@ -75,6 +75,63 @@ Run each as the browser frontend **and** as `curl`.
       fail (F-19/F-20, §S8).
 - [ ] Response >1MB — confirm the client receives it intact.
 
+### Running section C automatically
+
+```
+ce --env beta ce-router smoke                      # picks compilers itself
+ce --env beta ce-router smoke --compiler g132      # or name one
+ce --env beta ce-router smoke --skip-slow          # omit the oversized/boundary checks
+```
+
+Exits non-zero if any check fails. It asserts on what the caller receives rather than on
+status codes, because several of these failures return HTTP 200 with a broken body — the
+`s3Key` one in particular.
+
+Compilers are chosen by **language**, not from the routing table alphabetically: that lands
+on ids like `386_gl114`, an i386 Go compiler, which cannot build the C++ these checks send.
+Every size-dependent check then measures an empty result and passes while testing nothing.
+The URL-routed candidate is filtered the same way.
+
+### Prod baseline — legacy direct path
+
+Recorded with prod killswitch-disabled (`/killswitch-disabled-prod-*`), so this is the
+**non-router** path: what correct looks like. Beta was already live on the router when this
+was taken, so a beta run is directly comparable.
+
+`ce --env prod ce-router smoke --iterations 20`, compilers `g132` (queue) and
+`cl19_2015_u3_32_exwine` (URL):
+
+| Check | Result | Time |
+|---|---|---|
+| plain compile | `code=0 asm=105B` | 0.44s |
+| cache-hit loop x20 | 20/20 ok, slowest 0.33s | 3.35s |
+| compile with execution | `code=0 asm=194B` | 0.59s |
+| cmake (legacy spelling) | `code=0 asm=0B` | 0.69s |
+| build/cmake | `code=0 asm=0B` | 0.23s |
+| unknown build system | 404 naming it | 0.12s |
+| URL-routed compiler | `code=2 asm=259B` | 0.55s |
+| large result (s3Key path) | `code=0 asm=235006B` | 2.58s |
+| large result + bypassCache | `code=0 asm=235006B` | 1.23s |
+| large result from project build | `code=0 asm=0B` | 0.83s |
+| large request (258KB, S3 overflow) | `code=0 asm=16701B` | 0.55s |
+| 31KiB boundary sweep | all sizes usable | — |
+| response over 1MB | `code=0 asm=2212181B` | 7.86s |
+
+**13/13 passed.** Three things to read correctly when comparing:
+
+- **Two checks are path-dependent.** An unknown build system is a **404** on the direct path
+  (`compile.ts:566`) but a **failed compilation naming it** via the router, because the
+  worker throws. The check accepts either; only a silent success would be wrong.
+- **`code=2` on the URL-routed compiler is not a routing failure.** MSVC-under-wine rejecting
+  the default flags still proves the forward path works — a well-formed result came back.
+- **The cmake checks return `asm=0B`.** Recorded as observed, not asserted as correct: the
+  build succeeds but yields no disassembly with these filters. Compare like-for-like rather
+  than treating a non-zero value on the router path as a regression.
+
+Latency here is the direct path with no queue hop. Expect the router path to be slower;
+what matters is that nothing fails and the cache-hit loop stays clean, since that loop is
+the tightest subscribe/result race.
+
 ## D. API compatibility
 
 These produce a `200` with wrong output and **log nothing anywhere**, so they only ever
