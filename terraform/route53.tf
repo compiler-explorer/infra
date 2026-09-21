@@ -81,6 +81,18 @@ resource "aws_route53_record" "auth-godbolt-org" {
   records = ["dev-ce-vupzkjx14g5sjvco-cd-qtr5mjlqgunghpuo.edge.tenants.us.auth0.com"]
 }
 
+// Direct to the ALB, bypassing CloudFront; used for the internal hop to winprod and gpu.
+resource "aws_route53_record" "alb-godbolt-org" {
+  name    = "alb"
+  zone_id = module.godbolt-org.zone_id
+  type    = "A"
+  alias {
+    name                   = aws_alb.GccExplorerApp.dns_name
+    zone_id                = aws_alb.GccExplorerApp.zone_id
+    evaluate_target_health = false
+  }
+}
+
 ////////////////////////////////////////////////////
 
 module "compiler-explorer-com" {
