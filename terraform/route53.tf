@@ -81,9 +81,7 @@ resource "aws_route53_record" "auth-godbolt-org" {
   records = ["dev-ce-vupzkjx14g5sjvco-cd-qtr5mjlqgunghpuo.edge.tenants.us.auth0.com"]
 }
 
-// Straight to the ALB, bypassing CloudFront. The CE nodes use it for the internal hop to the winprod
-// and gpu environments, which should not go through the CDN and WAF. Public so the prod config also
-// works when run from outside the VPC (a laptop, a runner); the ALB is reachable by name anyway.
+// Direct to the ALB, bypassing CloudFront; used for the internal hop to winprod and gpu.
 resource "aws_route53_record" "alb-godbolt-org" {
   name    = "alb"
   zone_id = module.godbolt-org.zone_id
