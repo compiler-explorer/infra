@@ -35,6 +35,31 @@ row TTL, and compilation queue retention (300s → 60s).
 
 ## B. Pre-flight, per environment
 
+### B0. Make sure the environment has workers at all
+
+**Beta and staging sit at zero instances when idle** (`min_instances` is 0 for everything
+but prod), and their ASGs scale on compilation queue depth. That scaling cannot rescue a
+cold environment within a request's lifetime: `health_check_grace_period` is 240s and
+compiler registration is allowed up to 600s, against a router deadline of 60s. So the
+first compiles after an idle period **always** time out, and go on failing for minutes
+while an instance boots.
+
+Every check below is a false negative until this is done.
+
+- [ ] `ce --env <env> blue-green status` — confirm an ASG has instances **InService**.
+      If not, `ce --env <env> environment start` (or a deploy) and wait.
+- [ ] Wait for compiler registration to finish, not just for the instance to be InService.
+      An instance that is InService but still discovering compilers answers 404.
+- [ ] Confirm with a single hand-run compile before running the suite.
+
+> At time of writing `beta-blue` and `beta-green` are both at 0/0 while the beta ALB rule
+> is **enabled** (priority 72, real compile paths). Beta compilations therefore go
+> router → SQS → nobody and time out. Either scale beta up before testing, or disable the
+> rule while it is unused — an enabled rule in front of an empty environment looks exactly
+> like a broken router.
+
+### B1. Routing and health
+
 - [ ] `ce ce-router status` — target group exists, rule present, healthy targets ≥ 1
       (beta/staging) or ≥ 2 (prod).
 - [ ] `ce ce-router version` — every instance on the version you intend to test.
@@ -131,6 +156,9 @@ was taken, so a beta run is directly comparable.
 Latency here is the direct path with no queue hop. Expect the router path to be slower;
 what matters is that nothing fails and the cache-hit loop stays clean, since that loop is
 the tightest subscribe/result race.
+
+A run against an environment with no workers fails every check with a 60s timeout, which
+looks identical to a broken router. Do B0 first.
 
 ## D. API compatibility
 
