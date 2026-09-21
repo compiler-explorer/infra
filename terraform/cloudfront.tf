@@ -629,7 +629,7 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
-  # No real client arrives via its own loopback; only scanners forge X-Forwarded-For: 127.0.0.1.
+  # Nothing legitimate claims a loopback address in X-Forwarded-For.
   rule {
     name     = "deny-loopback-forwarded-for"
     priority = 4
@@ -683,9 +683,7 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
-  # Keyed by TLS fingerprint, not IP: scanner farms rotate addresses faster than a rate rule reacts
-  # but keep one fingerprint. Verified crawlers never carry the label; HTTP libraries (curl, Ruby,
-  # python-requests...) are excluded so API scripts are never throttled here.
+  # Burst limit for unrecognised non-browser clients, keyed by TLS fingerprint rather than IP.
   rule {
     name     = "rate-limit-non-browser"
     priority = 11
