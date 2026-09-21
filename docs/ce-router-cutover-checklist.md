@@ -184,8 +184,9 @@ Fixed on ce-router `main` (`f71fce0`) but **not yet running**. Routers install
 `releases/latest` (`install_ce_router` in `start-support.sh`), currently `0.2.0`, which is
 exactly main minus that commit. Getting it live takes two steps:
 
-- [ ] Cut a ce-router release above `0.2.0`
-- [ ] `ce --env <env> ce-router refresh` so instances reinstall
+- [x] Cut a ce-router release above `0.2.0` — **`0.3.0` published**, asset
+      `ce-router-0.3.0.zip` verified to contain the fix
+- [ ] `ce --env <env> ce-router refresh` so instances reinstall `releases/latest`
 - [ ] Re-run this check and confirm the URL-routed row matches prod
 
 Two checks are expected to *differ* between the runs and did:
