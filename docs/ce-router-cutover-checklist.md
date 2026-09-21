@@ -178,8 +178,15 @@ The one failure was **not** on the queue path:
 That is F-38b / S4.1: the router forwards the caller's `content-length` while
 re-serialising the body, so the target blocks on bytes that never arrive. Confirmed by
 sending the same semantic body two ways — 155 bytes (`json.dumps` defaults) times out,
-141 bytes (compact) returns in 0.62s. Fixed on ce-router branch
-`fix-forward-content-length`; re-run this check after it deploys.
+141 bytes (compact) returns in 0.62s.
+
+Fixed on ce-router `main` (`f71fce0`) but **not yet running**. Routers install
+`releases/latest` (`install_ce_router` in `start-support.sh`), currently `0.2.0`, which is
+exactly main minus that commit. Getting it live takes two steps:
+
+- [ ] Cut a ce-router release above `0.2.0`
+- [ ] `ce --env <env> ce-router refresh` so instances reinstall
+- [ ] Re-run this check and confirm the URL-routed row matches prod
 
 Two checks are expected to *differ* between the runs and did:
 
