@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
-from lib.cli.ce_router_killswitch import (
+from lib.cli.ce_router import (
     compilation_path_patterns,
     enable,
     exec_all,
@@ -19,9 +19,9 @@ class TestCERouterExecAll(unittest.TestCase):
         self.runner = CliRunner()
         self.cfg = Config(env=Environment.STAGING)
 
-    @patch("lib.cli.ce_router_killswitch._get_ce_router_instances")
-    @patch("lib.cli.ce_router_killswitch.exec_remote_all")
-    @patch("lib.cli.ce_router_killswitch.are_you_sure")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    @patch("lib.cli.ce_router.exec_remote_all")
+    @patch("lib.cli.ce_router.are_you_sure")
     def test_exec_all_success(self, mock_are_you_sure, mock_exec_remote_all, mock_get_instances):
         mock_instance = MagicMock()
         mock_instance.instance.id = "i-12345"
@@ -39,7 +39,7 @@ class TestCERouterExecAll(unittest.TestCase):
         self.assertIn("Running 'uptime' on 1 CE Router instances", result.output)
         mock_exec_remote_all.assert_called_once_with([mock_instance], ("uptime",))
 
-    @patch("lib.cli.ce_router_killswitch._get_ce_router_instances")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
     def test_exec_all_no_instances(self, mock_get_instances):
         mock_get_instances.return_value = []
 
@@ -52,8 +52,8 @@ class TestCERouterExecAll(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("No CE Router instances found", result.output)
 
-    @patch("lib.cli.ce_router_killswitch._get_ce_router_instances")
-    @patch("lib.cli.ce_router_killswitch.are_you_sure")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    @patch("lib.cli.ce_router.are_you_sure")
     def test_exec_all_user_cancels(self, mock_are_you_sure, mock_get_instances):
         mock_instance = MagicMock()
         mock_get_instances.return_value = [mock_instance]
@@ -68,9 +68,9 @@ class TestCERouterExecAll(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertNotIn("Running", result.output)
 
-    @patch("lib.cli.ce_router_killswitch._get_ce_router_instances")
-    @patch("lib.cli.ce_router_killswitch.exec_remote_all")
-    @patch("lib.cli.ce_router_killswitch.are_you_sure")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    @patch("lib.cli.ce_router.exec_remote_all")
+    @patch("lib.cli.ce_router.are_you_sure")
     def test_exec_all_with_multiple_args(self, mock_are_you_sure, mock_exec_remote_all, mock_get_instances):
         mock_instance = MagicMock()
         mock_get_instances.return_value = [mock_instance]
@@ -86,9 +86,9 @@ class TestCERouterExecAll(unittest.TestCase):
         self.assertIn("sudo systemctl status ce-router", result.output)
         mock_exec_remote_all.assert_called_once_with([mock_instance], ("sudo", "systemctl", "status", "ce-router"))
 
-    @patch("lib.cli.ce_router_killswitch._get_ce_router_instances")
-    @patch("lib.cli.ce_router_killswitch.exec_remote_all")
-    @patch("lib.cli.ce_router_killswitch.are_you_sure")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    @patch("lib.cli.ce_router.exec_remote_all")
+    @patch("lib.cli.ce_router.are_you_sure")
     def test_exec_all_with_multiple_instances(self, mock_are_you_sure, mock_exec_remote_all, mock_get_instances):
         mock_instance1 = MagicMock()
         mock_instance1.instance.id = "i-12345"
@@ -152,13 +152,13 @@ class TestCERouterEnable(unittest.TestCase):
     def _invoke(self, rule_conditions):
         rule = {"RuleArn": "rule-arn", "Priority": "70", "Conditions": rule_conditions}
         with (
-            patch("lib.cli.ce_router_killswitch._get_alb_client", return_value=self.alb_client),
+            patch("lib.cli.ce_router._get_alb_client", return_value=self.alb_client),
             patch(
-                "lib.cli.ce_router_killswitch._find_ce_router_target_groups",
+                "lib.cli.ce_router._find_ce_router_target_groups",
                 return_value={"prod": {"arn": "tg-arn", "name": "ce-router-prod"}},
             ),
-            patch("lib.cli.ce_router_killswitch._find_compiler_explorer_listener", return_value="listener-arn"),
-            patch("lib.cli.ce_router_killswitch._find_or_create_ce_router_rules", return_value={"prod": rule}),
+            patch("lib.cli.ce_router._find_compiler_explorer_listener", return_value="listener-arn"),
+            patch("lib.cli.ce_router._find_or_create_ce_router_rules", return_value={"prod": rule}),
         ):
             return self.runner.invoke(enable, ["-e", "prod", "--skip-confirmation"], obj=self.cfg)
 
@@ -198,8 +198,8 @@ class TestCERouterVersion(unittest.TestCase):
         self.runner = CliRunner()
         self.cfg = Config(env=Environment.STAGING)
 
-    @patch("lib.cli.ce_router_killswitch._get_ce_router_instances")
-    @patch("lib.cli.ce_router_killswitch.exec_remote")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    @patch("lib.cli.ce_router.exec_remote")
     def test_version_success(self, mock_exec_remote, mock_get_instances):
         mock_instance = MagicMock()
         mock_instance.instance.id = "i-12345"
@@ -220,7 +220,7 @@ class TestCERouterVersion(unittest.TestCase):
             mock_instance, ["cat", "/infra/.deploy/ce-router-version"], ignore_errors=True
         )
 
-    @patch("lib.cli.ce_router_killswitch._get_ce_router_instances")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
     def test_version_no_instances(self, mock_get_instances):
         mock_get_instances.return_value = []
 
@@ -232,8 +232,8 @@ class TestCERouterVersion(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("No CE Router instances found", result.output)
 
-    @patch("lib.cli.ce_router_killswitch._get_ce_router_instances")
-    @patch("lib.cli.ce_router_killswitch.exec_remote")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    @patch("lib.cli.ce_router.exec_remote")
     def test_version_multiple_instances(self, mock_exec_remote, mock_get_instances):
         mock_instance1 = MagicMock()
         mock_instance1.instance.id = "i-12345"
@@ -256,8 +256,8 @@ class TestCERouterVersion(unittest.TestCase):
         self.assertIn("i-12345@10.0.1.100: v1.2.3", result.output)
         self.assertIn("i-67890@10.0.1.101: v1.2.4", result.output)
 
-    @patch("lib.cli.ce_router_killswitch._get_ce_router_instances")
-    @patch("lib.cli.ce_router_killswitch.exec_remote")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    @patch("lib.cli.ce_router.exec_remote")
     def test_version_error_reading(self, mock_exec_remote, mock_get_instances):
         mock_instance = MagicMock()
         mock_instance.instance.id = "i-12345"
@@ -275,8 +275,8 @@ class TestCERouterVersion(unittest.TestCase):
         self.assertIn("CE Router versions for STAGING", result.output)
         self.assertIn("i-12345@10.0.1.100: error reading version", result.output)
 
-    @patch("lib.cli.ce_router_killswitch._get_ce_router_instances")
-    @patch("lib.cli.ce_router_killswitch.exec_remote")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    @patch("lib.cli.ce_router.exec_remote")
     def test_version_empty_file(self, mock_exec_remote, mock_get_instances):
         mock_instance = MagicMock()
         mock_instance.instance.id = "i-12345"

@@ -289,9 +289,26 @@ All workflow trigger commands support `--dry-run` to preview the `gh` command wi
 
 ## CE Router Management
 
-The `ce ce-router` command group provides emergency controls for the CE Router routing system:
+The `ce ce-router` command group provides instance management and emergency routing
+controls for the CE Router system:
 
 ### Available Commands
+
+- **`ce ce-router instances`** - Show ASG capacity and per-instance health
+  - Lists desired/min/max capacity, each instance's state and lifecycle, and target group health
+  - Example: `ce --env prod ce-router instances`
+
+- **`ce ce-router healthcheck`** - Query `/healthcheck` on each instance's private IP
+  - Example: `ce --env prod ce-router healthcheck`
+
+- **`ce ce-router scale DESIRED_CAPACITY`** - Manually scale the ASG
+  - Example: `ce --env prod ce-router scale 4`
+
+- **`ce ce-router login`** - SSH into a CE Router instance
+  - Use `--instance-id` to pick one; otherwise the first available is used
+
+- **`ce ce-router restart`** - Restart the `ce-router` service on all instances
+  - Note this briefly interrupts service on single-instance environments (beta, staging)
 
 - **`ce ce-router exec_all REMOTE_CMD`** - Execute commands on all CE Router instances
   - Runs the specified command on all CE Router instances in the current environment
