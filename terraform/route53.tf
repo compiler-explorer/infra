@@ -81,11 +81,20 @@ resource "aws_route53_record" "auth-godbolt-org" {
   records = ["dev-ce-vupzkjx14g5sjvco-cd-qtr5mjlqgunghpuo.edge.tenants.us.auth0.com"]
 }
 
-// Straight to the ALB, bypassing CloudFront. Used by the CE nodes for the internal hop to the
-// winprod and gpu environments, which should not go through the CDN and WAF.
+// alb.godbolt.org resolves straight to the ALB, but only from inside our VPC: this is a private zone
+// for that one name, so it never appears in public DNS. The CE nodes use it for the internal hop to
+// the winprod and gpu environments, which should not go through the CDN and WAF.
+resource "aws_route53_zone" "alb-godbolt-org-private" {
+  name    = "alb.godbolt.org"
+  comment = "Private: direct route to the main ALB for CE nodes"
+  vpc {
+    vpc_id = module.ce_network.vpc.id
+  }
+}
+
 resource "aws_route53_record" "alb-godbolt-org" {
-  name    = "alb"
-  zone_id = module.godbolt-org.zone_id
+  name    = ""
+  zone_id = aws_route53_zone.alb-godbolt-org-private.zone_id
   type    = "A"
   alias {
     name                   = aws_alb.GccExplorerApp.dns_name
