@@ -244,8 +244,8 @@ resource "aws_cloudwatch_metric_alarm" "no_prod_nodes_blue_green" {
   }
 }
 
-# Fires if a request Bot Control classed as an HTTP library (curl, python-requests, ...) is ever blocked.
-# The non-browser rate limit excludes that label, so this should stay at zero; a firing means a rule change.
+# Fires if a request Bot Control classed as an HTTP library (curl, python-requests, ...) is blocked by a
+# rule after Bot Control. The non-browser rate limit excludes that label, so this should stay at zero.
 resource "aws_cloudwatch_metric_alarm" "waf_http_library_blocked" {
   alarm_name         = "WafBlockedHttpLibrary"
   alarm_description  = "The WAF blocked a request from a recognised HTTP library, which the non-browser rate limit is meant to exempt"

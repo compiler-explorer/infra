@@ -638,7 +638,7 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
     statement {
       regex_match_statement {
-        regex_string = "(^|[, ])(127\\.[0-9]+\\.[0-9]+\\.[0-9]+|::ffff:127\\.[0-9]+\\.[0-9]+\\.[0-9]+|::1|localhost)($|[, ])"
+        regex_string = "(^|[, \\t])(127\\.[0-9]+\\.[0-9]+\\.[0-9]+|::ffff:127\\.[0-9]+\\.[0-9]+\\.[0-9]+|::1|localhost)($|[, \\t])"
         field_to_match {
           single_header {
             name = "x-forwarded-for"
