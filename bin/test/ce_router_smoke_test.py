@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 from lib.ce_router_smoke import (  # noqa: I001
     S3_RESOLVE_FAILURE,
     WEBSOCKET_SIZE_THRESHOLD,
@@ -91,5 +89,5 @@ class TestAsmText:
         assert asm_text({"asm": [{"text": "a"}, {"text": "b"}]}) == "a\nb"
 
     def test_tolerates_missing_asm(self):
-        assert asm_text({}) == ""
-        assert asm_text({"asm": None}) == ""
+        assert not asm_text({})
+        assert not asm_text({"asm": None})

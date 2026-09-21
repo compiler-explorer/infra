@@ -160,9 +160,7 @@ def classify_compilation(status: int, payload: Any, require_success: bool = Fals
     return True, detail
 
 
-CMAKE_MANIFEST = (
-    "cmake_minimum_required(VERSION 3.10)\nproject(smoke CXX)\nadd_executable(smoke example.cpp)\n"
-)
+CMAKE_MANIFEST = "cmake_minimum_required(VERSION 3.10)\nproject(smoke CXX)\nadd_executable(smoke example.cpp)\n"
 CMAKE_FILES = [{"filename": "example.cpp", "contents": "int main() { return 0; }\n"}]
 
 
@@ -196,7 +194,7 @@ def check_cache_hit_loop(base: str, compiler_id: str, findings: Findings, iterat
 
 
 def check_execute(base: str, compiler_id: str, findings: Findings) -> None:
-    body = compile_body("#include <cstdio>\nint main() { puts(\"smoke\"); return 0; }")
+    body = compile_body('#include <cstdio>\nint main() { puts("smoke"); return 0; }')
     body["options"]["filters"]["execute"] = True
     status, payload, secs = post_compile(_compile_url(base, compiler_id), body)
     ok, detail = classify_compilation(status, payload)
