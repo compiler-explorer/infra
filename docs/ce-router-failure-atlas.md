@@ -74,7 +74,8 @@ Four independent layers, all currently set to exactly 60 seconds:
 | CloudFront | `origin_read_timeout = 60` | `terraform/cloudfront.tf:62` (and `:193`, `:322`) |
 | ALB | `idle_timeout = 60` | `terraform/alb.tf:2`, `:20` |
 | nginx | `proxy_read_timeout 60s` | `nginx/ce-router.conf` |
-| ce-router | `timeoutSeconds = 60` | `src/compiler-explorer-router.ts:32` |
+| ce-router (queue path) | `timeoutSeconds = 60` | `src/compiler-explorer-router.ts:32` |
+| ce-router (URL path) | axios `timeout: 60000` | `src/services/http-forwarder.ts` |
 
 ```mermaid
 flowchart LR
@@ -94,6 +95,10 @@ reported to the user in at least four different ways depending on scheduling jit
 
 Fix is ordering, not magnitude: each layer strictly longer than the one inside it, so
 the router's own error is always the one the user sees.
+
+The URL-forwarding path shows what equal deadlines cost: its axios timeout is also 60s, so
+`Request timeout to ${targetUrl}` — the one error that would name the failing target — can
+never fire before an outer layer returns an HTML 504 instead. **[measured]**
 
 ---
 
@@ -183,8 +188,13 @@ flowchart TD
     E -->|no| G[send]
 ```
 
-Self-contained: no WebSocket, no SQS, no ack. If queue-routed compiles are broken and
-URL-routed ones are fine, everything in §4 below is ruled out at once — a useful first
+| ID | Branch | Notes |
+|---|---|---|
+| S4.1 | **Caller's `content-length` is forwarded** | `prepareForwardHeaders` strips hop-by-hop headers but passes `content-length` through, while the body has been parsed by Express and re-serialised with `JSON.stringify`. The two lengths agree only if the caller serialised byte-identically. When ours is shorter the target blocks on bytes that never arrive, and the caller gets an HTML 504 at the 60s mark. Measured on beta: the same semantic body at 155 bytes (`json.dumps` defaults) times out, at 141 bytes (compact) returns in 0.62s. Reaches **every** URL-routed compiler — Windows, GPU, aarch64 — for any client that does not serialise like `JSON.stringify`; the CE frontend does, which is why it went unnoticed. Fixed on ce-router branch `fix-forward-content-length`. **[measured]** |
+| S4.2 | Forward timeout equals the outer deadlines | See §2. **[read]** |
+
+Otherwise self-contained: no WebSocket, no SQS, no ack. If queue-routed compiles are broken
+and URL-routed ones are fine, everything in §4 below is ruled out at once — a useful first
 bisect during an incident.
 
 ### S5 — Queue-routed branch: SQS send
@@ -420,6 +430,7 @@ flowchart TD
 | F-36 | No healthy routers | ALB `503` → CloudFront HTML page | unaffected | yes, via ASG | target group healthy count = 0 |
 | F-37 | `GET` on a router path | Express `404` | unaffected | n/a | router access log |
 | F-38 | URL-routed target down | `502 Failed to forward` | n/a (no queue involved) | depends on target | router: `URL forwarding error` |
+| F-38b | **URL-routed, caller's JSON not byte-identical to `JSON.stringify`** | hangs 60s → HTML `504` | n/a | **no** — deterministic per client | no router log line at all; the forward starts and never completes (S4.1) |
 | F-40 | nginx keepalive breakage | sporadic `502` | unaffected | per-request | nginx error log, no matching router log |
 
 ---
@@ -710,6 +721,8 @@ Start here during an incident.
 **Deploy reported success but some results look stale** → F-07 (§5.1): a router is still pointed at the old colour's queue, whose workers are deliberately left running. Compare the two colours' queue depths after a deploy.
 
 **One environment broken, others fine** → F-07/F-08/F-32. Compare the worker's polled queue URL against SSM `/compiler-explorer/<env>/active-color`.
+
+**URL-routed compilers hang for one client but work in the browser** → F-38b (S4.1): the caller's `content-length` no longer matches the re-serialised body. Retry the same request with compact JSON to confirm.
 
 **Queue-routed broken, URL-routed fine** → everything in §4 that involves SQS or the WebSocket. Use §S4 as the bisect.
 

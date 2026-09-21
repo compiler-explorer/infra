@@ -160,6 +160,32 @@ the tightest subscribe/result race.
 A run against an environment with no workers fails every check with a 60s timeout, which
 looks identical to a broken router. Do B0 first.
 
+### Beta result — router path
+
+`ce --env beta ce-router smoke --iterations 20`, beta-green with 1 worker, ALB rule
+priority 72 active. Same compilers as the prod baseline.
+
+**12/13 passed.** Everything on the queue path matched prod, including all three s3Key
+variants, the 258KB overflow request and the 2.1MB response. Latency was comparable — the
+cache-hit loop's slowest was 0.78s against prod's 0.33s, which is the queue hop.
+
+The one failure was **not** on the queue path:
+
+| Check | Prod (direct) | Beta (router) |
+|---|---|---|
+| URL-routed compiler | `code=2 asm=259B` in 0.55s | **HTTP 504 after 60.04s** |
+
+That is F-38b / S4.1: the router forwards the caller's `content-length` while
+re-serialising the body, so the target blocks on bytes that never arrive. Confirmed by
+sending the same semantic body two ways — 155 bytes (`json.dumps` defaults) times out,
+141 bytes (compact) returns in 0.62s. Fixed on ce-router branch
+`fix-forward-content-length`; re-run this check after it deploys.
+
+Two checks are expected to *differ* between the runs and did:
+
+- unknown build system: 404 on prod (direct), compilation error on beta (router)
+- `code=2` on the URL-routed compiler is MSVC rejecting default flags, not a routing fault
+
 ## D. API compatibility
 
 These produce a `200` with wrong output and **log nothing anywhere**, so they only ever
