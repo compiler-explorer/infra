@@ -17,6 +17,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import requests
+from botocore.exceptions import ClientError
+
+from lib.aws_utils import get_asg_info
 
 LOGGER = logging.getLogger(__name__)
 
@@ -65,6 +68,27 @@ class Findings:
         control that the checks themselves are sound.
         """
         return [r for r in self.results if r.ok and r.tracked]
+
+
+def in_service_worker_count(environment: str) -> int | None:
+    """How many workers the environment has, or None if that could not be determined.
+
+    Every check here compiles something, so with no workers each one waits out the router's
+    60s deadline and the whole run looks like a broken router rather than an empty
+    environment. Beta and staging idle at zero (min_instances is 0 for everything but
+    prod), and their scale-from-zero is far slower than a request's lifetime, so this is
+    the normal state between tests rather than an unusual one.
+    """
+    total = 0
+    for colour in ("blue", "green"):
+        try:
+            info = get_asg_info(f"{environment}-{colour}")
+        except ClientError as e:
+            LOGGER.warning("Could not read the %s-%s ASG: %s", environment, colour, e)
+            return None
+        if info:
+            total += sum(1 for i in info.get("Instances", []) if i.get("LifecycleState") == "InService")
+    return total
 
 
 def base_url(environment: str, override: str | None = None) -> str:

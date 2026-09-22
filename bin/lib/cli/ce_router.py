@@ -914,6 +914,15 @@ def smoke(
     environment = cfg.env.value
     base = ce_router_smoke.base_url(environment, base_override)
 
+    workers = ce_router_smoke.in_service_worker_count(environment)
+    if workers == 0:
+        click.echo(f"No in-service workers in {environment} - every check would wait out the 60s router", err=True)
+        click.echo("deadline and report a failure that says nothing about the router. Bring the", err=True)
+        click.echo(f"environment up first:  ce --env {environment} environment start", err=True)
+        raise SystemExit(2)
+    if workers is not None:
+        click.echo(f"Workers     : {workers} in service")
+
     cpp_ids = ce_router_smoke.cpp_compiler_ids(base)
     if not compiler:
         compiler = ce_router_smoke.pick_cpp_compiler(base, candidates=cpp_ids)

@@ -15,11 +15,11 @@ Tick through this; do not read it as background.
       on your machine — this is the rollback lever.)
 - [ ] Run `ce ce-router disable -e beta` once, before enabling anything, so the rollback
       path is known-good rather than assumed.
-- [ ] Decide fix-or-accept on
-      [compiler-explorer#9150](https://github.com/compiler-explorer/compiler-explorer/issues/9150):
-      a worker whose events WebSocket has permanently failed still reports healthy and
-      stays in the ASG doing nothing (§5.3, §5.4). Nothing below will surface this unless
-      you force it in step E.
+- [ ] Confirm the beta workers are running code that includes
+      [compiler-explorer#9151](https://github.com/compiler-explorer/compiler-explorer/pull/9151)
+      (merged): a worker whose events WebSocket has permanently failed now reports
+      unhealthy instead of sitting in the ASG doing nothing. Until it is deployed, step E
+      still reproduces the old behaviour.
 - [ ] Decide fix-or-accept on the **four-way 60s timeout stack** — CloudFront
       `origin_read_timeout`, ALB `idle_timeout`, nginx `proxy_read_timeout`, router
       `timeoutSeconds` are all exactly 60 (§2). A compile near that boundary returns a
@@ -72,7 +72,7 @@ Every check below is a false negative until this is done.
 - [ ] Confirm `compilequeue.is_worker=true` and `compilequeue.events_url` for the env.
 - [ ] Record baselines: SQS `ApproximateNumberOfMessagesVisible` and
       `ApproximateAgeOfOldestMessage` per colour, ALB target 5xx, `ce_sqs_compilations_total`,
-      and DynamoDB `ThrottledRequests` on `events-connections` (see §5.5).
+      and DynamoDB `ThrottledRequests` on `events-connections` (see §5.3).
 - [ ] Capture the latency profile via the current non-router path, for a before/after.
 
 ## C. Functional matrix
@@ -222,8 +222,10 @@ tracked issues — see section C. The rest are still by hand.
       cannot, S9.1).
 - [ ] **Restart a worker mid-compile** — in-flight requests should 408 cleanly, not 502.
 - [ ] **Restart a router under light load** — brief on single-router environments.
-- [ ] **Force #9150**: drive a worker's events WebSocket to permanent failure and confirm
-      whether `/healthcheck` still returns 200 while it does no work.
+- [ ] Drive a worker's events WebSocket to permanent failure and confirm `/healthcheck`
+      now returns 500 rather than 200 (compiler-explorer#9151). A *flapping* socket is
+      still not covered — `reconnectAttempts` resets on every open, so it never trips the
+      counter (F-02).
 - [ ] Grep the events Lambda logs for `No sender found for GUID` and
       `Failed to subscribe <conn> to <guid>` — the latter is F-04b, a silently lost
       subscription.
@@ -249,7 +251,7 @@ tracked issues — see section C. The rest are still by hand.
       timeout, and the worker has no application-level liveness check (F-27).
 - [ ] **Drive sustained throughput above ~3 compiles/second**, from the client side rather
       than relying on worker capacity. That is where `events-connections` write throttling
-      begins (§5.5), and a throttled subscribe is silently lost and never retried. Watch
+      begins (§5.3), and a throttled subscribe is silently lost and never retried. Watch
       `ThrottledRequests` — it moves before the 408s do.
 - [ ] Run the load test at **one worker and at three or more**. Beta and staging default to
       one, which is the worst case for ack stalls and not representative of prod.

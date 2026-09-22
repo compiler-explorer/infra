@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
+from botocore.exceptions import ClientError
 from lib.ce_router_smoke import (  # noqa: I001
     S3_RESOLVE_FAILURE,
     WEBSOCKET_SIZE_THRESHOLD,
@@ -8,6 +11,7 @@ from lib.ce_router_smoke import (  # noqa: I001
     base_url,
     classify_compilation,
     compile_body,
+    in_service_worker_count,
     source_emitting_at_least,
 )
 
@@ -91,3 +95,31 @@ class TestAsmText:
     def test_tolerates_missing_asm(self):
         assert not asm_text({})
         assert not asm_text({"asm": None})
+
+
+class TestInServiceWorkerCount:
+    # An environment with no workers fails every check with a 60s timeout, which looks
+    # exactly like a broken router - so the suite has to tell the two apart up front.
+    @patch("lib.ce_router_smoke.get_asg_info")
+    def test_counts_only_in_service_across_both_colours(self, mock_get_asg_info):
+        mock_get_asg_info.side_effect = [
+            {"Instances": [{"LifecycleState": "InService"}, {"LifecycleState": "Pending"}]},
+            {"Instances": [{"LifecycleState": "InService"}]},
+        ]
+        assert in_service_worker_count("beta") == 2
+
+    @patch("lib.ce_router_smoke.get_asg_info")
+    def test_an_idle_environment_counts_zero(self, mock_get_asg_info):
+        mock_get_asg_info.return_value = {"Instances": []}
+        assert in_service_worker_count("beta") == 0
+
+    @patch("lib.ce_router_smoke.get_asg_info")
+    def test_a_missing_asg_is_not_an_error(self, mock_get_asg_info):
+        mock_get_asg_info.return_value = None
+        assert in_service_worker_count("beta") == 0
+
+    @patch("lib.ce_router_smoke.get_asg_info")
+    def test_an_aws_failure_is_unknown_not_zero(self, mock_get_asg_info):
+        # Returning 0 here would abort the run over an AWS blip rather than a real state.
+        mock_get_asg_info.side_effect = ClientError({"Error": {"Code": "AccessDenied"}}, "DescribeAutoScalingGroups")
+        assert in_service_worker_count("beta") is None

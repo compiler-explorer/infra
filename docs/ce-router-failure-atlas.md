@@ -241,7 +241,7 @@ flowchart TD
 |---|---|---|
 | S6.1 | **Ack gate on pickup** | `isReadyForNewMessages()` (`events-websocket.ts:114`) requires `pendingAcks.size === 0`. Both worker threads share **one** `PersistentEventsSender`, so a single unacked result idles the whole instance. **[read]** |
 | S6.2 | **Delete-before-compile** | The `finally` deletes the message as soon as it is parsed. Any failure after that point — S3 fetch, parse, compiler crash, process death — loses the request outright. No redelivery. The user waits the full 60s. **[read]** |
-| S6.3 | Retention vs. timeout | Queue retention is 300s (`modules/blue_green/main.tf:18`), router timeout 60s. Messages between those ages are compiled for a client that has already given up. See §5.2. **[read]** |
+| S6.3 | Retention vs. timeout | Queue retention is 60s (`modules/blue_green/main.tf`), matching the router's deadline, so a message that can no longer be answered is dropped rather than compiled for nobody. A message picked up just under the deadline still produces a late result. See §5.2. **[read]** |
 
 ### S7 — Compile
 
@@ -315,7 +315,7 @@ flowchart TD
 |---|---|---|
 | S9.1 | **The 501 goes nowhere** | `terraform/apigateway_events_api.tf` declares no `aws_apigatewayv2_route_response` for any route, so the API is one-way and the handler's `{statusCode: 501}` is discarded. From the worker's side, "nobody was listening" and "my ack got lost" are the **same event** — which is why it burns the full retry budget on both. **[read]** |
 | S9.2 | Subscribe race | `subscribers()` merges a per-container in-memory cache with a GSI query. The router subscribes before it queues the work, but that orders only its own calls: `subscribe()` resolves when the frame is written to the router's socket, and the result arrives on the **worker's** connection, so the two Lambda invocations have no ordering relationship. What actually protects the subscribe is a head start — the 50ms sleep, the routing lookup, `SendMessage`, worker pickup and the compile itself, so 150-250ms at the very least. Losing it needs the subscribe invocation to stall longer than that, which in practice means a cold start. **Self-correcting**: `relay_request` throws, the worker gets no ack, and its retry 3s later re-runs `subscribers()` — by then the subscribe has landed. Costs a ~3s delay and two wasted retries, not a timeout. **[infer]** |
-| S9.4 | **Subscribe silently lost** | If the subscribe's `PutItem` throws, `update()` removes the cache entry it optimistically added and rethrows; the handler returns `{statusCode: 501}`, which the one-way API discards (S9.1). The router already resolved `subscribe()` and queued the compile, so it never learns the subscription does not exist — and unlike S9.2 no retry can fix it. This is the path that produces a real 60s timeout. See §5.5 for why it is load-dependent rather than rare. **[read]** |
+| S9.4 | **Subscribe silently lost** | If the subscribe's `PutItem` throws, `update()` removes the cache entry it optimistically added and rethrows; the handler returns `{statusCode: 501}`, which the one-way API discards (S9.1). The router already resolved `subscribe()` and queued the compile, so it never learns the subscription does not exist — and unlike S9.2 no retry can fix it. This is the path that produces a real 60s timeout. See §5.3 for why it is load-dependent rather than rare. **[read]** |
 | S9.3 | **410 return value ignored** | `relay_request` does `await send_message(...)` and discards the boolean. A dead subscriber is indistinguishable from a delivered one. The connection is removed as a side effect, so the worker's *next* retry finds zero subscribers and takes the S9.1 path. **[read]** |
 
 ### S10 — Router receives result
@@ -417,12 +417,11 @@ flowchart TD
 | F-24 | Retransmission after delivery | normal | **12s stall, guaranteed** — router never re-acks (S10.1) | yes, after 12s | worker: `Max retries (3) reached` |
 | F-25 | Compile finishes after router gave up | already `408` | 12s stall | yes | lambda: `No listeners` |
 | F-26 | Queue backlog >60s deep | widespread `408` | most instances stalling on orphans | **eventually**, but recovery is slowed by the stalls | SQS `ApproximateAgeOfOldestMessage` > 60 |
-| F-27 | **Worker WS half-open** | hangs 60s → `408`, repeatedly | sends into the void, no liveness check (§5.4) | **no** | silence — no error is logged anywhere |
-| F-28 | Worker WS permanently failed | queue backs up | **zombie: healthy but doing nothing** (§5.3, §5.4) — [compiler-explorer#9150](https://github.com/compiler-explorer/compiler-explorer/issues/9150) | **no** | worker: `Max websocket reconnection attempts`, then nothing |
+| F-27 | **Worker WS half-open** | hangs 60s → `408`, repeatedly | sends into the void; the worker still uses a protocol ping, answered at the API Gateway edge, so it has no end-to-end liveness check | **no** | silence — no error is logged anywhere |
 | F-29 | Worker killed mid-compile | hangs 60s → `408` | request lost (deleted at pickup) | per-request | none on the worker |
 | F-30 | Router restarted | in-flight requests fail | orphaned results → stalls | yes | router restart in Papertrail |
 | F-31 | Blue/green switch, cache clear OK | normal | normal | n/a | deploy: `Router cache cleared successfully` |
-| F-32 | Blue/green switch, cache clear **failed** | as F-07 | idle | **no** (deploy log's "expires in 30s" is wrong — see §5.1) | deploy: `Failed to clear router cache` |
+| F-32 | Blue/green switch, cache clear **failed** | as F-07 | idle | **no** — the deploy now says so loudly and names the by-hand command (§5.1) | deploy: `❌ ROUTER CACHE NOT CLEARED` |
 | F-33 | Body 10–16MB | `413` from nginx | unaffected | n/a | nginx error log |
 | F-34 | Response >1MB | usually fine | normal | n/a | router: `exceeds 1MB - may cause ALB issues` |
 | F-35 | Compile near 60s | `408`, `504`, or an HTML error page — undefined which | normal | n/a | mismatch between router and ALB status codes |
@@ -507,7 +506,7 @@ was written to be.
 
 What the cache buys today is one DynamoDB `GetItem` per compile on a small table —
 noise next to an SQS round trip, a compile, and the three `events-connections` writes
-from §5.5.
+from §5.3.
 
 **The colour is not the only stale thing.** `update_compiler_routing_table()` at Step 6
 mutates existing rows: a compiler whose `routingType` flips between `queue` and `url`, or
@@ -524,7 +523,7 @@ until their client has the new compiler list, which needs a reload slower than t
 switch itself.
 
 So the steady-state effect is **version skew, not failure**: a fraction of traffic quietly
-served by the previous deployment's code. That ranks §5.1 below §5.3/§5.4 and §5.5.
+served by the previous deployment's code. That ranks §5.1 below §5.3.
 
 Two things still bite:
 
@@ -565,61 +564,32 @@ Closing it means stopping `routingCache` from baking in the colour: cache the de
 a miss self-healing within 30s instead of permanent, because it is what finally makes the
 documented fallback reachable.
 
-### 5.2 Retention outlives the deadline — fixed
+### 5.2 An orphaned result idles the worker that produced it
 
-Queue retention was 300s against the router's 60s timeout, leaving a 240s window in which
-a message was still deliverable but no longer wanted. A message picked up in that window
-was compiled normally, its result found no subscriber (S9.1), and because the events API
-is one-way the worker could not be told — so it burned its full ack-retry budget, ~12s,
-during which that instance pulled nothing. Each expired message therefore cost a wasted
-compile *plus* a stall.
+A result whose router has already given up finds no subscriber, and the events API is
+one-way, so the worker is never told (S9.1). It waits 3s for an ack that cannot come,
+retries, and burns its full budget — about 12s — during which `isReadyForNewMessages()`
+is false. Both worker threads share one `PersistentEventsSender`, so that idles the whole
+instance, not one thread. Each orphan therefore costs a wasted compile *plus* a stall.
 
-**Fixed**: retention is now 60s (also the SQS minimum), matching the router's deadline, so
-a message that cannot be answered is dropped by SQS rather than compiled for nobody.
-`modules/blue_green/main.tf` carries a comment tying the two numbers together.
+Queue retention is 60s, matching the router's own deadline, so a message that can no
+longer be answered is dropped by SQS rather than compiled for nobody. That bounds the
+window to compile time rather than the 240s it used to be — it does not close it, since a
+message picked up just under the deadline still produces a late result, and 60s is the
+SQS minimum.
 
-Residual: a message picked up just under the deadline still produces a late result, so the
-window is bounded by compile time rather than eliminated. That is as tight as SQS allows.
-The stall itself is addressed independently by
-[compiler-explorer#9150](https://github.com/compiler-explorer/compiler-explorer/issues/9150)
-(decoupling polling from `pendingAcks`), and a nack on zero subscribers would let the
-worker give up immediately instead of retrying into a void. **[fixed]**
+It does nothing until the queue is deeper than 60s. Once it is, the trigger is global
+rather than per-instance, so workers stall together and recovery takes longer than the
+backlog alone would predict. Prod's floor of two instances softens it; beta and staging
+sit at one (`bin/lib/env.py` returns `min_instances` 0 for everything but prod), so they
+show this far worse than prod would — don't read a bad beta result as a prod forecast.
 
-### 5.3 `pendingAcks` can never settle
+Closing it properly means not using the ack as a flow-control gate: decouple polling from
+`pendingAcks`, so a missing ack costs a retry rather than an idle instance. A nack on zero
+subscribers would also let the worker give up at once instead of retrying into a void.
+**[read] + [infer]**
 
-In `events-websocket.ts`:
-
-- `ws.on('close')` → `pauseAckTimeouts()`, which **clears every pending timer** without
-  rescheduling
-- `scheduleReconnect()` at max attempts → sets `hasPermanentlyFailed`, calls
-  `rejectQueuedMessages()` — which drains `messageQueue` **only**
-
-`pendingAcks` is never rejected on that path. Its entries keep their (now cleared)
-timers and their promises never settle, so `pendingAcks.size` stays above zero forever,
-so `isReadyForNewMessages()` returns false forever, so the worker never polls again.
-
-Combined with 5.4 below, that instance stays in the ASG reporting `200 OK`
-indefinitely. Filed with 5.4 as
-[compiler-explorer#9150](https://github.com/compiler-explorer/compiler-explorer/issues/9150).
-**[read]**
-
-### 5.4 Worker health is computed and thrown away
-
-`startCompilationWorkerThread` returns `() => !persistentSender.hasFailedPermanently()`
-(`sqs-compilation-queue.ts:506`). `lib/app/main.ts:173` calls it as a statement and
-discards the return value. `HealthcheckController.setCompilationWorkerHealthCheck`
-(`healthcheck-controller.ts:48`) has **zero callers** in the repository — the field
-keeps its `() => true` default forever.
-
-Same for `setExecutionWorkerHealthCheck`.
-
-One line in `main.ts` closes it — filed as
-[compiler-explorer#9150](https://github.com/compiler-explorer/compiler-explorer/issues/9150),
-which also covers §5.3. Note the wiring does **not** cover a flapping socket (F-02):
-`reconnectAttempts` resets on every successful open, so it never trips the flag.
-**[read]**
-
-### 5.5 The events table is the only provisioned one, and it gates every compile
+### 5.3 The events table is the only provisioned one, and it gates every compile
 
 `events-connections` is the sole DynamoDB table in the stack on `PROVISIONED` capacity —
 every other table is `PAY_PER_REQUEST` (`terraform/dynamodb.tf:135`). Baseline 10 WCU,
@@ -664,7 +634,7 @@ Start here during an incident.
 
 **User sees `500`** → F-01 (WS down at subscribe) · F-09/F-10 (SQS or S3 write) · F-38 (URL forward)
 
-**User sees `408`** → F-04b (subscribe lost to throttling — check `ThrottledRequests` on `events-connections` first, see §5.5) · F-07/F-08/F-32 (wrong queue — check queue depth by colour first) · F-11/F-12 (message lost at pickup) · F-25/F-26 (backlog) · F-27 (half-open worker socket) · F-29 (worker died mid-compile)
+**User sees `408`** → F-04b (subscribe lost to throttling — check `ThrottledRequests` on `events-connections` first, see §5.3) · F-07/F-08/F-32 (wrong queue — check queue depth by colour first) · F-11/F-12 (message lost at pickup) · F-25/F-26 (backlog) · F-27 (half-open worker socket) · F-29 (worker died mid-compile)
 
 **User sees `502`/`504`/HTML error page** → F-35 (timeout race, §2) · F-36 (no healthy routers) · F-40 (nginx keepalive)
 
@@ -674,7 +644,7 @@ Start here during an incident.
 
 **User sees `An internal error has occurred while retrieving the compilation result`** → F-19/F-20. Always the `s3Key`-without-an-object path (§S8). Not a compiler problem.
 
-**Throughput collapsed, no errors** → F-24/F-21 (ack stalls) · F-28 (zombie worker) · §5.3. Check `pendingAcks` behaviour before suspecting the compilers.
+**Throughput collapsed, no errors** → F-24/F-21 (ack stalls, §5.2) · F-02 (a flapping socket never trips the reconnect counter, so it keeps reporting healthy). Check `pendingAcks` behaviour before suspecting the compilers.
 
 **Deploy reported success but some results look stale** → F-07 (§5.1): a router is still pointed at the old colour's queue, whose workers are deliberately left running. Compare the two colours' queue depths after a deploy.
 
@@ -690,12 +660,10 @@ Start here during an incident.
 
 | Fix | Where | Removes |
 |---|---|---|
-| Wire the worker healthcheck — [#9150](https://github.com/compiler-explorer/compiler-explorer/issues/9150) | `lib/app/main.ts:169`, `:173` | F-28, makes §5.3 self-correcting |
-| Reject `pendingAcks` on permanent failure — [#9150](https://github.com/compiler-explorer/compiler-explorer/issues/9150) | `lib/execution/events-websocket.ts`, `scheduleReconnect` | §5.3 |
 | Stop baking the colour into `routingCache`; resolve it at send time | `ce-router/src/services/routing.ts` | restores the fallback the code already documents (§5.1) |
 | Stagger the four timeouts | `cloudfront.tf`, `alb.tf`, `nginx/ce-router.conf`, router | F-35 |
 | Ack outside the `if (subscription)` | `ce-router/src/services/result-waiter.ts:31` | F-24 (the delivered-but-unmatched window only) |
-| Move `events-connections` to `PAY_PER_REQUEST` | `terraform/dynamodb.tf:135` | F-04b, §5.5 — the only provisioned table in the stack |
+| Move `events-connections` to `PAY_PER_REQUEST` | `terraform/dynamodb.tf:135` | F-04b, §5.3 — the only provisioned table in the stack |
 | Nack on zero subscribers | `events-lambda/events-sendmessage.js`, `relay_request` | F-25 retry waste |
 | Decouple polling from `pendingAcks` | `lib/execution/events-websocket.ts:114` | F-21…F-25 stalls generally |
 | Application-level ping on the worker | `lib/execution/events-websocket.ts:183` | F-27 |
