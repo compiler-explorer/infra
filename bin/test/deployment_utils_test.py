@@ -103,6 +103,25 @@ class TestClearRouterCache(unittest.TestCase):
 
     @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
+    @patch("lib.deployment_utils.requests.post")
+    def test_clear_router_cache_failed_best_effort_is_mentioned(
+        self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
+        """A flapping router comes back holding whatever the failed clear left behind."""
+        mock_get_asg_info.return_value = {
+            "Instances": [
+                {"InstanceId": "i-router123", "LifecycleState": "Pending"},
+            ]
+        }
+        mock_get_private_ip.return_value = "10.0.1.50"
+        mock_post.side_effect = requests.exceptions.ConnectionError("not listening")
+
+        result = clear_router_cache("staging")
+
+        self.assertIn("stale cache", result.not_applicable)
+
+    @patch("lib.deployment_utils.get_instance_private_ip")
+    @patch("lib.deployment_utils.get_asg_info")
     def test_clear_router_cache_no_private_ip(
         self, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
     ):

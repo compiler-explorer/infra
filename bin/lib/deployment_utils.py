@@ -520,15 +520,23 @@ def clear_router_cache(env: str) -> RouterCacheClearResult:
             else:
                 cleared += 1
 
+        best_effort_failures = 0
         for instance_id in best_effort:
             failure = _clear_cache_on_router(instance_id, attempts=1)
             if failure:
+                best_effort_failures += 1
                 LOGGER.info(f"Not-yet-serving router not cleared, it will read current values on startup: {failure}")
 
         if not in_service:
-            return RouterCacheClearResult(
-                not_applicable=f"No in-service instances in router ASG {router_asg_name}, nothing to clear"
-            )
+            nothing_required = f"No in-service instances in router ASG {router_asg_name}, nothing to clear"
+            if best_effort_failures:
+                # Every router is out of service, so none of them was required -- but one
+                # that is only flapping comes back with whatever it was holding.
+                nothing_required += (
+                    f". {best_effort_failures} of {len(best_effort)} out-of-service routers could not be"
+                    " cleared and will serve a stale cache if they return rather than restart"
+                )
+            return RouterCacheClearResult(not_applicable=nothing_required)
 
         return RouterCacheClearResult(required=len(in_service), cleared=cleared, failures=failures)
 
