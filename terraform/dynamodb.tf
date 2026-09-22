@@ -196,7 +196,12 @@ resource "aws_appautoscaling_policy" "events_connections_read_policy" {
 
 # Auto-scaling for events-connections table write capacity
 resource "aws_appautoscaling_target" "events_connections_write_target" {
-  max_capacity       = 50
+  # A load test on 2026-09-22 drove ~48 subscribe requests/sec at this table and autoscaling
+  # resolved the resulting throttling only by reaching 50, its former ceiling - it had no room
+  # left at the moment the load stopped. Ceilings cost nothing until they are used, and the
+  # failure they prevent is silent: a throttled subscribe is never reported to the router, so
+  # the request is queued anyway and the caller waits out the full 60s deadline.
+  max_capacity       = 200
   min_capacity       = 10
   resource_id        = "table/${aws_dynamodb_table.events-connections.name}"
   scalable_dimension = "dynamodb:table:WriteCapacityUnits"
@@ -244,7 +249,9 @@ resource "aws_appautoscaling_policy" "events_connections_gsi_read_policy" {
 
 # Auto-scaling for SubscriptionIndex GSI write capacity
 resource "aws_appautoscaling_target" "events_connections_gsi_write_target" {
-  max_capacity       = 50
+  # Matches the base table: insufficient index write capacity throttles base-table writes too,
+  # so a lower ceiling here would cap the table regardless of its own setting.
+  max_capacity       = 200
   min_capacity       = 10
   resource_id        = "table/${aws_dynamodb_table.events-connections.name}/index/SubscriptionIndex"
   scalable_dimension = "dynamodb:index:WriteCapacityUnits"
