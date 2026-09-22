@@ -160,52 +160,50 @@ the tightest subscribe/result race.
 A run against an environment with no workers fails every check with a 60s timeout, which
 looks identical to a broken router. Do B0 first.
 
-### Beta result — router path
+### Beta result — router path, with known issues covered
 
-`ce --env beta ce-router smoke --iterations 20`, beta-green with 1 worker, ALB rule
-priority 72 active. Same compilers as the prod baseline.
+`ce --env beta ce-router smoke`, beta-green with 1 worker, ALB rule priority 72 active,
+ce-router `0.3.0`.
 
-**12/13 passed.** Everything on the queue path matched prod, including all three s3Key
-variants, the 258KB overflow request and the 2.1MB response. Latency was comparable — the
-cache-hit loop's slowest was 0.78s against prod's 0.33s, which is the queue hop.
+**14/17 passed. The three failures are all tracked open issues**, and all three pass on
+prod's direct path — so the delta between the two runs is exactly the router's blast
+radius, and a prod run doubles as a control that the checks themselves are sound.
 
-The one failure was **not** on the queue path:
+| Check | Prod (direct) | Beta (router) | Tracked |
+|---|---|---|---|
+| no `Accept` header returns the documented text default | `text/plain` ✓ | `application/json` ✗ | atlas F-16 |
+| charset in content-type keeps user arguments | `-D` reached the compiler ✓ | **flags dropped** ✗ | [compiler-explorer#9148](https://github.com/compiler-explorer/compiler-explorer/pull/9148) |
+| oversized result keeps execution output | output survived ✓ | **229KB of asm, `execResult={}`** ✗ | [compiler-explorer#9149](https://github.com/compiler-explorer/compiler-explorer/pull/9149) |
 
-| Check | Prod (direct) | Beta (router) |
-|---|---|---|
-| URL-routed compiler | `code=2 asm=259B` in 0.55s | **HTTP 504 after 60.04s** |
+The third is the one to look at twice: the caller gets 229KB of correct assembly and
+silently loses their program's output. No error, no log line, nothing in any metric.
 
-That is F-38b / S4.1: the router forwards the caller's `content-length` while
-re-serialising the body, so the target blocks on bytes that never arrive. Confirmed by
-sending the same semantic body two ways — 155 bytes (`json.dumps` defaults) times out,
-141 bytes (compact) returns in 0.62s.
+Everything else matched prod, including all three s3Key variants, the 258KB overflow
+request, the 2.1MB response and the boundary sweep. The URL-routed check went from
+`HTTP 504 after 60.04s` to 0.24s once `0.3.0` was deployed.
 
-Fixed on ce-router `main` (`f71fce0`) but **not yet running**. Routers install
-`releases/latest` (`install_ce_router` in `start-support.sh`), currently `0.2.0`, which is
-exactly main minus that commit. Getting it live takes two steps:
-
-- [x] Cut a ce-router release above `0.2.0` — **`0.3.0` published**, asset
-      `ce-router-0.3.0.zip` verified to contain the fix
-- [ ] `ce --env <env> ce-router refresh` so instances reinstall `releases/latest`
-- [ ] Re-run this check and confirm the URL-routed row matches prod
-
-Two checks are expected to *differ* between the runs and did:
-
-- unknown build system: 404 on prod (direct), compilation error on beta (router)
-- `code=2` on the URL-routed compiler is MSVC rejecting default flags, not a routing fault
+Reporting: tracked failures print `[KNOWN]` and do not count as regressions; an untracked
+failure prints `[FAIL]` and is one. A tracked check that *passes* prints `[FIXED]`, which
+means either the fix reached this environment or the path is not exercised here. The
+command exits non-zero on either kind of failure — `--ignore-known` exits 0 when only
+tracked issues failed.
 
 ## D. API compatibility
 
 These produce a `200` with wrong output and **log nothing anywhere**, so they only ever
 surface as user reports. Check them deliberately.
 
-- [ ] No `Accept` header — record whether you get text or JSON, and decide whether the
-      change from the documented default is acceptable (F-16).
-- [ ] `Content-Type: application/json; charset=utf-8` with `options.userArguments` — confirm
-      the flags reached the compiler by reading the asm, not the status code (F-14).
-- [ ] Form-encoded POST — expected broken (F-15); confirm and decide.
+Two of these are now automated in `ce ce-router smoke` and currently fail on beta as
+tracked issues — see section C. The rest are still by hand.
+
+- [x] No `Accept` header (F-16) — automated; beta returns JSON where the documented
+      default is text. Decide whether that change is acceptable.
+- [x] `Content-Type: application/json; charset=utf-8` (F-14) — automated; beta drops the
+      caller's flags. Tracked by [compiler-explorer#9148](https://github.com/compiler-explorer/compiler-explorer/pull/9148).
+- [ ] Form-encoded POST — expected broken (F-15); confirm and decide. Not automated: it
+      is arguably broken on both paths, so there is no correct expectation to assert yet.
 - [ ] `filterAnsi` as a query param and as `backendOptions.filterAnsi` — only the query
-      form is honoured (F-17).
+      form is honoured (F-17). Needs a compile that emits ANSI, so it is fiddly to automate.
 
 ## E. Failure injection
 

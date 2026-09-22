@@ -33,20 +33,38 @@ class CheckResult:
     ok: bool
     detail: str
     seconds: float = 0.0
+    tracked: str | None = None
+    """An open issue or PR this check is expected to fail against, until it ships."""
 
 
 @dataclass
 class Findings:
     results: list[CheckResult] = field(default_factory=list)
 
-    def add(self, name: str, ok: bool, detail: str, seconds: float = 0.0) -> CheckResult:
-        result = CheckResult(name=name, ok=ok, detail=detail, seconds=seconds)
+    def add(self, name: str, ok: bool, detail: str, seconds: float = 0.0, tracked: str | None = None) -> CheckResult:
+        result = CheckResult(name=name, ok=ok, detail=detail, seconds=seconds, tracked=tracked)
         self.results.append(result)
         return result
 
     @property
     def failed(self) -> list[CheckResult]:
-        return [r for r in self.results if not r.ok]
+        """Failures that are not already accounted for by an open issue."""
+        return [r for r in self.results if not r.ok and not r.tracked]
+
+    @property
+    def known(self) -> list[CheckResult]:
+        """Checks failing against a tracked issue - expected, until that issue ships."""
+        return [r for r in self.results if not r.ok and r.tracked]
+
+    @property
+    def unexpectedly_fixed(self) -> list[CheckResult]:
+        """Tracked checks that pass here.
+
+        Either the fix has landed, or this environment does not exercise the path - all
+        three of these pass on a direct-routed environment, which makes such a run a useful
+        control that the checks themselves are sound.
+        """
+        return [r for r in self.results if r.ok and r.tracked]
 
 
 def base_url(environment: str, override: str | None = None) -> str:
@@ -58,6 +76,20 @@ def base_url(environment: str, override: str | None = None) -> str:
     return f"https://godbolt.org/{environment}"
 
 
+MARKER_DEFINE = "SMOKE_FLAG"
+MARKER_SYMBOL = "smoke_marker_function"
+EXEC_MARKER = "SMOKE_EXEC_OK"
+
+
+def source_needing_a_define() -> str:
+    """Source whose assembly only contains MARKER_SYMBOL when -D SMOKE_FLAG reached the compiler.
+
+    A define is a cleaner probe than an optimisation level: the symbol is either in the
+    output or it is not, with no dependence on what the compiler chose to do.
+    """
+    return f"#ifdef {MARKER_DEFINE}\nint {MARKER_SYMBOL}() {{ return 42; }}\n#endif\nint main() {{ return 0; }}\n"
+
+
 def source_emitting_at_least(target_bytes: int) -> str:
     """C++ whose assembly output is at least roughly target_bytes.
 
@@ -67,6 +99,14 @@ def source_emitting_at_least(target_bytes: int) -> str:
     count = max(1, target_bytes // 120)
     body = "\n".join(f"int f{i}(int x) {{ return x * {i} + {i}; }}" for i in range(count))
     return body + "\nint main() { return 0; }\n"
+
+
+def source_emitting_at_least_that_runs(target_bytes: int) -> str:
+    """As above, but main prints EXEC_MARKER so execution output can be checked."""
+    count = max(1, target_bytes // 120)
+    body = "\n".join(f"int f{i}(int x) {{ return x * {i} + {i}; }}" for i in range(count))
+    main = f'\nint main() {{ puts("{EXEC_MARKER}"); return 0; }}\n'
+    return "#include <cstdio>\n" + body + main
 
 
 def compile_body(source: str, user_arguments: str = "-O0", **extra: Any) -> dict[str, Any]:
@@ -330,6 +370,11 @@ def run_checks(
         ok, detail = classify_compilation(status, payload)
         findings.add(f"compiler absent from routing table ({unrouted_compiler})", ok, detail, secs)
 
+    check_documented_text_api(base, queue_compiler, findings)
+    check_accept_default(base, queue_compiler, findings)
+    check_charset_keeps_user_arguments(base, queue_compiler, findings)
+    check_oversized_execution_keeps_output(base, queue_compiler, findings)
+
     check_large_result(base, queue_compiler, findings)
     check_large_result_bypass_cache(base, queue_compiler, findings)
     check_large_result_project_build(base, queue_compiler, findings)
@@ -340,3 +385,96 @@ def run_checks(
         check_large_response(base, queue_compiler, findings)
 
     return findings
+
+
+def check_charset_keeps_user_arguments(base: str, compiler_id: str, findings: Findings) -> None:
+    """A charset on the content-type must not cost the caller their compiler flags.
+
+    Workers decide the request format with an exact string comparison against
+    'application/json', so 'application/json; charset=utf-8' falls to the text path and
+    userArguments, filters and libraries are dropped. The compile still succeeds, so the
+    caller gets the right code built the wrong way with nothing logged anywhere.
+    """
+    body = compile_body(source_needing_a_define(), user_arguments=f"-D{MARKER_DEFINE}")
+    status, payload, secs = post_compile(
+        _compile_url(base, compiler_id), body, headers={"Content-Type": "application/json; charset=utf-8"}
+    )
+    ok, detail = classify_compilation(status, payload, require_success=True)
+    if ok:
+        reached = MARKER_SYMBOL in asm_text(payload)
+        ok = reached
+        detail = "-D reached the compiler" if reached else "compiled without the caller's -D: flags were dropped"
+    findings.add("charset in content-type keeps user arguments", ok, detail, secs, tracked="compiler-explorer#9148")
+
+
+def check_oversized_execution_keeps_output(base: str, compiler_id: str, findings: Findings) -> None:
+    """An oversized result that also executed must still carry the program's output.
+
+    Large results are handed over by reference, and the object is written before
+    execResult is attached, so the reader is pointed at a body holding the asm and no
+    program output. Only reachable through a path that fetches by s3Key, which means the
+    router: served directly, the result never makes the round trip.
+    """
+    body = compile_body(source_emitting_at_least_that_runs(4 * WEBSOCKET_SIZE_THRESHOLD))
+    body["options"]["filters"]["execute"] = True
+    status, payload, secs = post_compile(_compile_url(base, compiler_id), body, timeout=180)
+    ok, detail = classify_compilation(status, payload, require_success=True)
+    if ok:
+        exec_result = payload.get("execResult") or {}
+        stdout = "\n".join(line.get("text", "") for line in (exec_result.get("stdout") or []))
+        asm_size = len(asm_text(payload))
+        if asm_size < WEBSOCKET_SIZE_THRESHOLD:
+            ok, detail = False, f"asm only {asm_size}B - too small to be handed over by reference"
+        elif EXEC_MARKER in stdout:
+            detail = f"asm {asm_size // 1024}KB and the program's output survived"
+        else:
+            ok = False
+            detail = (
+                f"asm {asm_size // 1024}KB arrived but the program's output did not (execResult={exec_result!r:.80})"
+            )
+    findings.add("oversized result keeps execution output", ok, detail, secs, tracked="compiler-explorer#9149")
+
+
+def check_documented_text_api(base: str, compiler_id: str, findings: Findings) -> None:
+    """The documented text form: source as the body, options in the query string."""
+    url = f"{_compile_url(base, compiler_id)}?options=-D{MARKER_DEFINE}"
+    start = time.monotonic()
+    response = requests.post(
+        url,
+        data=source_needing_a_define(),
+        headers={"Content-Type": "text/plain", "Accept": "application/json"},
+        timeout=90,
+    )
+    secs = time.monotonic() - start
+    try:
+        payload = response.json()
+    except ValueError:
+        findings.add("documented text/plain API", False, f"HTTP {response.status_code}, non-JSON body", secs)
+        return
+    ok, detail = classify_compilation(response.status_code, payload, require_success=True)
+    if ok:
+        reached = MARKER_SYMBOL in asm_text(payload)
+        ok = reached
+        detail = "query-string options reached the compiler" if reached else "?options= was dropped"
+    findings.add("documented text/plain API", ok, detail, secs)
+
+
+def check_accept_default(base: str, compiler_id: str, findings: Findings) -> None:
+    """With no Accept header the documented default is plain text, not JSON."""
+    start = time.monotonic()
+    response = requests.post(
+        _compile_url(base, compiler_id),
+        data=json.dumps(compile_body("int main() { return 0; }")),
+        headers={"Content-Type": "application/json"},
+        timeout=90,
+    )
+    secs = time.monotonic() - start
+    content_type = response.headers.get("content-type", "")
+    is_text = content_type.startswith("text/plain")
+    findings.add(
+        "no Accept header returns the documented text default",
+        is_text,
+        f"content-type: {content_type or '(none)'}",
+        secs,
+        tracked="atlas F-16",
+    )

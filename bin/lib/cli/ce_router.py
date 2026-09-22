@@ -886,6 +886,7 @@ def ce_router_healthcheck(cfg: Config) -> None:
 @click.option("--build-system", "build_systems", multiple=True, default=("cmake",), show_default=True)
 @click.option("--iterations", default=50, show_default=True, help="Repeats for the cache-hit loop")
 @click.option("--skip-slow", is_flag=True, help="Skip the oversized request/response and boundary-sweep checks")
+@click.option("--ignore-known", is_flag=True, help="Exit 0 even if checks tracked by an open issue fail")
 @click.pass_obj
 def smoke(
     cfg: Config,
@@ -896,6 +897,7 @@ def smoke(
     build_systems: Sequence[str],
     iterations: int,
     skip_slow: bool,
+    ignore_known: bool,
 ):
     """
     Run the functional checks from docs/ce-router-cutover-checklist.md section C.
@@ -951,12 +953,29 @@ def smoke(
 
     click.echo("")
     for result in findings.results:
-        mark = "PASS" if result.ok else "FAIL"
+        if result.ok:
+            mark = "FIXED" if result.tracked else "PASS"
+        else:
+            mark = "KNOWN" if result.tracked else "FAIL"
         timing = f"{result.seconds:6.2f}s" if result.seconds else "       "
-        click.echo(f"  [{mark}] {timing}  {result.name}: {result.detail}")
+        suffix = f"  [{result.tracked}]" if result.tracked else ""
+        click.echo(f"  [{mark:5}] {timing}  {result.name}: {result.detail}{suffix}")
 
     click.echo("")
+    passed = len([r for r in findings.results if r.ok])
+    click.echo(f"{passed}/{len(findings.results)} passed.")
+    if findings.known:
+        click.echo(f"{len(findings.known)} failing against an open issue:")
+        for result in findings.known:
+            click.echo(f"    {result.tracked}: {result.name}")
+    if findings.unexpectedly_fixed:
+        click.echo("Tracked checks passing here - either the fix landed, or this path is not exercised:")
+        for result in findings.unexpectedly_fixed:
+            click.echo(f"    {result.tracked}: {result.name}")
+
     if findings.failed:
-        click.echo(f"{len(findings.failed)} of {len(findings.results)} checks failed.", err=True)
+        click.echo(f"\n{len(findings.failed)} untracked failure(s).", err=True)
         raise SystemExit(1)
-    click.echo(f"All {len(findings.results)} checks passed.")
+    if findings.known and not ignore_known:
+        click.echo("\nOnly tracked issues failed; pass --ignore-known to exit 0.", err=True)
+        raise SystemExit(1)
