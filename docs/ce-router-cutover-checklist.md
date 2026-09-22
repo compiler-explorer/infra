@@ -231,8 +231,9 @@ tracked issues — see section C. The rest are still by hand.
 ## F. Blue-green interaction
 
 - [ ] Run a full `ce --env beta blue-green deploy` **with the router rule enabled**.
-- [ ] Watch `Step 3.9: Clearing router cache` reach **every** in-service router. It
-      tolerates partial failure and warns (§5.1,
+- [ ] Watch `Step 6.5: Clearing router cache` reach **every** in-service router. A partial
+      clear is now reported loudly and leaves the missed routers on the old colour until
+      they are cleared by hand (§5.1,
       [infra#2372](https://github.com/compiler-explorer/infra/issues/2372)).
 - [ ] After the deploy reports success, **compare the two colours' queue depths**. The old
       colour's queue being non-empty means a router is still pointed at it (F-07). This is
