@@ -507,7 +507,7 @@ def clear_router_cache(env: str) -> RouterCacheClearResult:
         best_effort = [
             i["InstanceId"]
             for i in instances
-            if i["LifecycleState"] != "InService" and not i["LifecycleState"].startswith(("Terminating", "Detach"))
+            if i["LifecycleState"] != "InService" and not i["LifecycleState"].startswith(("Terminat", "Detach"))
         ]
 
         cleared = 0

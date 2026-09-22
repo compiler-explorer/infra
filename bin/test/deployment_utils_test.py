@@ -264,12 +264,13 @@ class TestClearRouterCache(unittest.TestCase):
     def test_clear_router_cache_other_states_are_best_effort(
         self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
     ):
-        """A router that is not in service is tried once and cannot fail the clear."""
+        """A router that is out of service is tried once; one that is gone is left alone."""
         mock_get_asg_info.return_value = {
             "Instances": [
                 {"InstanceId": "i-router1", "LifecycleState": "InService"},
-                {"InstanceId": "i-router2", "LifecycleState": "Pending"},
+                {"InstanceId": "i-router2", "LifecycleState": "Standby"},
                 {"InstanceId": "i-router3", "LifecycleState": "Terminating:Wait"},
+                {"InstanceId": "i-router4", "LifecycleState": "Terminated"},
             ]
         }
         mock_get_private_ip.side_effect = ["10.0.1.50", "10.0.1.51"]
