@@ -270,6 +270,13 @@ The `ce workflows` command group provides functionality to trigger GitHub Action
 
 - **`ce workflows list`** - List available workflows across repositories
 
+The admin node's GitHub Actions runner takes one job at a time, so a dispatched discovery
+queues behind whatever holds it -- the nightly compiler install can hold it for hours.
+`./run-discovery.sh BUILDNUMBER` runs the same sequence directly from the admin node
+instead. It refuses to start if the runner instance is already up, since that usually
+means a discovery is already in flight, and it stops the instance on the way out however
+it exits.
+
 - **`ce workflows status [OPTIONS]`** - Show recent workflow run status
   - By default shows both infra and compiler-explorer repositories
   - Filter by `--repo` to show specific repository, `--workflow`, `--status`, `--branch`
