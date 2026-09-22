@@ -215,7 +215,7 @@ flowchart TD
 
 | ID | Branch | Notes |
 |---|---|---|
-| S5.1 | Content-type dispatch | `parseRequestBody` treats anything without `application/json` as `{source: body}`. For `application/x-www-form-urlencoded` the router has already turned the body into an object and `JSON.stringify`d it, so the whole form lands as the **source text**. Form-encoded POSTs are broken through the router. **[read]** |
+| S5.1 | Content-type dispatch | `parseRequestBody` treats anything without `application/json` as `{source: body}`, which is right for the documented `text/plain` form — source as the body, options in the query string — and that works through the router (measured). Form-encoded bodies never arrive here: the no-JS UI at `/noscript` posts to `/api/noscript/compile`, which has its own `express.urlencoded` route and **does not match any ce-router ALB rule** (`/{env}/api/compiler/*/…`). It bypasses the router, and prod and beta return byte-identical results. **[measured]** |
 | S5.2 | Constant message group | `MessageGroupId: 'default'` for every message. FIFO allows one in-flight message per group, so receives serialise across the entire environment. Survivable because the worker deletes on pickup, not after compiling — but it is a hard throughput ceiling worth measuring before prod. **[infer]** |
 | S5.3 | Dedup by guid | Fresh uuid per request, so dedup never triggers. Fine. **[read]** |
 
@@ -406,7 +406,6 @@ flowchart TD
 | F-11 | S3 overflow GET fails on worker | hangs 60s → `408` | message already deleted, request lost | per-request | worker: `Failed to fetch overflow message from S3` |
 | F-12 | Malformed message body | hangs 60s → `408` | message already deleted, request lost | per-request | worker: `JSON.parse failed` |
 | F-13 | Unknown build system | clean compile error naming it | normal | n/a | worker: `Unknown build system` |
-| F-15 | Form-encoded POST | `200`, source is the JSON blob | normal | **no** | none |
 | F-16 | No `Accept` header | `200` JSON where the old path returned text | normal | **no** | none |
 | F-17 | `backendOptions.filterAnsi` in body | ANSI not stripped in text mode | normal | **no** | none |
 | F-18 | Result >31KiB, object stored | normal | normal | n/a | router: `Fetching large compilation result from S3` |
@@ -712,7 +711,9 @@ Start here during an incident.
 
 **User sees `502`/`504`/HTML error page** → F-35 (timeout race, §2) · F-36 (no healthy routers) · F-40 (nginx keepalive)
 
-**User sees `200` but the output is wrong** → F-15 (form-encoded) · F-16/F-17 (Accept / filterAnsi). Neither logs anything; they only surface as user reports.
+**User sees `200` but the output is wrong** → F-14 (charset dropped the flags) · F-16/F-17 (Accept / filterAnsi). None of these log anything; they only surface as user reports.
+
+**Anything under `/api/noscript/…`** → not the router. The no-JS UI has its own endpoint, outside the ALB rules; rule it out before investigating.
 
 **User sees `An internal error has occurred while retrieving the compilation result`** → F-19/F-20. Always the `s3Key`-without-an-object path (§S8). Not a compiler problem.
 

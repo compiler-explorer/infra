@@ -200,8 +200,10 @@ tracked issues — see section C. The rest are still by hand.
       default is text. Decide whether that change is acceptable.
 - [x] `Content-Type: application/json; charset=utf-8` (F-14) — automated; beta drops the
       caller's flags. Tracked by [compiler-explorer#9148](https://github.com/compiler-explorer/compiler-explorer/pull/9148).
-- [ ] Form-encoded POST — expected broken (F-15); confirm and decide. Not automated: it
-      is arguably broken on both paths, so there is no correct expectation to assert yet.
+- [x] Form-encoded POST — **not affected by the cutover**. Form bodies go to
+      `/api/noscript/compile` (the `/noscript` UI), which has its own `express.urlencoded`
+      route and matches no ce-router ALB rule, so it never reaches the router. Verified
+      identical on prod and beta.
 - [ ] `filterAnsi` as a query param and as `backendOptions.filterAnsi` — only the query
       form is honoured (F-17). Needs a compile that emits ANSI, so it is fiddly to automate.
 
