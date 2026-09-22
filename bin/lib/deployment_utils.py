@@ -497,11 +497,18 @@ def clear_router_cache(env: str) -> RouterCacheClearResult:
             return RouterCacheClearResult(not_applicable=f"No router ASG {router_asg_name}, nothing to clear")
 
         instances = asg_info.get("Instances", [])
+        if not instances:
+            return RouterCacheClearResult(not_applicable=f"Router ASG {router_asg_name} has no instances")
+
         in_service = [i["InstanceId"] for i in instances if i["LifecycleState"] == "InService"]
-        if not in_service:
-            return RouterCacheClearResult(
-                not_applicable=f"No in-service instances in router ASG {router_asg_name}, nothing to clear"
-            )
+        # A router that is briefly out of service may still hold a cache, so clear it too;
+        # one that has never served reads the current values when it starts, and one on its
+        # way out does not matter, so neither can fail the clear.
+        best_effort = [
+            i["InstanceId"]
+            for i in instances
+            if i["LifecycleState"] != "InService" and not i["LifecycleState"].startswith(("Terminating", "Detach"))
+        ]
 
         cleared = 0
         failures = []
@@ -513,14 +520,15 @@ def clear_router_cache(env: str) -> RouterCacheClearResult:
             else:
                 cleared += 1
 
-        for instance in instances:
-            state = instance["LifecycleState"]
-            if state == "InService" or state.startswith(("Terminating", "Detach")):
-                continue
-            # Covers a router that is briefly out of service but still holding a cache.
-            failure = _clear_cache_on_router(instance["InstanceId"], attempts=1)
+        for instance_id in best_effort:
+            failure = _clear_cache_on_router(instance_id, attempts=1)
             if failure:
                 LOGGER.info(f"Not-yet-serving router not cleared, it will read current values on startup: {failure}")
+
+        if not in_service:
+            return RouterCacheClearResult(
+                not_applicable=f"No in-service instances in router ASG {router_asg_name}, nothing to clear"
+            )
 
         return RouterCacheClearResult(required=len(in_service), cleared=cleared, failures=failures)
 

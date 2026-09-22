@@ -80,19 +80,26 @@ class TestClearRouterCache(unittest.TestCase):
         self.assertIsNotNone(result.not_applicable)
         self.assertEqual(result.failures, [])
 
+    @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
-    def test_clear_router_cache_no_in_service_instances(self, mock_get_asg_info, _mock_admin_node, _mock_sleep):
-        """Test behavior when no instances are in service."""
+    @patch("lib.deployment_utils.requests.post")
+    def test_clear_router_cache_no_in_service_instances(
+        self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
+        """Nothing is required, but a router that is out of service still gets a try."""
         mock_get_asg_info.return_value = {
             "Instances": [
                 {"InstanceId": "i-router123", "LifecycleState": "Pending"},
             ]
         }
+        mock_get_private_ip.return_value = "10.0.1.50"
+        mock_post.return_value = _response(200)
 
         result = clear_router_cache("staging")
 
         self.assertIsNotNone(result.not_applicable)
         self.assertEqual(result.failures, [])
+        mock_post.assert_called_once_with("http://10.0.1.50/admin/clear-cache", timeout=15)
 
     @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
