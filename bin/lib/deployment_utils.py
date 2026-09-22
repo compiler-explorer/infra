@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from dataclasses import dataclass, field
 from typing import Any
 
 import requests
@@ -418,69 +419,111 @@ def wait_for_compiler_registration(instance_ids: list[str], environment: str, ti
     raise TimeoutError(f"Timeout waiting for compiler registration on {len(instance_ids)} instances")
 
 
-def clear_router_cache(env: str) -> bool:
-    """Clear the ce-router cache for the specified environment.
+ROUTER_CACHE_CLEAR_ATTEMPTS = 3
+ROUTER_CACHE_CLEAR_TIMEOUT = 15
+ROUTER_CACHE_CLEAR_RETRY_DELAY = 2
 
-    This function clears both the active color cache and routing cache on the ce-router
-    to ensure it immediately picks up configuration changes during blue-green deployments.
 
-    Args:
-        env: Environment name (e.g., 'prod', 'staging', 'beta')
+def router_cache_clear_command(env: str) -> str:
+    """The by-hand equivalent of clear_router_cache, for when it could not be done here."""
+    return f"ce --env {env} ce-router exec_all curl -sS -XPOST http://localhost/admin/clear-cache"
 
-    Returns:
-        True if cache was successfully cleared on at least one instance, False otherwise
+
+@dataclass(frozen=True)
+class RouterCacheClearResult:
+    """Outcome of clearing the ce-router caches for one environment."""
+
+    required: int = 0
+    cleared: int = 0
+    failures: list[str] = field(default_factory=list)
+    not_applicable: str | None = None
+
+    @property
+    def complete(self) -> bool:
+        """Whether every router that had to be reached acknowledged the clear.
+
+        Vacuously true when there was nothing to clear, so check not_applicable first.
+        """
+        return not self.failures and self.cleared == self.required
+
+
+def _clear_cache_on_router(instance_id: str, attempts: int) -> str | None:
+    """POST a cache clear to one router, returning a description of the failure, or None."""
+    private_ip = get_instance_private_ip(instance_id)
+    if not private_ip:
+        return f"{instance_id}: no private IP"
+
+    url = f"http://{private_ip}/admin/clear-cache"
+    last_error = "no response"
+    for attempt in range(1, attempts + 1):
+        try:
+            response = requests.post(url, timeout=ROUTER_CACHE_CLEAR_TIMEOUT)
+            if response.status_code == 200:
+                return None
+            last_error = f"HTTP {response.status_code}: {response.text}"
+        except requests.exceptions.RequestException as e:
+            last_error = f"{type(e).__name__}: {e}"
+
+        if attempt < attempts:
+            time.sleep(ROUTER_CACHE_CLEAR_RETRY_DELAY)
+
+    return f"{instance_id} ({private_ip}): {last_error}"
+
+
+def clear_router_cache(env: str) -> RouterCacheClearResult:
+    """Clear the routing and active-colour caches on the ce-routers for an environment.
+
+    A router caches the fully resolved queue URL, active colour already substituted, in a
+    map with no TTL, so this POST is the only thing that invalidates it. It therefore has
+    to run after the active colour and the compiler routing table have been written: a
+    clear that runs before them refills the cache with the values it was meant to drop.
+
+    Every in-service router must be reached for the clear to count as complete. Routers in
+    other lifecycle states are cleared opportunistically, since one that enters service
+    later reads the new values anyway.
     """
+    if not is_running_on_admin_node():
+        command = router_cache_clear_command(env)
+        return RouterCacheClearResult(
+            not_applicable=f"Routers are only reachable from the admin node, so they were NOT cleared. Run: {command}"
+        )
+
     router_asg_name = f"ce-router-{env}"
 
     try:
         asg_info = get_asg_info(router_asg_name)
         if not asg_info:
-            LOGGER.warning(f"Router ASG {router_asg_name} not found")
-            return False
+            return RouterCacheClearResult(not_applicable=f"No router ASG {router_asg_name}, nothing to clear")
 
         instances = asg_info.get("Instances", [])
-        if not instances:
-            LOGGER.warning(f"No instances found in router ASG {router_asg_name}")
-            return False
+        in_service = [i["InstanceId"] for i in instances if i["LifecycleState"] == "InService"]
+        if not in_service:
+            return RouterCacheClearResult(
+                not_applicable=f"No in-service instances in router ASG {router_asg_name}, nothing to clear"
+            )
 
-        in_service_instances = [i for i in instances if i["LifecycleState"] == "InService"]
-        if not in_service_instances:
-            LOGGER.warning(f"No in-service instances found in router ASG {router_asg_name}")
-            return False
+        cleared = 0
+        failures = []
+        for instance_id in in_service:
+            print(f"  Clearing cache on {router_asg_name} instance {instance_id}")
+            failure = _clear_cache_on_router(instance_id, ROUTER_CACHE_CLEAR_ATTEMPTS)
+            if failure:
+                failures.append(failure)
+            else:
+                cleared += 1
 
-        success_count = 0
-        for instance in in_service_instances:
-            router_instance_id = instance["InstanceId"]
-            router_private_ip = get_instance_private_ip(router_instance_id)
-
-            if not router_private_ip:
-                LOGGER.warning(f"Could not get private IP for router instance {router_instance_id}")
+        for instance in instances:
+            state = instance["LifecycleState"]
+            if state == "InService" or state.startswith(("Terminating", "Detach")):
                 continue
+            # Covers a router that is briefly out of service but still holding a cache.
+            failure = _clear_cache_on_router(instance["InstanceId"], attempts=1)
+            if failure:
+                LOGGER.info(f"Not-yet-serving router not cleared, it will read current values on startup: {failure}")
 
-            print(f"  Clearing cache on {router_asg_name} instance {router_instance_id} ({router_private_ip})")
-
-            try:
-                url = f"http://{router_private_ip}/admin/clear-cache"
-                response = requests.post(url, timeout=5)
-
-                if response.status_code == 200:
-                    success_count += 1
-                else:
-                    LOGGER.warning(
-                        f"Cache clear request for {router_instance_id} returned HTTP {response.status_code}: {response.text}"
-                    )
-            except requests.exceptions.Timeout:
-                LOGGER.warning(f"Timeout clearing cache on instance {router_instance_id}")
-            except requests.exceptions.ConnectionError:
-                LOGGER.warning(f"Connection error clearing cache on instance {router_instance_id}")
-            except requests.exceptions.RequestException as e:
-                LOGGER.warning(f"Request error clearing cache on instance {router_instance_id}: {e}")
-
-        return success_count > 0
+        return RouterCacheClearResult(required=len(in_service), cleared=cleared, failures=failures)
 
     except ClientError as e:
-        LOGGER.warning(f"AWS error getting router instance: {e}")
-        return False
+        return RouterCacheClearResult(failures=[f"AWS error getting router instances: {e}"])
     except (RuntimeError, KeyError) as e:
-        LOGGER.warning(f"Unexpected error clearing router cache: {e}")
-        return False
+        return RouterCacheClearResult(failures=[f"Unexpected error clearing router cache: {e}"])

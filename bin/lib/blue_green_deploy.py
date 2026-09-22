@@ -30,6 +30,7 @@ from lib.deployment_utils import (
     check_instance_health,
     clear_router_cache,
     print_target_group_diagnostics,
+    router_cache_clear_command,
     wait_for_compiler_registration,
     wait_for_http_health,
     wait_for_instances_healthy,
@@ -545,13 +546,6 @@ class BlueGreenDeployment:
             else:
                 print("\nStep 3.5: Skipping compiler registration check (--skip-compiler-check)")
 
-            # Step 3.9: Clear router cache before traffic switch
-            print("\nStep 3.9: Clearing router cache before traffic switch")
-            if clear_router_cache(self.env):
-                print("✓ Router cache cleared successfully")
-            else:
-                LOGGER.warning("Failed to clear router cache (deployment will continue, cache expires in 30s)")
-
             # Step 4: Switch traffic to new color
             print(f"\nStep 4: Switching traffic to {inactive_color}")
             self.switch_target_group(inactive_color)
@@ -592,6 +586,13 @@ class BlueGreenDeployment:
                 LOGGER.warning(f"Failed to update compiler routing table: {e}")
                 LOGGER.warning("Deployment will continue, but compiler routing may be out of date")
                 print(f"  ⚠️  Warning: Compiler routing update failed: {e}")
+
+            # Step 6.5: Invalidate the router caches. Deliberately last, and outside Step 6's
+            # try/except: the routers cache the resolved queue URL and the routing rows with
+            # no TTL, so a clear that runs before the active colour (step 4) and the routing
+            # table (step 6) are written only refills them with what it was meant to drop.
+            print("\nStep 6.5: Clearing router cache")
+            self.clear_router_caches()
 
             print(f"\n✅ Blue-green deployment complete! Now serving from {inactive_color}")
             print(f"Old {active_color} ASG remains running for rollback if needed")
@@ -636,6 +637,35 @@ class BlueGreenDeployment:
                 "version_was_changed": False,
             }
 
+    def clear_router_caches(self) -> None:
+        """Invalidate the ce-router caches, complaining loudly if any router was missed.
+
+        Not fatal: by the time this runs traffic is already switched, and failing here would
+        strip the min size from the now-live ASG and roll the version pointer back under it.
+        A missed router is version skew rather than an outage until the old ASG scales in.
+        """
+        result = clear_router_cache(self.env)
+        if result.not_applicable:
+            print(f"  {result.not_applicable}")
+            return
+
+        if result.complete:
+            print(f"✓ Router cache cleared on all {result.required} in-service routers")
+            return
+
+        LOGGER.error("Router cache cleared on only %d of %d routers", result.cleared, result.required)
+        for failure in result.failures:
+            LOGGER.error("  %s", failure)
+        print("")
+        print("❌ ROUTER CACHE NOT CLEARED EVERYWHERE")
+        print("   The routers that were missed keep routing to the old colour's queue, and")
+        print("   nothing expires those entries: the routing cache has no TTL, so they stay")
+        print("   stale until the process restarts. Requests still succeed while the old ASG")
+        print("   runs, served by the previous deployment, and start timing out once it does")
+        print("   not. Clear them by hand before scaling the old colour down:")
+        print(f"     {router_cache_clear_command(self.env)}")
+        print("")
+
     def rollback(self) -> None:
         """Rollback to the previous color."""
         current_color = self.get_active_color()
@@ -655,6 +685,14 @@ class BlueGreenDeployment:
 
         # Switch back
         self.switch_target_group(previous_color)
+
+        # The routers are still pointed at the colour being rolled away from, whose workers
+        # are still running -- without this, users keep hitting the bad deployment after the
+        # rollback reports success. The compiler routing table needs no update: queue entries
+        # are stored colour-agnostically, so a colour switch cannot invalidate them.
+        print("\nClearing router cache")
+        self.clear_router_caches()
+
         print(f"Rollback complete! Now serving from {previous_color}")
 
     def cleanup_inactive(self) -> None:

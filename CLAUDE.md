@@ -571,7 +571,8 @@ The blue-green deployment system includes automatic post-deployment steps that e
 4. **Traffic Switch**: Switches load balancer traffic to new instances
 5. **Scale Down Protection**: Resets ASG minimum sizes
 6. **Compiler Routing Update**: Automatically updates the compiler routing table for the environment
-7. **GitHub Notifications**: Sends notifications for production deployments (when enabled)
+7. **Router Cache Clear**: Invalidates the ce-router caches, last, so they cannot be refilled from the pre-switch active colour or the pre-update routing table. `rollback` does the same. A router that cannot be reached is reported loudly: its cache has no TTL, so it stays stale until cleared by hand or restarted
+8. **GitHub Notifications**: Sends notifications for production deployments (when enabled)
 
 ### Compiler Routing Integration
 
