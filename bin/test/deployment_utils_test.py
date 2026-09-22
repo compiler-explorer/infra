@@ -49,12 +49,14 @@ class TestClearRouterCache(unittest.TestCase):
 
     @patch("lib.deployment_utils.get_asg_info")
     def test_clear_router_cache_not_on_admin_node(self, mock_get_asg_info, mock_admin_node, _mock_sleep):
-        """Routers are only reachable from the admin node, so elsewhere there is nothing to do."""
+        """Routers are unreachable from elsewhere, and that is a failure, not a skip."""
         mock_admin_node.return_value = False
 
         result = clear_router_cache("prod")
 
-        self.assertIn("ce --env prod ce-router exec_all", result.not_applicable)
+        self.assertFalse(result.complete)
+        self.assertIsNone(result.not_applicable)
+        self.assertIn("admin node", result.failures[0])
         mock_get_asg_info.assert_not_called()
 
     @patch("lib.deployment_utils.get_asg_info")

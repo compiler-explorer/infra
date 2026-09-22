@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import socket
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -437,13 +438,11 @@ class RouterCacheClearResult:
     cleared: int = 0
     failures: list[str] = field(default_factory=list)
     not_applicable: str | None = None
+    """Set only when there was genuinely nothing to clear, never when a clear was skipped."""
 
     @property
     def complete(self) -> bool:
-        """Whether every router that had to be reached acknowledged the clear.
-
-        Vacuously true when there was nothing to clear, so check not_applicable first.
-        """
+        """Whether every router that had to be reached acknowledged the clear."""
         return not self.failures and self.cleared == self.required
 
 
@@ -483,9 +482,11 @@ def clear_router_cache(env: str) -> RouterCacheClearResult:
     later reads the new values anyway.
     """
     if not is_running_on_admin_node():
-        command = router_cache_clear_command(env)
+        # A failure rather than a skip: the caches are still stale, and reporting it
+        # quietly is how the original bug survived. Naming the host makes a renamed admin
+        # node -- which this equality check would silently stop matching -- obvious.
         return RouterCacheClearResult(
-            not_applicable=f"Routers are only reachable from the admin node, so they were NOT cleared. Run: {command}"
+            failures=[f"not running on the admin node (this host is {socket.gethostname()}), routers unreachable"]
         )
 
     router_asg_name = f"ce-router-{env}"

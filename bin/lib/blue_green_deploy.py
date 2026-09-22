@@ -653,11 +653,12 @@ class BlueGreenDeployment:
             print(f"✓ Router cache cleared on all {result.required} in-service routers")
             return
 
-        LOGGER.error("Router cache cleared on only %d of %d routers", result.cleared, result.required)
+        if result.required:
+            LOGGER.error("Router cache cleared on only %d of %d routers", result.cleared, result.required)
         for failure in result.failures:
             LOGGER.error("  %s", failure)
         print("")
-        print("❌ ROUTER CACHE NOT CLEARED EVERYWHERE")
+        print("❌ ROUTER CACHE NOT CLEARED")
         print("   The routers that were missed keep routing to the old colour's queue, and")
         print("   nothing expires those entries: the routing cache has no TTL, so they stay")
         print("   stale until the process restarts. Requests still succeed while the old ASG")

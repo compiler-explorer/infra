@@ -130,6 +130,15 @@ class TestRouterCacheReporting(unittest.TestCase):
         self.assertTrue(any("❌" in line for line in output))
         self.assertTrue(any("/admin/clear-cache" in line for line in output))
 
+    def test_unreachable_routers_are_as_loud_as_a_partial_clear(self):
+        """Deploying from the wrong host must not quietly leave every cache stale."""
+        result = RouterCacheClearResult(failures=["not running on the admin node (this host is laptop)"])
+
+        output = self._clear_with(result)
+
+        self.assertTrue(any("❌" in line for line in output))
+        self.assertTrue(any("/admin/clear-cache" in line for line in output))
+
     def test_partial_clear_does_not_raise(self):
         """Traffic is already switched by this point; failing here would strip the live ASG."""
         result = RouterCacheClearResult(required=2, cleared=0, failures=["i-router1: no private IP"])
