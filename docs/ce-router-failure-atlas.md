@@ -173,7 +173,7 @@ flowchart TD
 | S3.1 | Subscribe before routing | The router subscribes **before** it knows whether the compiler is queue- or URL-routed, so every URL-routed compile costs a wasted subscribe + unsubscribe round trip (two Lambda invocations, one DynamoDB write, one delete). **[read]** |
 | S3.2 | WS down at subscribe | `send()` rejects → `500`. Every compile fails instantly while the socket is down. **[read]** |
 | S3.3 | **The 50ms sleep** | `src/compiler-explorer-router.ts:228`. This is the entire defence against the subscribe/result race. See S9.2. **[read]** |
-| S3.4 | **`routingCache` has no TTL** | `src/services/routing.ts` — entries are only ever removed by `clearRoutingCaches()`. The cached value is the **fully-resolved queue URL with the colour baked in**. See §5.1; this is the one I would fix first. **[read]** |
+| S3.4 | **`routingCache` has no expiry** | `src/services/routing.ts` — entries are only ever removed by `clearRoutingCaches()`. They hold the routing *decision*, not a resolved URL, so the colour is applied per request and recovers on its own; a stale **routing-table** decision does not. See §5.1. **[read]** |
 
 ### S4 — URL-routed branch
 
@@ -399,14 +399,13 @@ flowchart TD
 | F-04b | **Subscribe `PutItem` throttled or failed** | hangs 60s → `408`/`504` | 12s stall | **no** — no retry can help, the subscription does not exist | lambda: `Failed to subscribe <conn> to <guid>`; DynamoDB `ThrottledRequests` on `events-connections` |
 | F-05 | Compiler missing from routing table | normal (falls back to coloured queue) | normal | n/a | router: `No routing found for compiler` |
 | F-06 | DynamoDB routing lookup fails | normal (falls back) | normal | yes | router: `Failed to lookup routing` |
-| F-07 | **Stale `routingCache` after colour switch** | version skew — served by the previous deployment's code; real timeouts only after `cleanup_inactive` scales the old ASG to 0 (§5.1) | normal — it is talking to the old colour's workers | **no** — needs `/admin/clear-cache` or a process restart. The deploy now clears at Step 6.5 and says so loudly when it cannot (§5.1), so this is down to routers the clear failed to reach | old colour queue still active after a deploy; symptom that appears and vanishes across successive deploys |
+| F-07 | **Stale routing decision after a deploy** | version skew — served by the previous deployment's code; real timeouts only after `cleanup_inactive` scales the old ASG to 0 (§5.1) | normal — it is talking to the old colour's workers | **no** for a routing-table change; a stale *colour* now clears itself within 30s | old colour queue still active after a deploy; same compiler succeeding on one router and not another |
 | F-08 | Worker started without `--instance-color` | hangs 60s → `408`, every queue-routed request | idle, polling wrong queue | **no** | worker startup: `No instance color detected` |
 | F-09 | SQS send fails | `500` | unaffected | yes | router: `Failed to send message to SQS` |
 | F-10 | S3 overflow PUT fails | `500` | unaffected | yes | router: `Failed to send message to SQS` |
 | F-11 | S3 overflow GET fails on worker | hangs 60s → `408` | message already deleted, request lost | per-request | worker: `Failed to fetch overflow message from S3` |
 | F-12 | Malformed message body | hangs 60s → `408` | message already deleted, request lost | per-request | worker: `JSON.parse failed` |
 | F-13 | Unknown build system | clean compile error naming it | normal | n/a | worker: `Unknown build system` |
-| F-16 | No `Accept` header | `200` JSON where the old path returned text | normal | **no** | none |
 | F-17 | `backendOptions.filterAnsi` in body | ANSI not stripped in text mode | normal | **no** | none |
 | F-18 | Result >31KiB, object stored | normal | normal | n/a | router: `Fetching large compilation result from S3` |
 | F-19 | Result >31KiB, **object missing** | `200` with `An internal error has occurred…` in stderr | normal | **no** | router: `Failed to fetch S3 compilation result` |
@@ -437,134 +436,45 @@ flowchart TD
 
 These are the ones that do not self-heal, ordered by how much damage they do.
 
-### 5.1 The fallback the invalidation design assumes does not exist
+### 5.1 Routing-table changes are cached without an expiry
 
-The design here is push invalidation: the deploy calls `POST /admin/clear-cache`, and
-two comments in the router agree on what that is for —
+Invalidation here is a push: the deploy calls `POST /admin/clear-cache` at step 6.5, after
+writing the active colour and updating the routing table. The colour half now recovers on
+its own — `routingCache` holds the routing *decision* (`type`, plus `queueName` or
+`targetUrl`) and the colour is applied per request from `activeColorCache`, whose 30-second
+TTL is finally reachable — so a missed push costs at most 30 seconds of stale colour.
 
-- the `/admin/clear-cache` endpoint: *"eliminates the 30s cache TTL delay"*
-- `clearRoutingCaches()`: *"without waiting for the 30-second cache TTL to expire"*
+The routing-table half does not. Those decisions are cached with no expiry, because nothing
+other than the push invalidates them, and `update_compiler_routing_table()` mutates existing
+rows on every deploy: a compiler whose `routingType` flips between `queue` and `url`, or
+whose `targetUrl` or `queueName` changes, stays wrong on any router the clear did not reach
+until that process restarts.
 
-So: push for speed, with a 30-second TTL as the fallback. That is a sound design — **if
-the fallback exists**.
+That is why the clear has to come after step 6 rather than merely after the traffic switch,
+why it requires *every* in-service router rather than reporting success on partial delivery,
+and why a partial clear prints the by-hand command instead of a warning that the cache
+expires by itself. There is no second signal — no EventBridge rule on the SSM parameter, no
+SNS to the routers; `/admin/clear-cache` is one of only two non-compile endpoints the router
+has.
 
-It does not, because `routingCache` stores a value **derived from the volatile input**
-rather than the input itself:
+**The symptom is not an outage.** A stale router keeps reaching the old colour's workers,
+which the deploy deliberately leaves running for rollback, so requests succeed — served by
+the previous deployment's code — while the deploy reports success. Timeouts arrive later,
+when `cleanup_inactive()` scales that ASG to zero or the next deploy reuses the colour, so
+the breakage surfaces at a deploy unrelated to the one that caused it. The cache is keyed
+`{env}#{compilerId}` per router process, so the same compiler can succeed on one router and
+fail on the next.
 
-```ts
-const queueName = item.queueName?.S;           // stable
-const activeColor = await getActiveColor();    // volatile — changes every deploy
-const queueUrl = buildQueueUrl(queueName, activeColor);
-routingCache.set(cacheKey, {type: 'queue', target: queueUrl, ...});  // resolved, cached forever
-```
+Recovery for a stale router is `POST /admin/clear-cache` against it, or restarting it.
+Cycling every router on each deploy would also do it and is ruled out: the restart path adds
+502s on single-router environments, and an instance refresh adds minutes to every deploy —
+measured at 6 minutes on beta at a 300s `health_check_grace_period`, roughly half that since
+it became 150s, scaling with instance count.
 
-An entry that is correct when written becomes wrong the moment SSM changes. Nothing needs
-to watch SSM — the push is meant to cover that — but the entry has to be recoverable
-without the push, and it isn't.
-
-`routingCache.get()` returns before `getActiveColor()` is ever reached, so once a
-compiler has been looked up on a router, that router's colour TTL can never fire for it
-again. The fallback is unreachable code, and a push is silently the **only** mechanism —
-while both comments above assert otherwise.
-
-The push is as good as a push gets — [infra#2372](https://github.com/compiler-explorer/infra/issues/2372)
-made it all-or-nothing, retried, and present on the rollback path — but it is still a
-push, and a router it cannot reach has nothing else to fall back on.
-
-There is no second signal — no EventBridge rule on the SSM parameter, no SNS to the
-routers; `/admin/clear-cache` is one of only two non-compile endpoints the router has.
-
-**When the clear runs matters as much as whether it runs.** Because `queueName` is
-stored uncoloured (`"prod-compilation-queue"`), the colour is appended from
-`getActiveColor()` at lookup time, and `clearRoutingCaches()` wipes `activeColorCache`
-too — so a clear that runs before `_update_ssm_parameters` empties the cache at the one
-moment when the only value available to refill it is the stale one. The same holds for
-`update_compiler_routing_table`, which mutates rows the routers have already cached.
-
-The clear is therefore Step 6.5, after both, and on the rollback path. It requires every
-in-service router, retrying each before giving up, clears out-of-service routers
-opportunistically, and prints the by-hand command for any it missed.
-
-**The symptom is not an outage.** The deploy deliberately leaves the old ASG running
-("Old {color} ASG remains running for rollback if needed"), and that ASG scales on its
-own colour's queue depth — so a poisoned router's messages land on a queue that still has
-consumers, and the requests **succeed, served by the previous deployment's code**, while
-the deploy reports success. Timeouts arrive later, when the old ASG scales in
-(`min_size` is now 0) or the next deploy reuses that colour. The breakage therefore
-surfaces at a deploy unrelated to the one that caused it.
-
-The cache is keyed `{env}#{compilerId}` per router process, so this is never all-or-
-nothing: the same compiler can succeed on one router and fail on the next.
-
-**The fix is not a TTL on `routingCache`** — that adds a second mechanism to paper over
-a broken first one. Cache the routing *decision* (`type`, plus `queueName` or
-`targetUrl`) and resolve the colour at send time from `getActiveColor()`. That adds no
-new machinery; it makes the fallback the code already documents actually reachable.
-Afterwards both comments above become true: everything cached is stable,
-a missed push costs at most 30 seconds, and `/admin/clear-cache` is the optimisation it
-was written to be.
-
-What the cache buys today is one DynamoDB `GetItem` per compile on a small table —
-noise next to an SQS round trip, a compile, and the three `events-connections` writes
-from §5.3.
-
-**The colour is not the only stale thing.** `update_compiler_routing_table()` at Step 6
-mutates existing rows: a compiler whose `routingType` flips between `queue` and `url`, or
-whose `targetUrl` or `queueName` changes, is cached wholesale in every router. Resolving
-the colour at send time does **not** fix that, which is why the invalidation has to come
-after Step 6 rather than merely after the switch.
-
-**How bad is it in practice? Less than it looks.** Blue and green run the same compiler
-inventory apart from whatever the deploy adds, so a stale router still reaches workers
-that can compile everything in its cache — that set is exactly what it looked up before
-the switch, all of which exists on both colours. A genuinely new compiler has no cache
-entry, so it takes a fresh lookup and routes correctly; and a user cannot request one
-until their client has the new compiler list, which needs a reload slower than the
-switch itself.
-
-So the steady-state effect is **version skew, not failure**: a fraction of traffic quietly
-served by the previous deployment's code. That ranks §5.1 below §5.3.
-
-Two things still bite:
-
-- **`cleanup_inactive()` makes it real.** It does `reset_asg_min_size(asg, 0)` then
-  `scale_asg(asg, 0)` — an explicit scale to zero. A stale router's messages then land on
-  a queue with no consumers and time out at 60s. Same during the next deploy's instance
-  replacement. The failure is therefore **operator-triggered and decoupled in time** from
-  the deploy that caused it: a routine cleanup starts timing out compilations for reasons
-  that trace back days.
-- **It oscillates.** With alternating deploys a router stuck on `blue` is wrong while
-  green is active and accidentally correct after the next switch back, so the symptom
-  appears and vanishes without anyone touching the routers.
-
-Cycling the routers on every deploy would also clear all of this, and is ruled out: the
-restart path adds 502s on single-router environments, and an instance refresh adds
-minutes to every deploy — measured at 6 minutes on beta when the router ASG's
-`health_check_grace_period` was 300s, roughly half that since it became 150s, and it
-scales with instance count. Neither is worth it at this severity. Restarting one router by
-hand remains the recovery for a stale one.
-
-Note the exposure is bounded: `active-color` is written only by `_update_ssm_parameters`,
-called only from `switch_target_group`, called only by the deploy (`:550`) and the
-rollback (`:686`). This is a deploy-procedure risk, not a random-failure one.
-
-Filed as [compiler-explorer/infra#2372](https://github.com/compiler-explorer/infra/issues/2372).
-**[read]; the scale-in half is [infer] — confirm the old ASG's instance count after a
-switch**
-
-#### What is left
-
-A router the push does not reach stays stale until its process restarts, with the same
-consequences as above: version skew normally, real timeouts once `cleanup_inactive`
-scales the old ASG to zero, oscillation across alternating deploys. It is rare — it takes
-a router unreachable through the retries — but it is *as permanent as ever* when it
-happens, which is why the deploy shouts about a partial clear and names the command to
-run rather than warning that the cache expires by itself.
-
-Closing it means stopping `routingCache` from baking in the colour: cache the decision
-(`type`, plus `queueName` or `targetUrl`) and resolve the colour at send time. That makes
-a miss self-healing within 30s instead of permanent, because it is what finally makes the
-documented fallback reachable.
+Exposure is bounded to deploys: `active-color` is written only by `_update_ssm_parameters`,
+reached only from `switch_target_group`, called only by the deploy and the rollback. This is
+a deploy-procedure risk, not a random-failure one.
+**[read]; the scale-in half is [infer] — confirm the old ASG's instance count after a switch**
 
 ### 5.2 An orphaned result idles the worker that produced it
 
@@ -640,7 +550,7 @@ Start here during an incident.
 
 **User sees `502`/`504`/HTML error page** → F-35 (timeout race, §2) · F-36 (no healthy routers) · F-40 (nginx keepalive)
 
-**User sees `200` but the output is wrong** → F-14 (charset dropped the flags) · F-16/F-17 (Accept / filterAnsi). None of these log anything; they only surface as user reports.
+**User sees `200` but the output is wrong** → F-17 (`filterAnsi` is honoured as a query parameter but not as a `backendOptions` field). It logs nothing, so it only surfaces as a user report.
 
 **Anything under `/api/noscript/…`** → not the router. The no-JS UI has its own endpoint, outside the ALB rules; rule it out before investigating.
 
@@ -662,7 +572,6 @@ Start here during an incident.
 
 | Fix | Where | Removes |
 |---|---|---|
-| Stop baking the colour into `routingCache`; resolve it at send time | `ce-router/src/services/routing.ts` | restores the fallback the code already documents (§5.1) |
 | Stagger the four timeouts | `cloudfront.tf`, `alb.tf`, `nginx/ce-router.conf`, router | F-35 |
 | Ack outside the `if (subscription)` | `ce-router/src/services/result-waiter.ts:31` | F-24 (the delivered-but-unmatched window only) |
 | Move `events-connections` to `PAY_PER_REQUEST` | `terraform/dynamodb.tf:135` | F-04b, §5.3 — the only provisioned table in the stack |

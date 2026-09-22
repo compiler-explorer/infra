@@ -15,10 +15,6 @@ Tick through this; do not read it as background.
       on your machine — this is the rollback lever.)
 - [ ] Run `ce ce-router disable -e beta` once, before enabling anything, so the rollback
       path is known-good rather than assumed.
-- [ ] Decide whether the `Accept`-header change is acceptable: with no `Accept` header the
-      router returns JSON where the documented default and the direct path return
-      `text/plain`. This is the only check still failing on beta (F-16), and it is a
-      decision rather than a pending fix.
 - [ ] Decide fix-or-accept on the **four-way 60s timeout stack** — CloudFront
       `origin_read_timeout`, ALB `idle_timeout`, nginx `proxy_read_timeout`, router
       `timeoutSeconds` are all exactly 60 (§2). A compile near that boundary returns a
@@ -160,33 +156,25 @@ looks identical to a broken router. Do B0 first.
 ### Beta result — router path
 
 `ce --env beta ce-router smoke --iterations 20`, beta-green, ALB rule priority 72 active,
-ce-router `0.3.0`, workers carrying compiler-explorer#9148/#9149/#9151.
+ce-router `0.5.0`, workers carrying compiler-explorer#9148/#9149/#9151.
 
-**16/17 passed.** Every queue-path check matches prod, including all three s3Key variants,
-the 258KB overflow request, the 2.1MB response and the boundary sweep. Latency is
-comparable — the cache-hit loop's slowest was 0.73s against prod's 0.33s, which is the
-queue hop.
+**17/17 passed.** Beta through the router now matches prod's direct path on every check in
+the suite, including all three `s3Key` variants, the 258KB overflow request, the 2.1MB
+response and the boundary sweep. Latency is comparable — the cache-hit loop's slowest was
+0.93s against prod's 0.33s, which is the queue hop.
 
-Two checks that failed on the first run now pass, which is how the deploy was confirmed to
-have reached the workers:
+Everything the first run caught has since been fixed and confirmed by a later run:
 
-| Check | Before the fixes | Now | Tracked |
+| Check | First run | Now | Fixed by |
 |---|---|---|---|
-| charset in content-type keeps user arguments | flags silently dropped | `-D reached the compiler` | [#9148](https://github.com/compiler-explorer/compiler-explorer/pull/9148), merged |
-| oversized result keeps execution output | 229KB of asm, `execResult={}` | output survived | [#9149](https://github.com/compiler-explorer/compiler-explorer/pull/9149), merged |
-| URL-routed compiler | `HTTP 504` after 60.04s | 0.31s | ce-router `0.3.0`, released |
+| URL-routed compiler | `HTTP 504` after 60.04s | sub-second | ce-router `0.3.0` |
+| charset keeps user arguments | flags silently dropped | `-D` reached the compiler | [#9148](https://github.com/compiler-explorer/compiler-explorer/pull/9148) |
+| oversized result keeps execution output | 229KB of asm, `execResult={}` | output survived | [#9149](https://github.com/compiler-explorer/compiler-explorer/pull/9149) |
+| no `Accept` header returns text | `application/json` | `text/plain` | ce-router `0.5.0` |
 
-**The one remaining failure is a decision, not a defect.** With no `Accept` header the
-router returns JSON where the documented default (and the direct path) is `text/plain`.
-Nothing is pending on it — it needs someone to decide whether the change is acceptable, or
-a router-side fix to match `req.accepts(['text','json'])`. Until then it will keep
-reporting `[KNOWN]`, which is correct.
-
-Reporting: `[KNOWN]` is a tracked failure and not a regression; `[FAIL]` is untracked and
-is one; `[FIXED]` means a tracked check passed — either the fix reached this environment or
-the path is not exercised here. Running against a direct-routed environment is a useful
-control: all three of the above pass on prod, which shows the checks are sound rather than
-merely red.
+Those four print `[FIXED]` rather than `[PASS]` because they carry a tracking link; that is
+the mechanism working, not a warning. One going back to `[KNOWN]` means a regression or a
+rollback.
 
 **Not covered by the suite**: compiler-explorer#9151 (a worker reporting unhealthy once its
 events WebSocket has given up) cannot be confirmed from outside — it needs the failure
@@ -194,22 +182,22 @@ injection in section E.
 
 ## D. API compatibility
 
-These produce a `200` with wrong output and **log nothing anywhere**, so they only ever
-surface as user reports. Check them deliberately.
+This is where the router can return a `200` with wrong output and **log nothing anywhere**,
+so these only ever surface as user reports. Two are covered by `ce ce-router smoke` and pass
+(section C); the rest are by hand.
 
-Two of these are now automated in `ce ce-router smoke` and currently fail on beta as
-tracked issues — see section C. The rest are still by hand.
-
-- [x] No `Accept` header (F-16) — automated; beta returns JSON where the documented
-      default is text. Decide whether that change is acceptable.
-- [x] `Content-Type: application/json; charset=utf-8` (F-14) — automated; beta drops the
-      caller's flags. Tracked by [compiler-explorer#9148](https://github.com/compiler-explorer/compiler-explorer/pull/9148).
+- [x] No `Accept` header — automated, passing. Returns `text/plain`, matching the
+      documented default and the direct path, since ce-router `0.5.0`.
+- [x] `Content-Type: application/json; charset=utf-8` — automated, passing. The caller's
+      flags reach the compiler since
+      [compiler-explorer#9148](https://github.com/compiler-explorer/compiler-explorer/pull/9148).
 - [x] Form-encoded POST — **not affected by the cutover**. Form bodies go to
       `/api/noscript/compile` (the `/noscript` UI), which has its own `express.urlencoded`
       route and matches no ce-router ALB rule, so it never reaches the router. Verified
       identical on prod and beta.
 - [ ] `filterAnsi` as a query param and as `backendOptions.filterAnsi` — only the query
-      form is honoured (F-17). Needs a compile that emits ANSI, so it is fiddly to automate.
+      form is honoured (F-17). Needs a compile that emits ANSI, so it is fiddly to automate,
+      and it is the last unverified item in this section.
 
 ## E. Failure injection
 
