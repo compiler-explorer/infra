@@ -538,9 +538,11 @@ Two things still bite:
   appears and vanishes without anyone touching the routers.
 
 Cycling the routers on every deploy would also clear all of this, and is ruled out: the
-restart path adds 502s on single-router environments and an instance refresh adds 10-15
-minutes to every deploy, neither of which is worth it at this severity. Restarting one
-router by hand remains the recovery for a stale one.
+restart path adds 502s on single-router environments, and an instance refresh adds
+minutes to every deploy — measured at 6 minutes on beta when the router ASG's
+`health_check_grace_period` was 300s, roughly half that since it became 150s, and it
+scales with instance count. Neither is worth it at this severity. Restarting one router by
+hand remains the recovery for a stale one.
 
 Note the exposure is bounded: `active-color` is written only by `_update_ssm_parameters`,
 called only from `switch_target_group`, called only by the deploy (`:550`) and the
