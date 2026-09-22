@@ -15,23 +15,20 @@ Tick through this; do not read it as background.
       on your machine — this is the rollback lever.)
 - [ ] Run `ce ce-router disable -e beta` once, before enabling anything, so the rollback
       path is known-good rather than assumed.
-- [ ] Confirm the beta workers are running code that includes
-      [compiler-explorer#9151](https://github.com/compiler-explorer/compiler-explorer/pull/9151)
-      (merged): a worker whose events WebSocket has permanently failed now reports
-      unhealthy instead of sitting in the ASG doing nothing. Until it is deployed, step E
-      still reproduces the old behaviour.
+- [ ] Decide whether the `Accept`-header change is acceptable: with no `Accept` header the
+      router returns JSON where the documented default and the direct path return
+      `text/plain`. This is the only check still failing on beta (F-16), and it is a
+      decision rather than a pending fix.
 - [ ] Decide fix-or-accept on the **four-way 60s timeout stack** — CloudFront
       `origin_read_timeout`, ALB `idle_timeout`, nginx `proxy_read_timeout`, router
       `timeoutSeconds` are all exactly 60 (§2). A compile near that boundary returns a
       clean `408`, a `504`, or an HTML error page depending on scheduling jitter. Wants
       staggering (router innermost and shortest).
-- [ ] Note whether
-      [compiler-explorer#9148](https://github.com/compiler-explorer/compiler-explorer/pull/9148)
-      has merged and reached the workers. If not, expect F-14 behaviour for API clients
-      that send `application/json; charset=utf-8`.
 
-Already fixed and needing no action: the `ce ce-router` group collision, the subscription
-row TTL, and compilation queue retention (300s → 60s).
+Already fixed, deployed and confirmed by a beta smoke run: the `ce ce-router` group
+collision, the subscription row TTL, compilation queue retention (300s → 60s), the
+URL-forwarding `content-length` bug (ce-router `0.3.0`), and compiler-explorer#9148 and
+#9149. compiler-explorer#9151 is merged but can only be confirmed by section E.
 
 ## B. Pre-flight, per environment
 
@@ -160,33 +157,40 @@ the tightest subscribe/result race.
 A run against an environment with no workers fails every check with a 60s timeout, which
 looks identical to a broken router. Do B0 first.
 
-### Beta result — router path, with known issues covered
+### Beta result — router path
 
-`ce --env beta ce-router smoke`, beta-green with 1 worker, ALB rule priority 72 active,
-ce-router `0.3.0`.
+`ce --env beta ce-router smoke --iterations 20`, beta-green, ALB rule priority 72 active,
+ce-router `0.3.0`, workers carrying compiler-explorer#9148/#9149/#9151.
 
-**14/17 passed. The three failures are all tracked open issues**, and all three pass on
-prod's direct path — so the delta between the two runs is exactly the router's blast
-radius, and a prod run doubles as a control that the checks themselves are sound.
+**16/17 passed.** Every queue-path check matches prod, including all three s3Key variants,
+the 258KB overflow request, the 2.1MB response and the boundary sweep. Latency is
+comparable — the cache-hit loop's slowest was 0.73s against prod's 0.33s, which is the
+queue hop.
 
-| Check | Prod (direct) | Beta (router) | Tracked |
+Two checks that failed on the first run now pass, which is how the deploy was confirmed to
+have reached the workers:
+
+| Check | Before the fixes | Now | Tracked |
 |---|---|---|---|
-| no `Accept` header returns the documented text default | `text/plain` ✓ | `application/json` ✗ | atlas F-16 |
-| charset in content-type keeps user arguments | `-D` reached the compiler ✓ | **flags dropped** ✗ | [compiler-explorer#9148](https://github.com/compiler-explorer/compiler-explorer/pull/9148) |
-| oversized result keeps execution output | output survived ✓ | **229KB of asm, `execResult={}`** ✗ | [compiler-explorer#9149](https://github.com/compiler-explorer/compiler-explorer/pull/9149) |
+| charset in content-type keeps user arguments | flags silently dropped | `-D reached the compiler` | [#9148](https://github.com/compiler-explorer/compiler-explorer/pull/9148), merged |
+| oversized result keeps execution output | 229KB of asm, `execResult={}` | output survived | [#9149](https://github.com/compiler-explorer/compiler-explorer/pull/9149), merged |
+| URL-routed compiler | `HTTP 504` after 60.04s | 0.31s | ce-router `0.3.0`, released |
 
-The third is the one to look at twice: the caller gets 229KB of correct assembly and
-silently loses their program's output. No error, no log line, nothing in any metric.
+**The one remaining failure is a decision, not a defect.** With no `Accept` header the
+router returns JSON where the documented default (and the direct path) is `text/plain`.
+Nothing is pending on it — it needs someone to decide whether the change is acceptable, or
+a router-side fix to match `req.accepts(['text','json'])`. Until then it will keep
+reporting `[KNOWN]`, which is correct.
 
-Everything else matched prod, including all three s3Key variants, the 258KB overflow
-request, the 2.1MB response and the boundary sweep. The URL-routed check went from
-`HTTP 504 after 60.04s` to 0.24s once `0.3.0` was deployed.
+Reporting: `[KNOWN]` is a tracked failure and not a regression; `[FAIL]` is untracked and
+is one; `[FIXED]` means a tracked check passed — either the fix reached this environment or
+the path is not exercised here. Running against a direct-routed environment is a useful
+control: all three of the above pass on prod, which shows the checks are sound rather than
+merely red.
 
-Reporting: tracked failures print `[KNOWN]` and do not count as regressions; an untracked
-failure prints `[FAIL]` and is one. A tracked check that *passes* prints `[FIXED]`, which
-means either the fix reached this environment or the path is not exercised here. The
-command exits non-zero on either kind of failure — `--ignore-known` exits 0 when only
-tracked issues failed.
+**Not covered by the suite**: compiler-explorer#9151 (a worker reporting unhealthy once its
+events WebSocket has given up) cannot be confirmed from outside — it needs the failure
+injection in section E.
 
 ## D. API compatibility
 
