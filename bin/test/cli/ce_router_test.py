@@ -5,9 +5,11 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 from lib.cli.ce_router import (
+    ce_router_healthcheck,
     compilation_path_patterns,
     enable,
     exec_all,
+    format_healthcheck,
     get_rule_path_patterns,
     version,
 )
@@ -293,3 +295,103 @@ class TestCERouterVersion(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("CE Router versions for STAGING", result.output)
         self.assertIn("i-12345@10.0.1.100: unknown", result.output)
+
+
+class TestFormatHealthcheck(unittest.TestCase):
+    """The router answers JSON, and a 200 does not by itself mean it can route."""
+
+    def test_healthy_with_connected_websocket(self):
+        body = '{"status": "healthy", "websocket": "connected"}'
+
+        self.assertIn("HEALTHY", format_healthcheck(body))
+        self.assertNotIn("websocket", format_healthcheck(body))
+
+    def test_healthy_with_disconnected_websocket_is_called_out(self):
+        body = '{"status": "healthy", "websocket": "disconnected"}'
+
+        result = format_healthcheck(body)
+
+        self.assertIn("HEALTHY", result)
+        self.assertIn("disconnected", result)
+
+    def test_unhealthy_reports_the_reason(self):
+        body = '{"status": "unhealthy", "reason": "WebSocket connection failed"}'
+
+        result = format_healthcheck(body)
+
+        self.assertIn("UNHEALTHY", result)
+        self.assertIn("WebSocket connection failed", result)
+
+    def test_non_json_response(self):
+        result = format_healthcheck("<html>502 Bad Gateway</html>")
+
+        self.assertIn("UNHEALTHY", result)
+        self.assertIn("502", result)
+
+    def test_empty_response(self):
+        result = format_healthcheck("")
+
+        self.assertIn("UNHEALTHY", result)
+        self.assertIn("(empty)", result)
+
+
+class TestCERouterHealthcheck(unittest.TestCase):
+    def setUp(self):
+        self.runner = CliRunner()
+        self.cfg = Config(env=Environment.STAGING)
+
+    def _instance(self, state="running", instance_id="i-12345", ip="10.0.1.100"):
+        instance = MagicMock()
+        instance.instance.id = instance_id
+        instance.instance.private_ip_address = ip
+        instance.instance.state = {"Name": state}
+        instance.__str__ = MagicMock(return_value=f"{instance_id}@{ip}")
+        return instance
+
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    @patch("lib.cli.ce_router.exec_remote")
+    def test_healthcheck_queries_each_instance(self, mock_exec_remote, mock_get_instances):
+        mock_get_instances.return_value = [self._instance()]
+        mock_exec_remote.return_value = '{"status": "healthy", "websocket": "connected"}'
+
+        result = self.runner.invoke(ce_router_healthcheck, obj=self.cfg)
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("i-12345@10.0.1.100", result.output)
+        self.assertIn("HEALTHY", result.output)
+        # exec_remote needs the instance wrapper, not its id: passing the id raised
+        # AttributeError in ssh_address_for and the command never worked.
+        called_with = mock_exec_remote.call_args[0][0]
+        self.assertEqual(called_with, mock_get_instances.return_value[0])
+        self.assertEqual(mock_exec_remote.call_args[0][1], ["curl", "-s", "http://10.0.1.100/healthcheck"])
+
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    @patch("lib.cli.ce_router.exec_remote")
+    def test_healthcheck_skips_instances_that_are_not_running(self, mock_exec_remote, mock_get_instances):
+        mock_get_instances.return_value = [self._instance(state="stopped")]
+
+        result = self.runner.invoke(ce_router_healthcheck, obj=self.cfg)
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("SKIPPED", result.output)
+        mock_exec_remote.assert_not_called()
+
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    @patch("lib.cli.ce_router.exec_remote")
+    def test_healthcheck_reports_an_unreachable_instance(self, mock_exec_remote, mock_get_instances):
+        mock_get_instances.return_value = [self._instance()]
+        mock_exec_remote.side_effect = RuntimeError("ssh failed")
+
+        result = self.runner.invoke(ce_router_healthcheck, obj=self.cfg)
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("ERROR", result.output)
+
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    def test_healthcheck_no_instances(self, mock_get_instances):
+        mock_get_instances.return_value = []
+
+        result = self.runner.invoke(ce_router_healthcheck, obj=self.cfg)
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("No CE Router instances found", result.output)

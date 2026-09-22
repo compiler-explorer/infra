@@ -9,6 +9,7 @@ so whichever the loader imported second silently replaced the other.
 
 from __future__ import annotations
 
+import json
 import logging
 import shlex
 import time
@@ -827,55 +828,53 @@ def ce_router_restart(cfg: Config, skip_confirmation: bool) -> None:
         print(f"Error restarting CE Router service: {e}")
 
 
+def format_healthcheck(response: str) -> str:
+    """Summarise the JSON a router's /healthcheck returns."""
+    try:
+        payload = json.loads(response)
+    except json.JSONDecodeError:
+        body = response.strip()[:100] or "(empty)"
+        return f"❌ UNHEALTHY - unparseable response: {body}"
+
+    if payload.get("status") != "healthy":
+        return f"❌ UNHEALTHY - {payload.get('reason', 'no reason given')}"
+
+    # The router only fails its healthcheck once reconnection attempts are exhausted, so a
+    # disconnected socket still answers 200 while routing nothing.
+    if payload.get("websocket") != "connected":
+        return f"⚠️  HEALTHY but websocket is {payload.get('websocket', 'unknown')}"
+
+    return "✅ HEALTHY"
+
+
 @ce_router.command(name="healthcheck")
 @click.pass_obj
 def ce_router_healthcheck(cfg: Config) -> None:
     """Send healthcheck requests to all CE Router instance private IPs."""
-    asg_name = f"ce-router-{cfg.env.name.lower()}"
+    instances = _get_ce_router_instances(cfg)
 
-    try:
-        # Get instances from ASG
-        response = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+    if not instances:
+        click.echo(f"No CE Router instances found for environment {cfg.env.name}")
+        return
 
-        if not response["AutoScalingGroups"]:
-            print(f"ASG '{asg_name}' not found")
-            return
+    click.echo(f"Checking health of {len(instances)} CE Router instances...")
 
-        asg = response["AutoScalingGroups"][0]
-        instance_ids = [instance["InstanceId"] for instance in asg["Instances"]]
+    for instance in instances:
+        state = instance.instance.state["Name"]
+        if state != "running":
+            click.echo(f"  {instance}: SKIPPED - instance state is {state}")
+            continue
 
-        if not instance_ids:
-            print("No instances found in CE Router ASG")
-            return
+        url = f"http://{instance.instance.private_ip_address}/healthcheck"
+        try:
+            # Deliberately no -f: an unhealthy router answers 503 with a body saying why,
+            # and that body is the point of asking.
+            response = exec_remote(instance, ["curl", "-s", url])
+        except RuntimeError as e:
+            click.echo(f"  {instance}: ❌ ERROR - {e}")
+            continue
 
-        # Get instance details from EC2
-        ec2_response = ec2_client.describe_instances(InstanceIds=instance_ids)
-
-        print(f"Checking health of {len(instance_ids)} CE Router instances...")
-
-        for reservation in ec2_response["Reservations"]:
-            for instance in reservation["Instances"]:
-                instance_id = instance["InstanceId"]
-                private_ip = instance.get("PrivateIpAddress", "N/A")
-                state = instance["State"]["Name"]
-
-                if state != "running":
-                    print(f"  {instance_id} ({private_ip}): SKIPPED - instance state is {state}")
-                    continue
-
-                # Send healthcheck request to private IP
-                try:
-                    print(f"  {instance_id} ({private_ip}): ", end="", flush=True)
-                    result = exec_remote(instance_id, ["curl", "-f", "-s", f"http://{private_ip}/healthcheck"])
-                    if result and "OK" in result:
-                        print("✅ HEALTHY")
-                    else:
-                        print(f"❌ UNHEALTHY - Response: {result}")
-                except RuntimeError as e:
-                    print(f"❌ ERROR - {e}")
-
-    except ClientError as e:
-        print(f"Error checking CE Router healthcheck: {e}")
+        click.echo(f"  {instance}: {format_healthcheck(response)}")
 
 
 @ce_router.command(name="smoke")
