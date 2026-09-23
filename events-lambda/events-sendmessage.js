@@ -23,26 +23,14 @@ async function send_message(apiGwClient, connectionId, postData) {
     }
 }
 
-async function relay_request(apiGwClient, senderConnectionId, guid, data, rawData = null) {
+async function relay_request(apiGwClient, guid, data, rawData = null) {
     // eslint-disable-next-line no-console
     console.info(`Subscriber lookup start for GUID: ${guid}`);
     const subscribers = await EventsConnections.subscribers(guid);
     // eslint-disable-next-line no-console
     console.info(`Subscriber lookup end for GUID: ${guid}, found ${subscribers.Count} subscribers`);
 
-    if (subscribers.Count === 0) {
-        // Tell the sender straight away. Relaying is one-way, so without this it has no way to
-        // learn nobody is listening: it waits out its whole retry budget, and a worker will not
-        // pull new work while it is waiting for an acknowledgement that cannot arrive.
-        await send_message(
-            apiGwClient,
-            senderConnectionId,
-            JSON.stringify({type: 'nack', guid: guid, reason: 'no-listeners'}),
-        );
-        // Still fail the invocation: the resulting 501 in the access log is the signal that
-        // results are being produced for requests nobody is waiting for any more.
-        throw new Error('No listeners for ' + guid);
-    }
+    if (subscribers.Count === 0) throw new Error('No listeners for ' + guid);
 
     // eslint-disable-next-line no-console
     console.info(`Message relay start for GUID: ${guid} to ${subscribers.Count} subscribers`);
@@ -126,7 +114,7 @@ async function handle_object_message(apiGwClient, connectionId, message, rawMess
         // Track the sender of this GUID for potential acks
         await EventsConnections.trackGuidSender(message.guid, connectionId);
 
-        await relay_request(apiGwClient, connectionId, message.guid, message, rawMessage);
+        await relay_request(apiGwClient, message.guid, message, rawMessage);
     } else {
         // eslint-disable-next-line no-console
         console.warn('Received object message without guid:', rawMessage);

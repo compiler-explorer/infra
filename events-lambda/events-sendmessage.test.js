@@ -40,28 +40,16 @@ test('an object message relays to subscribers and returns 200', async t => {
     assert.equal(posted[0].input.ConnectionId, 'listener-conn');
 });
 
-test('an object message with no subscribers returns 501 and nacks the sender', async t => {
-    const posted = [];
+test('an object message with no subscribers returns 501', async t => {
     t.mock.method(DynamoDBClient.prototype, 'send', async cmd => {
         if (cmd instanceof QueryCommand) {
             return {Items: [], Count: 0};
         }
         return {};
     });
-    t.mock.method(ApiGatewayManagementApiClient.prototype, 'send', async cmd => {
-        posted.push(cmd);
-        return {};
-    });
+    t.mock.method(ApiGatewayManagementApiClient.prototype, 'send', async () => ({}));
     const res = await handler(event(JSON.stringify({guid: 'guid-empty', code: '42'})));
     assert.equal(res.statusCode, 501);
-    // Without the nack the sender waits out its full retry budget, and a worker holds off
-    // pulling new work for as long as it has an unacknowledged result.
-    assert.equal(posted.length, 1);
-    assert.deepEqual(JSON.parse(posted[0].input.Data), {
-        type: 'nack',
-        guid: 'guid-empty',
-        reason: 'no-listeners',
-    });
 });
 
 test('a ping message replies with pong to the sender', async t => {
