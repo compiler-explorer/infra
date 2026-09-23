@@ -54,11 +54,6 @@ data "aws_ssm_parameter" "discord_webhook_url" {
   with_decryption = true
 }
 
-import {
-  to = grafana_notification_policy.root
-  id = "policy"
-}
-
 # The whole policy tree; the root route catches alerts that name no contact point (e.g. synthetic monitoring).
 resource "grafana_notification_policy" "root" {
   contact_point      = grafana_contact_point.admins.name
