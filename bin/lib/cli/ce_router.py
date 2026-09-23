@@ -945,6 +945,12 @@ def ce_router_healthcheck(cfg: Config) -> None:
     help="Build systems to exercise; each uses its own manifest and language",
 )
 @click.option("--iterations", default=50, show_default=True, help="Repeats for the cache-hit loop")
+@click.option(
+    "--concurrency",
+    default=20,
+    show_default=True,
+    help="Requests to put in flight at once; the check that more than one router can be tested by",
+)
 @click.option("--skip-slow", is_flag=True, help="Skip the oversized request/response and boundary-sweep checks")
 @click.option("--ignore-known", is_flag=True, help="Exit 0 even if checks tracked by an open issue fail")
 @click.pass_obj
@@ -956,6 +962,7 @@ def smoke(
     base_override: str | None,
     build_systems: Sequence[str],
     iterations: int,
+    concurrency: int,
     skip_slow: bool,
     ignore_known: bool,
 ):
@@ -1020,6 +1027,7 @@ def smoke(
         unrouted_compiler=unrouted_compiler,
         build_systems=tuple(build_systems),
         loop_iterations=iterations,
+        concurrency=concurrency,
         skip_slow=skip_slow,
     )
 

@@ -14,8 +14,10 @@ import json
 import logging
 import time
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any
+from uuid import uuid4
 
 import requests
 from botocore.exceptions import ClientError
@@ -511,6 +513,7 @@ def run_checks(
     url_compiler: str | None = None,
     unrouted_compiler: str | None = None,
     build_systems: tuple[str, ...] = ("cmake",),
+    concurrency: int = 20,
     loop_iterations: int = 50,
     skip_slow: bool = False,
 ) -> Findings:
@@ -542,6 +545,7 @@ def run_checks(
         ok, detail = classify_compilation(status, payload, require_success=True)
         findings.add(f"compiler absent from routing table ({unrouted_compiler})", ok, detail, secs)
 
+    check_concurrent_distinct_results(base, queue_compiler, findings, concurrency)
     check_compilation_error_is_delivered(base, queue_compiler, findings)
     check_documented_text_api(base, queue_compiler, findings)
     check_accept_default(base, queue_compiler, findings)
@@ -606,6 +610,44 @@ def check_oversized_execution_keeps_output(base: str, compiler_id: str, findings
                 f"asm {asm_size // 1024}KB arrived but the program's output did not (execResult={exec_result!r:.80})"
             )
     findings.add("oversized result keeps execution output", ok, detail, secs, tracked="compiler-explorer#9149")
+
+
+def check_concurrent_distinct_results(base: str, compiler_id: str, findings: Findings, concurrency: int) -> None:
+    """Many requests in flight at once, each of which must get its own result back.
+
+    Every router behind the ALB holds its own events websocket, so a result has to find its way
+    back to the router that subscribed for that GUID rather than to whichever one happens to be
+    listening. A sequential suite never has two requests in flight, so it cannot see a result
+    delivered to the wrong router - it would look like an ordinary success. Each request here
+    carries a marker that has to appear in that request's own response.
+
+    Unique sources also mean none of these can be served from cache, so every one is a full
+    trip through the queue, the worker and the websocket.
+    """
+    run_id = uuid4().hex[:8]
+
+    def one(n: int) -> tuple[bool, str]:
+        marker = f"smoke_{run_id}_{n}"
+        status, payload, _ = post_compile(
+            _compile_url(base, compiler_id), compile_body(f"int {marker}() {{ return {n}; }}\n"), timeout=120
+        )
+        ok, detail = classify_compilation(status, payload, require_success=True)
+        if not ok:
+            return False, f"#{n}: {detail}"
+        if marker not in asm_text(payload):
+            return False, f"#{n}: response did not carry its own marker {marker}"
+        return True, ""
+
+    started = time.time()
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
+        outcomes = list(pool.map(one, range(concurrency)))
+    failures = [detail for ok, detail in outcomes if not ok]
+    findings.add(
+        f"{concurrency} concurrent requests, each getting its own result",
+        not failures,
+        "every response carried its own marker" if not failures else " | ".join(failures[:4]),
+        time.time() - started,
+    )
 
 
 def check_documented_text_api(base: str, compiler_id: str, findings: Findings) -> None:
