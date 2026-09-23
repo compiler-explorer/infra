@@ -467,6 +467,15 @@ When installing Go compilers using the `go` installer type (configured in `bin/y
 - Builds are idempotent: existing builds are detected via marker files
 - Core logic in `bin/lib/golang_stdlib.py`, installer in `bin/lib/installable/go.py`
 
+## Usage Statistics and Athena
+
+Compiler and library usage are already computed weekly (`ce compiler-stats update`, `ce library-stats update` in `crontab.admin`) and published as public CSVs:
+
+- https://compiler-explorer.s3.amazonaws.com/public/compiler_usage.csv
+- https://compiler-explorer.s3.amazonaws.com/public/library_usage.csv
+
+Read these first; they need no credentials and conan.compiler-explorer.com renders them. Use Athena only for questions they cannot answer. The molty IAM user queries through the `molty` workgroup, which caps each query's scan and writes results under `athena-results/molty/`. Prefer `compile_stats`, which is partitioned by date, and always filter on its partition columns; `alb_logs`, `cloudfront_logs`, `cloudtrail_logs...` and `stats` are unpartitioned, so every query against them scans the whole prefix.
+
 ## AWS Integration Pattern
 
 AWS clients are defined in `bin/lib/amazon.py` using lazy initialization:

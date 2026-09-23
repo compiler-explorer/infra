@@ -874,8 +874,7 @@ resource "aws_security_group_rule" "WinBuilder_SmbLocally" {
 }
 
 # Read-only IAM user for Molty (AI assistant) to monitor and debug CE infrastructure and AWS usage.
-# Managed read-only policies below, plus an inline policy for the few things they miss. The only write
-# anywhere is Athena query output under its own S3 prefix. Access key is managed outside Terraform.
+# Access key is managed outside Terraform.
 # force_destroy allows terraform destroy to succeed even if an access key exists.
 resource "aws_iam_user" "molty" {
   name          = "molty"
@@ -888,23 +887,7 @@ resource "aws_iam_user" "molty" {
 locals {
   molty_readonly_policy_arns = toset([
     "arn:aws:iam::aws:policy/AWSBillingReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AWSCertificateManagerReadOnly",
-    "arn:aws:iam::aws:policy/AWSCloudTrail_ReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AWSLambda_ReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AWSWAFReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonElasticFileSystemReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonEventBridgeReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonRoute53ReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonSNSReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonSQSReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AutoScalingReadOnlyAccess",
-    "arn:aws:iam::aws:policy/CloudFrontReadOnlyAccess",
-    "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess",
-    "arn:aws:iam::aws:policy/ElasticLoadBalancingReadOnly",
-    "arn:aws:iam::aws:policy/ServiceQuotasReadOnlyAccess",
+    "arn:aws:iam::aws:policy/ReadOnlyAccess",
   ])
 }
 
@@ -922,64 +905,27 @@ resource "aws_iam_user_policy" "molty_readonly_extras" {
     Version = "2012-10-17"
     Statement = [
       {
+        Sid      = "NoSecrets"
+        Effect   = "Deny"
+        Action   = ["ssm:GetParameter*", "secretsmanager:GetSecretValue"]
+        Resource = "*"
+      },
+      {
         Sid    = "AthenaQueries"
         Effect = "Allow"
         Action = [
-          "athena:GetWorkGroup",
           "athena:StartQueryExecution",
+          "athena:StopQueryExecution",
           "athena:GetQueryExecution",
           "athena:GetQueryResults",
-          "athena:StopQueryExecution",
-          "athena:ListQueryExecutions",
         ]
-        Resource = "arn:aws:athena:us-east-1:${data.aws_caller_identity.current.account_id}:workgroup/primary"
-      },
-      {
-        Sid    = "GlueCatalogRead"
-        Effect = "Allow"
-        Action = [
-          "glue:GetDatabase",
-          "glue:GetDatabases",
-          "glue:GetTable",
-          "glue:GetTables",
-          "glue:GetPartition",
-          "glue:GetPartitions",
-        ]
-        Resource = [
-          "arn:aws:glue:us-east-1:${data.aws_caller_identity.current.account_id}:catalog",
-          "arn:aws:glue:us-east-1:${data.aws_caller_identity.current.account_id}:database/default",
-          "arn:aws:glue:us-east-1:${data.aws_caller_identity.current.account_id}:table/default/*",
-        ]
+        Resource = aws_athena_workgroup.molty.arn
       },
       {
         Sid      = "AthenaResultsOutput"
         Effect   = "Allow"
-        Action   = ["s3:PutObject", "s3:GetObject", "s3:AbortMultipartUpload"]
+        Action   = ["s3:PutObject", "s3:AbortMultipartUpload"]
         Resource = "${aws_s3_bucket.compiler-explorer-logs.arn}/athena-results/molty/*"
-      },
-      {
-        Sid      = "PrefixListEntries"
-        Effect   = "Allow"
-        Action   = ["ec2:GetManagedPrefixListEntries"]
-        Resource = "*"
-      },
-      {
-        Sid      = "AwsHealthEvents"
-        Effect   = "Allow"
-        Action   = ["health:Describe*"]
-        Resource = "*"
-      },
-      {
-        Sid    = "OwnUserRead"
-        Effect = "Allow"
-        Action = [
-          "iam:GetUser",
-          "iam:ListAttachedUserPolicies",
-          "iam:ListUserPolicies",
-          "iam:GetUserPolicy",
-          "iam:ListAccessKeys",
-        ]
-        Resource = aws_iam_user.molty.arn
       },
     ]
   })
