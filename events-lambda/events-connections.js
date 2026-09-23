@@ -113,6 +113,10 @@ export class EventsConnections {
             Item: {
                 connectionId: {S: `${id}#${subscription}`},
                 subscription: {S: subscription},
+                // A subscription belongs to one in-flight compilation, not to the connection: the router gives up
+                // after 60s, and re-subscribes under a new connectionId if it reconnects. 5 minutes is well clear
+                // of that, and stops rows leaking when the unsubscribe never arrives.
+                ttl: {N: String(Math.floor(Date.now() / 1000) + 300)},
             },
         });
 

@@ -270,6 +270,13 @@ The `ce workflows` command group provides functionality to trigger GitHub Action
 
 - **`ce workflows list`** - List available workflows across repositories
 
+The admin node's GitHub Actions runner takes one job at a time, so a dispatched discovery
+queues behind whatever holds it -- the nightly compiler install can hold it for hours.
+`./run-discovery.sh BUILDNUMBER` runs the same sequence directly from the admin node
+instead. It refuses to start if the runner instance is already up, since that usually
+means a discovery is already in flight, and it stops the instance on the way out however
+it exits.
+
 - **`ce workflows status [OPTIONS]`** - Show recent workflow run status
   - By default shows both infra and compiler-explorer repositories
   - Filter by `--repo` to show specific repository, `--workflow`, `--status`, `--branch`
@@ -289,9 +296,26 @@ All workflow trigger commands support `--dry-run` to preview the `gh` command wi
 
 ## CE Router Management
 
-The `ce ce-router` command group provides emergency controls for the CE Router routing system:
+The `ce ce-router` command group provides instance management and emergency routing
+controls for the CE Router system:
 
 ### Available Commands
+
+- **`ce ce-router instances`** - Show ASG capacity and per-instance health
+  - Lists desired/min/max capacity, each instance's state and lifecycle, and target group health
+  - Example: `ce --env prod ce-router instances`
+
+- **`ce ce-router healthcheck`** - Query `/healthcheck` on each instance's private IP
+  - Example: `ce --env prod ce-router healthcheck`
+
+- **`ce ce-router scale DESIRED_CAPACITY`** - Manually scale the ASG
+  - Example: `ce --env prod ce-router scale 4`
+
+- **`ce ce-router login`** - SSH into a CE Router instance
+  - Use `--instance-id` to pick one; otherwise the first available is used
+
+- **`ce ce-router restart`** - Restart the `ce-router` service on all instances
+  - Note this briefly interrupts service on single-instance environments (beta, staging)
 
 - **`ce ce-router exec_all REMOTE_CMD`** - Execute commands on all CE Router instances
   - Runs the specified command on all CE Router instances in the current environment
@@ -533,6 +557,15 @@ The codebase supports multiple environments defined in `lib/env.py`:
 
 Each environment has properties like `keep_builds`, `is_windows`, `is_prod`, etc.
 
+### Reaching an environment over HTTP
+
+Environments are selected by path: beta is `https://godbolt.org/beta`, staging is
+`https://godbolt.org/staging`. There are no per-environment hostnames --
+`beta.godbolt.org` and `beta.compiler-explorer.com` return 200 but match no path
+rule, so they silently serve prod. Check `/api/version` against
+`ce --env <env> builds current` before trusting any result you got over HTTP.
+See the Environment URLs section in `docs/aws_architecture_current.md`.
+
 ## Blue-Green Deployment Process
 
 The blue-green deployment system includes automatic post-deployment steps that ensure the environment is fully configured.
@@ -545,7 +578,8 @@ The blue-green deployment system includes automatic post-deployment steps that e
 4. **Traffic Switch**: Switches load balancer traffic to new instances
 5. **Scale Down Protection**: Resets ASG minimum sizes
 6. **Compiler Routing Update**: Automatically updates the compiler routing table for the environment
-7. **GitHub Notifications**: Sends notifications for production deployments (when enabled)
+7. **Router Cache Clear**: Invalidates the ce-router caches, last, so they cannot be refilled from the pre-switch active colour or the pre-update routing table. `rollback` does the same. A router that cannot be reached is reported loudly: its cache has no TTL, so it stays stale until cleared by hand or restarted
+8. **GitHub Notifications**: Sends notifications for production deployments (when enabled)
 
 ### Compiler Routing Integration
 

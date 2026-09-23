@@ -10,8 +10,10 @@ Managed today: folder **CE Alerts** and its rule groups -- Instance Restarts
 low, infra#2310), Staging Instances (staging left running). Every hand-made
 alert has been adopted or replaced; the remaining rules in the stack
 (`integrations-linux-node`, synthetic monitoring) are vendor/plugin-owned --
-leave them alone. Contact points are still hand-made; rules reference
-"Discord Admins" by name.
+leave them alone. Contact point **Discord Alerts** is managed here too (provisioned, so read-only in the UI); its
+webhook comes from SSM `/admin/discord_webhook_url`, shared with the AWS root's
+`cloudwatch_to_discord` Lambda so CloudWatch and Grafana alerts reach the same
+channel. Change the channel by updating that parameter and applying both roots.
 
 Provisioned rules are read-only in the UI (the "Provisioned" badge); use
 silences during incidents. To experiment, build a rule in another folder,
@@ -50,9 +52,8 @@ because the provider config depends on a data source.) Import ids:
   supply the real value (via `data "aws_ssm_parameter"`); it then sits in state
 - `grafana_dashboard`: dashboard uid; keep JSON in a file via `config_json`
 
-Deliberately not managed: the notification policy tree (a singleton; rules use
-`notification_settings` to name a contact point directly, bypassing it) and
-the node-side agent config (`grafana/agent.yaml`, baked into images).
+The notification policy tree is managed in `main.tf` as a whole (`grafana_notification_policy` is a singleton); rules still use
+`notification_settings` to name a contact point directly. Deliberately not managed: the node-side agent config (`grafana/agent.yaml`, baked into images).
 
 ## Adding a rule
 

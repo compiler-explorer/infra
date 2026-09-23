@@ -31,6 +31,16 @@ test('update writes a composite-key item for the subscription', async t => {
     assert.equal(calls[0].input.Item.subscription.S, 'guid-up');
 });
 
+test('update gives the subscription a ttl so it cannot leak', async t => {
+    const calls = recordSend(t);
+    const before = Math.floor(Date.now() / 1000);
+    await EventsConnections.update('conn-ttl', 'guid-ttl');
+    const ttl = Number(calls[0].input.Item.ttl.N);
+    // Comfortably past the router's 60s deadline, so it can never expire a subscription still being waited on.
+    assert.ok(ttl >= before + 300, `ttl ${ttl} should be at least 300s ahead of ${before}`);
+    assert.ok(ttl <= Math.floor(Date.now() / 1000) + 300);
+});
+
 test('unsubscribe deletes the composite-key item', async t => {
     const calls = recordSend(t);
     await EventsConnections.unsubscribe('conn-un', 'guid-un');
