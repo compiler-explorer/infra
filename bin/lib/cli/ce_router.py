@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import logging
 import shlex
+import sys
 import time
 from collections.abc import Sequence
 
@@ -698,7 +699,7 @@ def ce_router_instances(cfg: Config) -> None:
 
         # Check target group health
         try:
-            target_groups = elb_client.describe_target_groups(Names=["ce-router"])
+            target_groups = elb_client.describe_target_groups(Names=[f"ce-router-{cfg.env.name.lower()}"])
 
             if target_groups["TargetGroups"]:
                 tg_arn = target_groups["TargetGroups"][0]["TargetGroupArn"]
@@ -717,6 +718,46 @@ def ce_router_instances(cfg: Config) -> None:
         print(f"Error retrieving CE Router status: {e}")
 
 
+def _healthy_router_count(cfg: Config) -> int | None:
+    """Instances the ALB is willing to send requests to, or None if the group cannot be read."""
+    try:
+        groups = elb_client.describe_target_groups(Names=[f"ce-router-{cfg.env.name.lower()}"])
+        if not groups["TargetGroups"]:
+            return None
+        health = elb_client.describe_target_health(TargetGroupArn=groups["TargetGroups"][0]["TargetGroupArn"])
+        return sum(1 for t in health["TargetHealthDescriptions"] if t["TargetHealth"]["State"] == "healthy")
+    except ClientError:
+        return None
+
+
+def _wait_for_router_capacity(cfg: Config, asg_name: str, desired: int, timeout_seconds: int = 600) -> int:
+    """Block until the target group reports `desired` healthy routers, and report what it saw.
+
+    Asking the ASG alone is not enough: an instance counts as InService well before the ALB
+    health check passes, so a scale that only waited on the ASG would hand back a fleet that is
+    not yet taking traffic - and a test run against it would be measuring the old capacity.
+    """
+    deadline = time.time() + timeout_seconds
+    healthy = 0
+    last_report = ""
+    while time.time() < deadline:
+        asg = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])["AutoScalingGroups"][0]
+        in_service = sum(1 for i in asg["Instances"] if i["LifecycleState"] == "InService")
+        counted = _healthy_router_count(cfg)
+        if counted is None:
+            # No target group to consult (the routing may not be enabled); InService is all there is.
+            return in_service if in_service >= desired else in_service
+        healthy = counted
+        report = f"  {len(asg['Instances'])} in ASG, {in_service} InService, {healthy} healthy in target group"
+        if report != last_report:
+            print(report)
+            last_report = report
+        if healthy >= desired and in_service >= desired:
+            return healthy
+        time.sleep(10)
+    return healthy
+
+
 @ce_router.command(name="scale")
 @click.argument("desired_capacity", type=int, required=True)
 @click.option("--skip-confirmation", is_flag=True, help="Skip confirmation prompt")
@@ -729,21 +770,34 @@ def ce_router_scale(cfg: Config, desired_capacity: int, skip_confirmation: bool)
         return
 
     try:
-        print(f"Scaling CE Router ASG to {desired_capacity} instances...")
+        current = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])["AutoScalingGroups"][0]
 
-        as_client.update_auto_scaling_group(AutoScalingGroupName=asg_name, DesiredCapacity=desired_capacity)
+        # DesiredCapacity outside [MinSize, MaxSize] is rejected, so move the bounds with it.
+        update: dict = {"AutoScalingGroupName": asg_name, "DesiredCapacity": desired_capacity}
+        if desired_capacity > current["MaxSize"]:
+            update["MaxSize"] = desired_capacity
+            print(f"Raising MaxSize from {current['MaxSize']} to {desired_capacity}")
+        if desired_capacity < current["MinSize"]:
+            update["MinSize"] = desired_capacity
+            print(f"Lowering MinSize from {current['MinSize']} to {desired_capacity}")
 
-        print("Scaling request sent. Waiting for instances to reach desired state...")
+        print(f"Scaling CE Router ASG from {current['DesiredCapacity']} to {desired_capacity} instances...")
+        as_client.update_auto_scaling_group(**update)
 
-        # Wait for scaling to complete
-        # Note: wait_for_autoscale_state expects Instance object, not ASG name
-        # For now, just sleep to allow time for scaling
-        time.sleep(30)
-
-        print(f"CE Router ASG successfully scaled to {desired_capacity} instances")
+        healthy = _wait_for_router_capacity(cfg, asg_name, desired_capacity)
+        if healthy == desired_capacity:
+            print(f"CE Router ASG is serving traffic from {healthy} instance(s)")
+        else:
+            print(
+                f"Gave up waiting: {healthy} of {desired_capacity} instance(s) are healthy in the target group. "
+                f"Run 'ce --env {cfg.env.name.lower()} ce-router instances' to see where they are stuck.",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
 
     except ClientError as e:
         print(f"Error scaling CE Router ASG: {e}")
+        raise SystemExit(1) from e
 
 
 @ce_router.command(name="login")
