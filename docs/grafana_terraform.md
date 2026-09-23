@@ -52,9 +52,8 @@ because the provider config depends on a data source.) Import ids:
   supply the real value (via `data "aws_ssm_parameter"`); it then sits in state
 - `grafana_dashboard`: dashboard uid; keep JSON in a file via `config_json`
 
-Deliberately not managed: the notification policy tree (a singleton; rules use
-`notification_settings` to name a contact point directly, bypassing it) and
-the node-side agent config (`grafana/agent.yaml`, baked into images).
+The notification policy tree is managed in `main.tf` as a whole (`grafana_notification_policy` is a singleton); rules still use
+`notification_settings` to name a contact point directly. Deliberately not managed: the node-side agent config (`grafana/agent.yaml`, baked into images).
 
 ## Adding a rule
 

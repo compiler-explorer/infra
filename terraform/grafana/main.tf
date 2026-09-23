@@ -54,6 +54,46 @@ data "aws_ssm_parameter" "discord_webhook_url" {
   with_decryption = true
 }
 
+import {
+  to = grafana_notification_policy.root
+  id = "policy"
+}
+
+# The whole policy tree; the root route catches alerts that name no contact point (e.g. synthetic monitoring).
+resource "grafana_notification_policy" "root" {
+  contact_point      = grafana_contact_point.admins.name
+  group_by           = ["grafana_folder", "alertname"]
+  disable_provenance = true
+
+  policy {
+    contact_point = grafana_contact_point.admins.name
+    continue      = true
+    matcher {
+      label = "__contacts__"
+      match = "=~"
+      value = ".*\"Discord Admins\".*"
+    }
+  }
+  policy {
+    contact_point = "Discord Admins Microsoft"
+    continue      = true
+    matcher {
+      label = "__contacts__"
+      match = "=~"
+      value = ".*\"Discord Admins Microsoft\".*"
+    }
+  }
+  policy {
+    contact_point = "Mail MS"
+    continue      = true
+    matcher {
+      label = "__contacts__"
+      match = "=~"
+      value = ".*\"Mail MS\".*"
+    }
+  }
+}
+
 resource "grafana_contact_point" "admins" {
   name = "Discord Alerts"
   discord {
