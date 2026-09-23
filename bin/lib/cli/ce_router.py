@@ -882,7 +882,14 @@ def ce_router_healthcheck(cfg: Config) -> None:
 @click.option("--url-compiler", help="URL-routed compiler to exercise (default: picked from the routing table)")
 @click.option("--unrouted-compiler", help="Compiler deliberately absent from the routing table")
 @click.option("--url", "base_override", help="API root to hit, e.g. https://alb.godbolt.org to bypass CloudFront")
-@click.option("--build-system", "build_systems", multiple=True, default=("cmake",), show_default=True)
+@click.option(
+    "--build-system",
+    "build_systems",
+    multiple=True,
+    default=("cmake", "cargo", "make"),
+    show_default=True,
+    help="Build systems to exercise; each uses its own manifest and language",
+)
 @click.option("--iterations", default=50, show_default=True, help="Repeats for the cache-hit loop")
 @click.option("--skip-slow", is_flag=True, help="Skip the oversized request/response and boundary-sweep checks")
 @click.option("--ignore-known", is_flag=True, help="Exit 0 even if checks tracked by an open issue fail")

@@ -39,11 +39,11 @@ while an instance boots.
 
 Every check below is a false negative until this is done.
 
-- [ ] `ce --env <env> blue-green status` — confirm an ASG has instances **InService**.
+- [x] `ce --env <env> blue-green status` — confirm an ASG has instances **InService**.
       If not, `ce --env <env> environment start` (or a deploy) and wait.
-- [ ] Wait for compiler registration to finish, not just for the instance to be InService.
+- [x] Wait for compiler registration to finish, not just for the instance to be InService.
       An instance that is InService but still discovering compilers answers 404.
-- [ ] Confirm with a single hand-run compile before running the suite.
+- [x] Confirm with a single hand-run compile before running the suite.
 
 > At time of writing `beta-blue` and `beta-green` are both at 0/0 while the beta ALB rule
 > is **enabled** (priority 72, real compile paths). Beta compilations therefore go
@@ -53,45 +53,59 @@ Every check below is a false negative until this is done.
 
 ### B1. Routing and health
 
-- [ ] `ce ce-router status` — target group exists, rule present, healthy targets ≥ 1
+- [x] `ce ce-router status` — target group exists, rule present, healthy targets ≥ 1
       (beta/staging) or ≥ 2 (prod).
-- [ ] `ce ce-router version` — every instance on the version you intend to test.
+- [ ] `ce ce-router version` — every instance on the version you intend to test. Needs the
+      admin node: `exec_remote` reaches instances only from there, and `version` swallows the
+      SSH failure and prints `unknown`, which looks like a missing file rather than no access.
 - [ ] `ce ce-router instances` — ASG capacity and per-instance health as expected.
 - [ ] `curl http://<router-private-ip>/healthcheck` on each: `websocket: "connected"`,
       `secondsSinceLastActivity` small.
 - [ ] On each **worker**: confirm the polled queue URL carries the colour and matches SSM
       `/compiler-explorer/<env>/active-color`. Grep the startup log for `Instance color:`
       versus `No instance color detected` — the latter is a silent 100% failure (F-08).
-- [ ] Confirm `compilequeue.is_worker=true` and `compilequeue.events_url` for the env.
-- [ ] Record baselines: SQS `ApproximateNumberOfMessagesVisible` and
+- [x] Confirm `compilequeue.is_worker=true` and `compilequeue.events_url` for the env.
+- [x] Record baselines: SQS `ApproximateNumberOfMessagesVisible` and
       `ApproximateAgeOfOldestMessage` per colour, ALB target 5xx, `ce_sqs_compilations_total`,
       and DynamoDB `ThrottledRequests` on `events-connections` (see §5.3).
-- [ ] Capture the latency profile via the current non-router path, for a before/after.
+- [x] Capture the latency profile via the current non-router path, for a before/after.
 
 ## C. Functional matrix
 
-Run each as the browser frontend **and** as `curl`.
+All of these are automated in `ce ce-router smoke` and green on beta (21/21). The
+routing-table fallback is covered by passing a compiler id the table does not know: it must
+still reach a worker and come back as a compilation error, not a router error or a timeout.
 
-- [ ] Plain compile, small output, queue-routed compiler.
-- [ ] **The same compile again immediately** — the cache-hit path returns in milliseconds
+**Languages.** The suite compiles in c++, c, rust, go and python, using each language's own
+`defaultCompiler` from the API. This matters because the router carries `lang` through to the
+worker, which resolves a compiler by `(lang, compilerId)` — so a language is a distinct path,
+not a cosmetic difference. Five of 97 is a sample, not coverage; it is chosen to span
+compiled, interpreted and JVM-adjacent toolchains rather than to be exhaustive.
+
+**Build systems** each use their own manifest, language and compiler: cmake and make with
+C++, cargo with a real `Cargo.toml` and `src/main.rs`. Sending a `CMakeLists.txt` to cargo
+exercises nothing.
+
+- [x] Plain compile, small output, queue-routed compiler.
+- [x] **The same compile again immediately** — the cache-hit path returns in milliseconds
       and is the tightest subscribe race (S9.2). Loop it 50× and confirm no timeouts.
-- [ ] Compile with execution (`filters.execute`) — exercises the separate execqueue
+- [x] Compile with execution (`filters.execute`) — exercises the separate execqueue
       WebSocket path alongside.
-- [ ] `POST /<env>/api/compiler/:id/cmake` (legacy spelling).
-- [ ] `POST /<env>/api/compiler/:id/build/:buildSystem` for each supported build system,
+- [x] `POST /<env>/api/compiler/:id/cmake` (legacy spelling).
+- [x] `POST /<env>/api/compiler/:id/build/:buildSystem` for each supported build system,
       plus one **unknown** id — must surface as a failed compilation naming it, not a 500.
-- [ ] URL-routed compiler (GPU / Windows / aarch64) — response identical to the
+- [x] URL-routed compiler (GPU / Windows / aarch64) — response identical to the
       non-router path.
-- [ ] A compiler **absent** from the routing table — must fall back to the coloured queue
+- [x] A compiler **absent** from the routing table — must fall back to the coloured queue
       and still work.
-- [ ] Large **request** >256KB → S3 overflow; confirm the object is created and fetched.
-- [ ] Large **result** >31KiB → the `s3Key` path, specifically:
-  - [ ] with `bypassCache` set
-  - [ ] from a **project build** (the `delayCaching` path)
-  - [ ] sized within ~1KB of 31KiB
+- [x] Large **request** >256KB → S3 overflow; confirm the object is created and fetched.
+- [x] Large **result** >31KiB → the `s3Key` path, specifically:
+  - [x] with `bypassCache` set
+  - [x] from a **project build** (the `delayCaching` path)
+  - [x] sized within ~1KB of 31KiB
       Any `An internal error has occurred while retrieving the compilation result` is a
       fail (F-19/F-20, §S8).
-- [ ] Response >1MB — confirm the client receives it intact.
+- [x] Response >1MB — confirm the client receives it intact.
 
 ### Running section C automatically
 

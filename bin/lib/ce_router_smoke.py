@@ -133,7 +133,7 @@ def source_emitting_at_least_that_runs(target_bytes: int) -> str:
     return "#include <cstdio>\n" + body + main
 
 
-def compile_body(source: str, user_arguments: str = "-O0", **extra: Any) -> dict[str, Any]:
+def compile_body(source: str, user_arguments: str = "-O0", lang: str = "c++", **extra: Any) -> dict[str, Any]:
     body: dict[str, Any] = {
         "source": source,
         "options": {
@@ -143,7 +143,7 @@ def compile_body(source: str, user_arguments: str = "-O0", **extra: Any) -> dict
             "tools": [],
             "libraries": [],
         },
-        "lang": "c++",
+        "lang": lang,
     }
     body.update(extra)
     return body
@@ -227,6 +227,82 @@ def classify_compilation(status: int, payload: Any, require_success: bool = Fals
 CMAKE_MANIFEST = "cmake_minimum_required(VERSION 3.10)\nproject(smoke CXX)\nadd_executable(smoke example.cpp)\n"
 CMAKE_FILES = [{"filename": "example.cpp", "contents": "int main() { return 0; }\n"}]
 
+# Compiler Explorer is 97 languages, not one. The router carries `lang` through to the worker,
+# which looks a compiler up by (lang, compilerId), so each language is a distinct path rather
+# than a cosmetic difference. These are the smallest valid program in each.
+LANGUAGE_FIXTURES = {
+    "c++": "int main() { return 0; }\n",
+    "c": "int main(void) { return 0; }\n",
+    "rust": "fn main() {}\n",
+    "go": "package main\n\nfunc main() {}\n",
+    "python": "print(1)\n",
+}
+
+
+@dataclass(frozen=True)
+class BuildSystemFixture:
+    """A minimal project for one build system: its manifest, its language, its sources."""
+
+    lang: str
+    source: str
+    """The manifest - CMakeLists.txt, Cargo.toml, Makefile - which the API takes as `source`."""
+    files: list[dict[str, str]]
+
+
+# Sending a CMakeLists.txt to cargo tests nothing useful, so each build system gets its own.
+BUILD_SYSTEM_FIXTURES: dict[str, BuildSystemFixture] = {
+    "cmake": BuildSystemFixture(lang="c++", source=CMAKE_MANIFEST, files=CMAKE_FILES),
+    "cargo": BuildSystemFixture(
+        lang="rust",
+        source='[package]\nname = "smoke"\nversion = "0.1.0"\nedition = "2021"\n',
+        files=[{"filename": "src/main.rs", "contents": "fn main() {}\n"}],
+    ),
+    "make": BuildSystemFixture(lang="c++", source="all:\n\t$(CXX) -S example.cpp -o output.s\n", files=CMAKE_FILES),
+}
+
+
+def pick_compiler_for(base: str, lang: str, timeout: int = 30) -> str | None:
+    """The compiler Compiler Explorer itself defaults to for a language.
+
+    Asking the API beats a hardcoded list, which rots, and beats sorting ids, which lands on
+    whatever is alphabetically last - zig for C++, tinygo for Go - so a failure would say more
+    about an unusual toolchain than about the router.
+    """
+    try:
+        response = requests.get(
+            f"{base}/api/languages?fields=id,defaultCompiler",
+            headers={"Accept": "application/json"},
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        for entry in response.json():
+            if entry.get("id") == lang and entry.get("defaultCompiler"):
+                return str(entry["defaultCompiler"])
+        LOGGER.warning("No default compiler advertised for %s", lang)
+    except (requests.RequestException, ValueError, KeyError) as e:
+        LOGGER.warning("Could not read the default compiler for %s: %s", lang, e)
+    return None
+
+
+def check_languages(base: str, findings: Findings) -> None:
+    """One compile per language.
+
+    Not require_success: a compiler may legitimately object to a minimal program, and what is
+    under test is that the router delivered a well-formed result for that language. No user
+    arguments either - -O0 is a C/C++ flag, and passing it to rustc turns this into a test of
+    error delivery.
+    """
+    for lang, source in LANGUAGE_FIXTURES.items():
+        compiler_id = pick_compiler_for(base, lang)
+        if not compiler_id:
+            findings.add(f"compile {lang}", False, "no default compiler advertised for this language")
+            continue
+        status, payload, secs = post_compile(
+            _compile_url(base, compiler_id), compile_body(source, user_arguments="", lang=lang), timeout=120
+        )
+        ok, detail = classify_compilation(status, payload)
+        findings.add(f"compile {lang} ({compiler_id})", ok, detail, secs)
+
 
 def _compile_url(base: str, compiler_id: str, suffix: str = "compile") -> str:
     return f"{base}/api/compiler/{compiler_id}/{suffix}"
@@ -267,11 +343,20 @@ def check_execute(base: str, compiler_id: str, findings: Findings) -> None:
     findings.add("compile with execution", ok, detail, secs)
 
 
-def check_build_system(base: str, compiler_id: str, findings: Findings, suffix: str, label: str) -> None:
-    body = compile_body(CMAKE_MANIFEST, files=CMAKE_FILES)
-    status, payload, secs = post_compile(_compile_url(base, compiler_id, suffix), body, timeout=120)
+def check_build_system(base: str, findings: Findings, build_system: str, suffix: str, label: str) -> None:
+    """Build a project with the manifest, language and compiler that build system actually takes."""
+    fixture = BUILD_SYSTEM_FIXTURES.get(build_system)
+    if not fixture:
+        findings.add(label, False, f"no fixture defined for build system '{build_system}'")
+        return
+    compiler_id = pick_compiler_for(base, fixture.lang)
+    if not compiler_id:
+        findings.add(label, False, f"no {fixture.lang} compiler available")
+        return
+    body = compile_body(fixture.source, user_arguments="", lang=fixture.lang, files=fixture.files)
+    status, payload, secs = post_compile(_compile_url(base, compiler_id, suffix), body, timeout=180)
     ok, detail = classify_compilation(status, payload)
-    findings.add(label, ok, detail, secs)
+    findings.add(f"{label} [{fixture.lang}/{compiler_id}]", ok, detail, secs)
 
 
 def check_unknown_build_system(base: str, compiler_id: str, findings: Findings) -> None:
@@ -375,9 +460,10 @@ def run_checks(
     check_plain_compile(base, queue_compiler, findings)
     check_cache_hit_loop(base, queue_compiler, findings, loop_iterations)
     check_execute(base, queue_compiler, findings)
-    check_build_system(base, queue_compiler, findings, "cmake", "cmake (legacy spelling)")
+    check_languages(base, findings)
+    check_build_system(base, findings, "cmake", "cmake", "cmake (legacy spelling)")
     for build_system in build_systems:
-        check_build_system(base, queue_compiler, findings, f"build/{build_system}", f"build/{build_system}")
+        check_build_system(base, findings, build_system, f"build/{build_system}", f"build/{build_system}")
     check_unknown_build_system(base, queue_compiler, findings)
 
     if url_compiler:
