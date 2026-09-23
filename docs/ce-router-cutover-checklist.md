@@ -295,6 +295,12 @@ half, which is cached with no expiry.
       so every request arriving in that window fails. Queue-depth scaling cannot answer a
       spike inside one request's lifetime; either keep enough warm capacity for peak or
       accept a multi-minute failure window after any step change in load.
+- [ ] **Fix or accept the websocket-drop window (atlas 5.4).** A dropped router websocket
+      fails every arriving request with an instant `500` for at least `reconnectInterval`
+      (5s default), because `subscribe()` rejects on a closed socket rather than awaiting
+      reconnection. Seen live on beta at 12:00:12 UTC: 428 sub-second 5xx in one minute.
+      API Gateway closes every websocket at 2 hours regardless of health, so this recurs
+      per router whether or not there is load.
 
 ## H. What to watch throughout
 

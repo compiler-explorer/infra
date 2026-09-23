@@ -498,7 +498,18 @@ show this far worse than prod would — don't read a bad beta result as a prod f
 Closing it properly means not using the ack as a flow-control gate: decouple polling from
 `pendingAcks`, so a missing ack costs a retry rather than an idle instance. A nack on zero
 subscribers would also let the worker give up at once instead of retrying into a void.
-**[read] + [infer]**
+
+**Observed under load, 2026-09-23 11:55-12:05 UTC.** The API Gateway access log shows a
+steady 3-second cadence of `501`s on `$default` from `54.234.210.35` — the beta worker, not
+a router — matching `ackTimeoutMs = 3000` exactly, and `/aws/lambda/events-sendmessage`
+carries the matching `Error: No listeners for <guid>`. Seventeen distinct GUIDs were
+orphaned in that window, each able to hold `pendingAcks` non-empty for about nine seconds
+(`maxRetries = 3`). None of these appear in any quiet window, so the loop only starts once
+the queue is deeper than the deadline — and then feeds itself, because the stall it causes
+deepens the queue further. This is the amplifier, measured: `lib/execution/events-websocket.ts:118`
+gates `isReadyForNewMessages()` on `pendingAcks.size === 0`, and both
+`lib/compilation/sqs-compilation-queue.ts:332` and `lib/execution/sqs-execution-queue.ts:152`
+refuse to poll when it is false. **[read] + [measured]**
 
 ### 5.3 The events table is the only provisioned one, and it gates every compile
 
@@ -539,7 +550,35 @@ unsubscribe and no guid-sender tracking. **[read] + [verify the arithmetic again
 
 ---
 
-### 5.4 Worker scale-out is slower than a request's lifetime
+### 5.4 A dropped router websocket fails every request for at least five seconds
+
+`WebSocketManager.send()` rejects synchronously when the socket is not `OPEN`, and
+`subscribe()` is a thin wrapper around it, so `ResultWaiter.subscribe` throws and
+`handleCompilationRequest` returns `500` in about 0.15s. Reconnection is scheduled on the
+`close` event via `setTimeout(..., reconnectInterval)`, and `reconnectInterval` defaults to
+5000ms, so there is a window of at least five seconds in which every request that arrives is
+rejected outright. The router's own deadline is 60s and could absorb that wait; nothing
+waits.
+
+Seen on beta at 12:00:12 UTC on 2026-09-23, immediately after the worker had been saturated:
+`Failed to subscribe to WebSocket: WebSocket is not connected`, and `ce-router-beta` returned
+428 `HTTPCode_Target_5XX` in that minute at an average response time of 0.145s, against
+59.97s and 59.65s in the two minutes before. The switch from hanging to rejecting is abrupt
+and reads very differently in the metrics, so it is worth recognising: sub-second 5xx from
+the router means the socket, not the queue.
+
+Two consequences beyond the rejected requests. `subscribe()` adds the topic to
+`subscriptions` and `pendingSubscriptions` *before* sending, and does not roll back when the
+send rejects, so a reconnect resubscribes topics whose callers were failed and are long gone
+— harmless only because those rows now carry a 5-minute TTL. And because API Gateway closes
+every WebSocket at two hours regardless of health, this window is not a load artifact: it
+recurs per router, indefinitely. It costs nothing when idle and a burst of 500s when busy.
+
+Fixing it means having `subscribe()` await reconnection up to the request deadline rather
+than rejecting on a closed socket, and rolling back its bookkeeping when it does fail.
+**[read] + [measured]**
+
+### 5.5 Worker scale-out is slower than a request's lifetime
 
 Measured on beta, 2026-09-23, ramping 1 → 20 req/s:
 
