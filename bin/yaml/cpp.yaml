@@ -1616,6 +1616,7 @@ compilers:
         - {version: "26.1", ctk_ver: "13.1"}
         - {version: "26.3", ctk_ver: "13.1"}
         - {version: "26.5", ctk_ver: "13.2"}
+        - {version: "26.9", ctk_ver: "13.3"}
     nightly:
       if: nightly
       gcc:
