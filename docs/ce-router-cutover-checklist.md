@@ -17,9 +17,12 @@ Tick through this; do not read it as background.
       path is known-good rather than assumed.
 - [ ] Decide fix-or-accept on the **four-way 60s timeout stack** — CloudFront
       `origin_read_timeout`, ALB `idle_timeout`, nginx `proxy_read_timeout`, router
-      `timeoutSeconds` are all exactly 60 (§2). A compile near that boundary returns a
-      clean `408`, a `504`, or an HTML error page depending on scheduling jitter. Wants
-      staggering (router innermost and shortest).
+      `timeoutSeconds` are all exactly 60, as is compilation queue `message_retention_seconds`.
+      **Measured, not theoretical:** under the beta ramp below, every one of 203 overrun
+      requests came back as `HTTP 504`, not the router's `408`. The gateway wins the race,
+      so the user gets an opaque gateway page and the router never gets to say what went
+      wrong. Stagger outward — router shortest, then nginx, ALB, CloudFront — so the
+      innermost layer owns the error.
 
 Already fixed, deployed and confirmed by a beta smoke run: the `ce ce-router` group
 collision, the subscription row TTL, compilation queue retention (300s → 60s), the
@@ -272,14 +275,26 @@ half, which is cached with no expiry.
       on both router and worker. Watch for a step change in timeout rate near the 2h mark.
 - [ ] **Include a >10-minute idle gap**, then compile immediately — API Gateway's idle
       timeout, and the worker has no application-level liveness check (F-27).
-- [ ] **Drive sustained throughput above ~3 compiles/second**, from the client side rather
-      than relying on worker capacity. That is where `events-connections` write throttling
-      begins (§5.3), and a throttled subscribe is silently lost and never retried. Watch
-      `ThrottledRequests` — it moves before the 408s do.
+- [x] **Drive sustained throughput above ~3 compiles/second**, from the client side rather
+      than relying on worker capacity. Done 2026-09-23 with a 1 → 20 req/s ramp against beta
+      (`ce --env beta ce-router load`), mixed payload sizes, aborting on the shared table's
+      throttle alarms. `events-connections` peaked at 18 WCU/s against a base of 10 and
+      **throttled zero times** — burst capacity plus the 200 WCU ceiling absorbed it, so
+      §5.3 no longer bites at this rate. What broke instead was worker capacity; see below.
+- [x] **Establish the per-instance ceiling.** One `m5.large` drains ~2 compiles/second
+      (2 worker threads, ~1s each). At 3.6 req/s p50 latency was already 17.7s; by 6.2 req/s
+      every request failed. Size the cutover against ~2 req/s per instance, not against
+      request rate alone.
 - [ ] Run the load test at **one worker and at three or more**. Beta and staging default to
       one, which is the worst case for ack stalls and not representative of prod.
 - [ ] Watch whether SQS receive throughput plateaus — `MessageGroupId` is a constant, so
       FIFO serialises receives environment-wide.
+- [ ] **Decide what to do about the 7-minute scale-out.** Measured on beta: load started
+      11:54, backlog appeared 11:56, the scale-out alarm fired 12:01:26 and instances
+      launched 12:01:37 — then 90s boot plus 90s warmup on top. The router deadline is 60s,
+      so every request arriving in that window fails. Queue-depth scaling cannot answer a
+      spike inside one request's lifetime; either keep enough warm capacity for peak or
+      accept a multi-minute failure window after any step change in load.
 
 ## H. What to watch throughout
 

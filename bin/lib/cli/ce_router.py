@@ -20,8 +20,9 @@ import boto3
 import click
 from botocore.exceptions import ClientError
 
-from lib import ce_router_smoke
+from lib import ce_router_load, ce_router_smoke
 from lib.amazon import as_client, ec2, ec2_client, elb_client
+from lib.blue_green_deploy import BlueGreenDeployment
 from lib.ce_utils import are_you_sure
 from lib.cli import cli
 from lib.compiler_routing import CompilerRoutingError, get_current_routing_table
@@ -1058,4 +1059,54 @@ def smoke(
         raise SystemExit(1)
     if findings.known and not ignore_known:
         click.echo("\nOnly tracked issues failed; pass --ignore-known to exit 0.", err=True)
+        raise SystemExit(1)
+
+
+@ce_router.command(name="load")
+@click.option("--compiler", default="g132", show_default=True, help="Compiler to drive")
+@click.option("--rate-start", default=1.0, show_default=True, help="Requests per second at the start of the ramp")
+@click.option("--rate-end", default=20.0, show_default=True, help="Requests per second at the end of the ramp")
+@click.option("--ramp-seconds", default=900, show_default=True, help="How long to take climbing from start to end")
+@click.option("--url", "base_override", help="API root to hit, e.g. https://alb.godbolt.org to bypass CloudFront")
+@click.pass_obj
+def ce_router_load_cmd(
+    cfg: Config,
+    compiler: str,
+    rate_start: float,
+    rate_end: float,
+    ramp_seconds: int,
+    base_override: str | None,
+) -> None:
+    """Ramp load at an environment and report what breaks first.
+
+    Sends a realistic mix of payload sizes, a fifth of which exceed the 31KiB threshold and so
+    travel by s3Key, and checks every response carries its own marker - under load is exactly
+    when a result could come back to the wrong caller, which would otherwise read as a success.
+
+    Aborts if the events-connections throttle alarms leave OK. That table is shared with prod,
+    so load aimed at beta can reach prod through it.
+
+    Example:
+        ce --env beta ce-router load
+        ce --env beta ce-router load --rate-end 40 --ramp-seconds 1800
+    """
+    environment = cfg.env.value
+    if environment == "prod":
+        click.echo("Refusing to generate load against prod.", err=True)
+        raise SystemExit(2)
+
+    base = ce_router_smoke.base_url(environment, base_override)
+    active = BlueGreenDeployment(cfg).get_active_color()
+    asg_name = f"{environment}-{active}"
+    click.echo(f"Environment : {environment} (active colour {active}, ASG {asg_name})")
+
+    finished = ce_router_load.run_ramp(
+        base=base,
+        compiler=compiler,
+        asg_name=asg_name,
+        rate_start=rate_start,
+        rate_end=rate_end,
+        ramp_seconds=ramp_seconds,
+    )
+    if not finished:
         raise SystemExit(1)

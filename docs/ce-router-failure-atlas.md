@@ -539,6 +539,41 @@ unsubscribe and no guid-sender tracking. **[read] + [verify the arithmetic again
 
 ---
 
+### 5.4 Worker scale-out is slower than a request's lifetime
+
+Measured on beta, 2026-09-23, ramping 1 → 20 req/s:
+
+| Time | Event |
+|---|---|
+| 11:54 | load starts |
+| 11:56 | backlog appears on `beta-compilation-queue-green.fifo` |
+| 11:57 | first `504`s; p95 latency pinned at the 60s deadline |
+| 12:01:26 | scale-out alarm finally moves `OK` → `ALARM` |
+| 12:01:37 | ASG launches instances — then ~90s boot plus 90s warmup |
+
+The policy tracks queue depth with a target of 2 messages per instance over 3 evaluation
+periods. That is about seven minutes from the onset of load to serving capacity, against a
+router deadline of 60 seconds, so every request arriving in the window fails. This is
+structural, not a misconfiguration: no queue-depth policy can answer a spike inside one
+request's lifetime. The options are warm capacity sized for peak, or an accepted
+multi-minute failure window after any step change.
+
+Two details make it worse than the numbers suggest:
+
+- **The backlog signal saturates.** Compilation queue retention is 60s, so messages older
+  than that are dropped. The observed backlog plateaued at 199 and could not grow further
+  however much demand arrived, which means queue depth understates a large spike.
+- **A colour at zero instances cannot scale itself up.** The policy expression is
+  `IF(m3 > 0 OR m2 > 0, IF(m2 > 0, (m1 + 1) / m2, m1 + 1), 0)`, where `m3` is
+  `ActiveConnectionCount` dimensioned by `TargetGroup`. That metric only exists with
+  `LoadBalancer` and `AvailabilityZone` dimensions, so `m3` returns no datapoints, ever
+  (`get-metric-data` confirms zero values over any window). While the active colour has
+  instances, `m2 > 0` short-circuits the guard and scaling works. But for a colour sitting
+  at `desired = 0` the guard is the only route to the `m1 + 1` branch, and it is
+  permanently false — the expression yields 0 no matter how deep that colour's queue is.
+  Anything that expects a standby colour to scale up from zero on its own backlog will
+  wait forever; capacity has to be set explicitly by the deploy.
+
 ## 6. Reverse index: symptom → candidates
 
 Start here during an incident.
