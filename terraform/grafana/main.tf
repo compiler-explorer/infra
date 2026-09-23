@@ -54,15 +54,12 @@ data "aws_ssm_parameter" "discord_webhook_url" {
   with_decryption = true
 }
 
-import {
-  to = grafana_contact_point.admins
-  id = "Discord Admins"
-}
-
 resource "grafana_contact_point" "admins" {
-  name               = "Discord Admins"
-  disable_provenance = true
+  name = "Discord Alerts"
   discord {
     url = data.aws_ssm_parameter.discord_webhook_url.value
+  }
+  lifecycle {
+    create_before_destroy = true
   }
 }
