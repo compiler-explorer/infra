@@ -209,9 +209,12 @@ so these only ever surface as user reports. Two are covered by `ce ce-router smo
       `/api/noscript/compile` (the `/noscript` UI), which has its own `express.urlencoded`
       route and matches no ce-router ALB rule, so it never reaches the router. Verified
       identical on prod and beta.
-- [ ] `filterAnsi` as a query param and as `backendOptions.filterAnsi` — only the query
-      form is honoured (F-17). Needs a compile that emits ANSI, so it is fiddly to automate,
-      and it is the last unverified item in this section.
+- [x] `filterAnsi` — identical on router and non-router. Verified with
+      `-fdiagnostics-color=always` against a failing compile: `?filterAnsi=true` strips the
+      escapes on both, `false` and absent leave them on both. It has no effect on a JSON
+      response either way, on either path, because it feeds only the text formatter
+      (`textify`); the `filterAnsi` field inside a JSON request body is inert everywhere,
+      which is CE behaviour rather than anything the router does.
 
 ## E. Failure injection
 

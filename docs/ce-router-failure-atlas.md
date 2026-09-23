@@ -406,7 +406,6 @@ flowchart TD
 | F-11 | S3 overflow GET fails on worker | hangs 60s → `408` | message already deleted, request lost | per-request | worker: `Failed to fetch overflow message from S3` |
 | F-12 | Malformed message body | hangs 60s → `408` | message already deleted, request lost | per-request | worker: `JSON.parse failed` |
 | F-13 | Unknown build system | clean compile error naming it | normal | n/a | worker: `Unknown build system` |
-| F-17 | `backendOptions.filterAnsi` in body | ANSI not stripped in text mode | normal | **no** | none |
 | F-18 | Result >31KiB, object stored | normal | normal | n/a | router: `Fetching large compilation result from S3` |
 | F-19 | Result >31KiB, **object missing** | `200` with `An internal error has occurred…` in stderr | normal | **no** | router: `Failed to fetch S3 compilation result` |
 | F-20 | Project build near the 31KiB boundary | as F-19 | normal | **no** | as F-19 |
@@ -549,8 +548,6 @@ Start here during an incident.
 **User sees `408`** → F-04b (subscribe lost to throttling — check `ThrottledRequests` on `events-connections` first, see §5.3) · F-07/F-08/F-32 (wrong queue — check queue depth by colour first) · F-11/F-12 (message lost at pickup) · F-25/F-26 (backlog) · F-27 (half-open worker socket) · F-29 (worker died mid-compile)
 
 **User sees `502`/`504`/HTML error page** → F-35 (timeout race, §2) · F-36 (no healthy routers) · F-40 (nginx keepalive)
-
-**User sees `200` but the output is wrong** → F-17 (`filterAnsi` is honoured as a query parameter but not as a `backendOptions` field). It logs nothing, so it only surfaces as a user report.
 
 **Anything under `/api/noscript/…`** → not the router. The no-JS UI has its own endpoint, outside the ALB rules; rule it out before investigating.
 
