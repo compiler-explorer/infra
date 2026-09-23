@@ -224,14 +224,28 @@ so these only ever surface as user reports. Two are covered by `ce ce-router smo
 
 ## F. Blue-green interaction
 
-- [ ] Run a full `ce --env beta blue-green deploy` **with the router rule enabled**.
-- [ ] Watch `Step 6.5: Clearing router cache` reach **every** in-service router. A partial
-      clear is now reported loudly and leaves the missed routers on the old colour until
-      they are cleared by hand (§5.1,
+**A colour switch no longer tests the cache clear.** Since ce-router `0.4.0`, `routingCache`
+holds the routing *decision* and the colour is resolved per request from `activeColorCache`,
+whose 30-second TTL is reachable — so a router that misses the clear entirely self-heals its
+colour within 30s. Any check run more than half a minute after the switch will pass whether
+or not Step 6.5 ran. The clear is still load-bearing, but only for the **routing-table**
+half, which is cached with no expiry.
+
+- [x] Run a full `ce --env beta blue-green deploy` **with the router rule enabled** — done
+      2026-09-23. Router had been up since the previous day, so it carried a warm cache
+      through the switch; both queues drained and the suite ran 17/17 afterwards.
+- [ ] Watch `Step 6.5: Clearing router cache` in the deploy output. This is the **only**
+      direct evidence the clear ran — `✓ Router cache cleared on all N in-service routers`
+      versus the `❌ ROUTER CACHE NOT CLEARED` block. A partial clear leaves the missed
+      routers holding stale *routing-table* entries until they are cleared by hand (§5.1,
       [infra#2372](https://github.com/compiler-explorer/infra/issues/2372)).
-- [ ] After the deploy reports success, **compare the two colours' queue depths**. The old
-      colour's queue being non-empty means a router is still pointed at it (F-07). This is
-      a thirty-second check and the only reliable symptom.
+- [ ] To exercise what the clear is now for, deploy across a **routing-table change** — a
+      compiler whose `routingType`, `targetUrl` or `queueName` moves, which Step 6's
+      `update_compiler_routing_table` will write. A router that misses the clear keeps the
+      old decision indefinitely; nothing expires it.
+- [ ] Compare the two colours' queue depths after the deploy. No longer proves the clear
+      ran, but still catches a **worker** polling the wrong colour (F-08), which is a
+      silent 100% failure for queue-routed compilers.
 - [ ] Confirm the newly active colour's workers picked up the right coloured queue.
 - [ ] Run `ce ce-router refresh` under load; in-flight compiles should complete.
 
