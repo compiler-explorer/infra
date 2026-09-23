@@ -44,8 +44,24 @@ provider "grafana" {
 }
 
 locals {
-  prom_datasource_uid = "grafanacloud-prom"
-  # Existing, hand-made contact point. Referenced by name until it is imported
-  # and managed here.
-  contact_point_admins = "Discord Admins"
+  prom_datasource_uid  = "grafanacloud-prom"
+  contact_point_admins = grafana_contact_point.admins.name
+}
+
+# Same webhook the AWS root's cloudwatch_to_discord Lambda posts to, so every alert lands in one channel.
+data "aws_ssm_parameter" "discord_webhook_url" {
+  name            = "/admin/discord_webhook_url"
+  with_decryption = true
+}
+
+import {
+  to = grafana_contact_point.admins
+  id = "Discord Admins"
+}
+
+resource "grafana_contact_point" "admins" {
+  name = "Discord Admins"
+  discord {
+    url = data.aws_ssm_parameter.discord_webhook_url.value
+  }
 }

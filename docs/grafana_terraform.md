@@ -10,8 +10,10 @@ Managed today: folder **CE Alerts** and its rule groups -- Instance Restarts
 low, infra#2310), Staging Instances (staging left running). Every hand-made
 alert has been adopted or replaced; the remaining rules in the stack
 (`integrations-linux-node`, synthetic monitoring) are vendor/plugin-owned --
-leave them alone. Contact points are still hand-made; rules reference
-"Discord Admins" by name.
+leave them alone. Contact point **Discord Admins** is managed here too; its
+webhook comes from SSM `/admin/discord_webhook_url`, shared with the AWS root's
+`cloudwatch_to_discord` Lambda so CloudWatch and Grafana alerts reach the same
+channel. Change the channel by updating that parameter and applying both roots.
 
 Provisioned rules are read-only in the UI (the "Provisioned" badge); use
 silences during incidents. To experiment, build a rule in another folder,
