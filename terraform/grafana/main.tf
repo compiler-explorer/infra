@@ -60,7 +60,8 @@ import {
 }
 
 resource "grafana_contact_point" "admins" {
-  name = "Discord Admins"
+  name               = "Discord Admins"
+  disable_provenance = true
   discord {
     url = data.aws_ssm_parameter.discord_webhook_url.value
   }
