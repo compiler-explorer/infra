@@ -939,12 +939,15 @@ def smoke(
         except CompilerRoutingError as e:
             click.echo(f"Could not read the routing table: {e}", err=True)
             table = {}
+        candidates = []
         for key, entry in sorted(table.items()):
             compiler_id = key.split("#", 1)[-1]
             # Language matters: a URL-routed Go compiler cannot build the C++ these checks send.
             if entry.get("routingType") == "url" and (not cpp_ids or compiler_id in cpp_ids):
-                url_compiler = compiler_id
-                break
+                candidates.append(compiler_id)
+        url_compiler = ce_router_smoke.first_compiler_that_works(base, candidates)
+        if candidates and not url_compiler:
+            click.echo(f"None of the first URL-routed candidates compiled the fixture: {', '.join(candidates[:8])}")
 
     if not compiler:
         click.echo("No queue-routed compiler found or given; pass --compiler", err=True)

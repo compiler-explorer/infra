@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -103,6 +104,7 @@ def base_url(environment: str, override: str | None = None) -> str:
 MARKER_DEFINE = "SMOKE_FLAG"
 MARKER_SYMBOL = "smoke_marker_function"
 EXEC_MARKER = "SMOKE_EXEC_OK"
+ERROR_MARKER = "smoke_undeclared_marker"
 
 
 def source_needing_a_define() -> str:
@@ -112,6 +114,15 @@ def source_needing_a_define() -> str:
     output or it is not, with no dependence on what the compiler chose to do.
     """
     return f"#ifdef {MARKER_DEFINE}\nint {MARKER_SYMBOL}() {{ return 42; }}\n#endif\nint main() {{ return 0; }}\n"
+
+
+def source_that_fails_to_compile() -> str:
+    """Source whose diagnostic must quote ERROR_MARKER.
+
+    Every C++ compiler names the undeclared identifier, so the marker appearing in stderr is
+    evidence the compiler's own text arrived rather than something generated closer to home.
+    """
+    return f"int main() {{ return {ERROR_MARKER}; }}\n"
 
 
 def source_emitting_at_least(target_bytes: int) -> str:
@@ -207,6 +218,11 @@ def classify_compilation(status: int, payload: Any, require_success: bool = Fals
     A 200 is not enough: the s3Key path fails by returning a well-formed result whose
     stderr carries the router's internal-error text, and a result with no asm and no
     diagnostics is equally useless to the caller.
+
+    Pass require_success for any check whose fixture is expected to compile, which is nearly
+    all of them. Without it a compiler error is accepted as a pass, and a check that accepts a
+    compiler error is measuring only that something came back rather than that the right thing
+    did. The exceptions are the two checks that are about error delivery itself.
     """
     if status != 200:
         detail = payload if isinstance(payload, str) else json.dumps(payload)[:200]
@@ -285,12 +301,12 @@ def pick_compiler_for(base: str, lang: str, timeout: int = 30) -> str | None:
 
 
 def check_languages(base: str, findings: Findings) -> None:
-    """One compile per language.
+    """One compile per language, each of which must actually succeed.
 
-    Not require_success: a compiler may legitimately object to a minimal program, and what is
-    under test is that the router delivered a well-formed result for that language. No user
-    arguments either - -O0 is a C/C++ flag, and passing it to rustc turns this into a test of
-    error delivery.
+    A well-formed result is too weak a bar here: a truncated result, or one belonging to a
+    different request, is also well-formed. The fixtures are the smallest valid program in each
+    language and no user arguments are sent - -O0 is a C/C++ flag, and sending it to rustc would
+    make a compiler error, rather than the router, decide what this measures.
     """
     for lang, source in LANGUAGE_FIXTURES.items():
         compiler_id = pick_compiler_for(base, lang)
@@ -300,7 +316,7 @@ def check_languages(base: str, findings: Findings) -> None:
         status, payload, secs = post_compile(
             _compile_url(base, compiler_id), compile_body(source, user_arguments="", lang=lang), timeout=120
         )
-        ok, detail = classify_compilation(status, payload)
+        ok, detail = classify_compilation(status, payload, require_success=True)
         findings.add(f"compile {lang} ({compiler_id})", ok, detail, secs)
 
 
@@ -308,9 +324,31 @@ def _compile_url(base: str, compiler_id: str, suffix: str = "compile") -> str:
     return f"{base}/api/compiler/{compiler_id}/{suffix}"
 
 
+def first_compiler_that_works(base: str, candidates: Sequence[str], limit: int = 8) -> str | None:
+    """The first candidate that can compile the trivial fixture.
+
+    Picking by name alone takes whichever id sorts first, which for the URL-routed C++ compilers
+    is an MSVC-under-wine build whose install is broken on both beta and prod (fatal error
+    C1902). A check aimed at a compiler that cannot compile anything reports on the compiler
+    rather than on the router, and reports it as a pass if all it asks for is a well-formed
+    result.
+    """
+    for compiler_id in list(candidates)[:limit]:
+        status, payload, _ = post_compile(
+            _compile_url(base, compiler_id),
+            compile_body("int main() { return 0; }", user_arguments=""),
+            timeout=120,
+        )
+        ok, detail = classify_compilation(status, payload, require_success=True)
+        if ok:
+            return compiler_id
+        LOGGER.info("Not using %s: it cannot compile the fixture (%s)", compiler_id, detail)
+    return None
+
+
 def check_plain_compile(base: str, compiler_id: str, findings: Findings) -> None:
     status, payload, secs = post_compile(_compile_url(base, compiler_id), compile_body("int main() { return 0; }"))
-    ok, detail = classify_compilation(status, payload)
+    ok, detail = classify_compilation(status, payload, require_success=True)
     findings.add("plain compile", ok, detail, secs)
 
 
@@ -323,7 +361,7 @@ def check_cache_hit_loop(base: str, compiler_id: str, findings: Findings, iterat
     for i in range(iterations):
         status, payload, secs = post_compile(url, body)
         times.append(secs)
-        ok, detail = classify_compilation(status, payload)
+        ok, detail = classify_compilation(status, payload, require_success=True)
         if not ok:
             failures.append(f"#{i}: {detail}")
     slowest = max(times) if times else 0.0
@@ -337,7 +375,7 @@ def check_execute(base: str, compiler_id: str, findings: Findings) -> None:
     body = compile_body('#include <cstdio>\nint main() { puts("smoke"); return 0; }')
     body["options"]["filters"]["execute"] = True
     status, payload, secs = post_compile(_compile_url(base, compiler_id), body)
-    ok, detail = classify_compilation(status, payload)
+    ok, detail = classify_compilation(status, payload, require_success=True)
     if ok and not (payload.get("execResult") or payload.get("didExecute")):
         ok, detail = False, "compiled but no execResult - the execution path did not run"
     findings.add("compile with execution", ok, detail, secs)
@@ -355,7 +393,7 @@ def check_build_system(base: str, findings: Findings, build_system: str, suffix:
         return
     body = compile_body(fixture.source, user_arguments="", lang=fixture.lang, files=fixture.files)
     status, payload, secs = post_compile(_compile_url(base, compiler_id, suffix), body, timeout=180)
-    ok, detail = classify_compilation(status, payload)
+    ok, detail = classify_compilation(status, payload, require_success=True)
     findings.add(f"{label} [{fixture.lang}/{compiler_id}]", ok, detail, secs)
 
 
@@ -378,13 +416,35 @@ def check_unknown_build_system(base: str, compiler_id: str, findings: Findings) 
         findings.add("unknown build system", False, f"HTTP {status}, body: {blob[:160]}", secs)
 
 
+def check_compilation_error_is_delivered(base: str, compiler_id: str, findings: Findings) -> None:
+    """A failed compilation must reach the caller as the compiler's own diagnostic.
+
+    Worth asserting separately from the happy path, because this route has a way of failing
+    that looks exactly like a compiler error: when the router is handed an s3Key whose object
+    is missing it fabricates a well-formed result whose stderr reads "An internal error has
+    occurred...". A check that only looked for a non-zero exit code would accept that.
+    """
+    status, payload, secs = post_compile(_compile_url(base, compiler_id), compile_body(source_that_fails_to_compile()))
+    ok, detail = classify_compilation(status, payload)
+    if ok:
+        code = payload.get("code")
+        diagnostic = stderr_text(payload)
+        if code == 0:
+            ok, detail = False, "compiled cleanly - the fixture is no longer invalid, so this checks nothing"
+        elif ERROR_MARKER not in diagnostic:
+            ok, detail = False, f"non-zero exit but the compiler's own text did not arrive: {diagnostic[:120]!r}"
+        else:
+            detail = f"code={code}, diagnostic naming the identifier arrived intact"
+    findings.add("compilation error reaches the caller", ok, detail, secs)
+
+
 def check_large_request(base: str, compiler_id: str, findings: Findings) -> None:
     """Over the SQS limit, so the request goes via the S3 overflow path."""
     source = source_emitting_at_least(8 * 1024) + "// " + ("x" * SQS_MAX_MESSAGE_SIZE) + "\n"
     body = compile_body(source)
     sent = len(json.dumps(body))
     status, payload, secs = post_compile(_compile_url(base, compiler_id), body, timeout=120)
-    ok, detail = classify_compilation(status, payload)
+    ok, detail = classify_compilation(status, payload, require_success=True)
     findings.add(f"large request ({sent // 1024}KB, S3 overflow)", ok, detail, secs)
 
 
@@ -413,7 +473,7 @@ def check_large_result_project_build(base: str, compiler_id: str, findings: Find
     files = [{"filename": "example.cpp", "contents": source_emitting_at_least(4 * WEBSOCKET_SIZE_THRESHOLD)}]
     body = compile_body(CMAKE_MANIFEST, files=files)
     status, payload, secs = post_compile(_compile_url(base, compiler_id, "cmake"), body, timeout=180)
-    ok, detail = classify_compilation(status, payload)
+    ok, detail = classify_compilation(status, payload, require_success=True)
     findings.add("large result from project build", ok, detail, secs)
 
 
@@ -468,18 +528,21 @@ def run_checks(
 
     if url_compiler:
         status, payload, secs = post_compile(
-            _compile_url(base, url_compiler), compile_body("int main() { return 0; }"), timeout=120
+            _compile_url(base, url_compiler),
+            compile_body("int main() { return 0; }", user_arguments=""),
+            timeout=120,
         )
-        ok, detail = classify_compilation(status, payload)
+        ok, detail = classify_compilation(status, payload, require_success=True)
         findings.add(f"URL-routed compiler ({url_compiler})", ok, detail, secs)
 
     if unrouted_compiler:
         status, payload, secs = post_compile(
             _compile_url(base, unrouted_compiler), compile_body("int main() { return 0; }"), timeout=120
         )
-        ok, detail = classify_compilation(status, payload)
+        ok, detail = classify_compilation(status, payload, require_success=True)
         findings.add(f"compiler absent from routing table ({unrouted_compiler})", ok, detail, secs)
 
+    check_compilation_error_is_delivered(base, queue_compiler, findings)
     check_documented_text_api(base, queue_compiler, findings)
     check_accept_default(base, queue_compiler, findings)
     check_charset_keeps_user_arguments(base, queue_compiler, findings)
