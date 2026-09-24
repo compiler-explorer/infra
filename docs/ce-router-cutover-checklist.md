@@ -275,12 +275,24 @@ half, which is cached with no expiry.
       on both router and worker. Watch for a step change in timeout rate near the 2h mark.
 - [ ] **Include a >10-minute idle gap**, then compile immediately — API Gateway's idle
       timeout, and the worker has no application-level liveness check (F-27).
+- [x] **Test with a worker fleet, not a single instance.** Six workers carried 8.7 req/s at
+      100% with the same code that collapsed to ~1% at 6.2 req/s on one, so a bad result from
+      a one-instance beta says nothing about prod. The scale-out lag reproduced on this run
+      too: backlog 16:36, alarm 16:42:05, launch 16:42:21, draining by ~16:45, with throughput
+      stepping 8.9 -> 12.6 req/s as the new workers landed. Nothing failed, because six workers
+      held latency near 29s - under the 60s deadline - while it played out.
 - [x] **Drive sustained throughput above ~3 compiles/second**, from the client side rather
       than relying on worker capacity. Done 2026-09-23 with a 1 → 20 req/s ramp against beta
       (`ce --env beta ce-router load`), mixed payload sizes, aborting on the shared table's
       throttle alarms. `events-connections` peaked at 18 WCU/s against a base of 10 and
       **throttled zero times** — burst capacity plus the 200 WCU ceiling absorbed it, so
       §5.3 no longer bites at this rate. What broke instead was worker capacity; see below.
+- [x] **Know the ceiling a single-IP load test can reach.** The `RateLimitPost` rule on the
+      `CompilerExplorer` WAF blocks at 12000 POSTs per 300s per source IP - 40/s - answering
+      `429` with `Retry-After: 300`. A ramp from one machine cannot probe the router tier
+      beyond that, so anything above 40 req/s needs several source addresses. Worth knowing
+      before planning a run rather than discovering it as a wall of 429s: a burst that trips
+      it keeps failing for five minutes afterwards.
 - [x] **Establish the per-instance ceiling.** One `m5.large` drains ~2 compiles/second
       (2 worker threads, ~1s each). At 3.6 req/s p50 latency was already 17.7s; by 6.2 req/s
       every request failed. Size the cutover against ~2 req/s per instance, not against
