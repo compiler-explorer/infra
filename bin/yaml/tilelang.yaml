@@ -9,4 +9,5 @@ compilers:
       - tilelang=={{name}}
     check_exe: [ "bin/python3.12", "-c", "import tilelang; print(tilelang.__version__)" ]
     targets:
+      - 0.1.14
       - 0.1.13
