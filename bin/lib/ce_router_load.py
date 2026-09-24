@@ -37,6 +37,12 @@ import boto3
 THROTTLE_ALARMS = ["EventsConnectionsWriteThrottled", "EventsConnectionsIndexWriteThrottled"]
 REQUEST_TIMEOUT_SECONDS = 90
 
+# Say plainly what this is. The client library's own default gets caught by the WAF's
+# rate-limit-non-browser rule, which allows 100 requests a minute - below the capacity of a
+# single worker, so a load test cannot generate load at all. A recognisable agent is also a
+# better thing to write an exception against than a source address, which changes.
+USER_AGENT = "ce-router-load/1.0 (+https://github.com/compiler-explorer/infra) Compiler Explorer load test"
+
 
 @dataclass(frozen=True)
 class Payload:
@@ -90,13 +96,30 @@ PAYLOADS = [
 _WEIGHTED = [p for p in PAYLOADS for _ in range(p.weight)]
 
 
+def weighted_mix(only: str | None) -> list[Payload]:
+    """The payload mix to draw from, optionally restricted to one class.
+
+    Restricting to a slow class is how a single worker can be overloaded from one machine at
+    all: the WAF allows 100 requests a minute, and a worker gets through more small compiles
+    than that, so the only way to build a backlog inside the limit is to make each request
+    cost more.
+    """
+    if only is None:
+        return _WEIGHTED
+    chosen = [p for p in PAYLOADS if p.name == only]
+    if not chosen:
+        raise ValueError(f"unknown payload class {only!r}; have {', '.join(p.name for p in PAYLOADS)}")
+    return chosen
+
+
 def _text_of(payload: dict, key: str) -> str:
     return "\n".join(line.get("text", "") for line in payload.get(key, []) or [])
 
 
 class Ramp:
-    def __init__(self, base: str, compiler: str, asg_name: str):
+    def __init__(self, base: str, compiler: str, asg_name: str, only: str | None = None):
         self.base, self.compiler, self.asg_name = base, compiler, asg_name
+        self.mix = weighted_mix(only)
         self.cw = boto3.client("cloudwatch")
         self.asg = boto3.client("autoscaling")
         self.run_id = uuid.uuid4().hex[:6]
@@ -117,7 +140,7 @@ class Ramp:
     async def one(self, session: aiohttp.ClientSession) -> None:
         self.counter += 1
         n = self.counter
-        payload = random.choice(_WEIGHTED)
+        payload = random.choice(self.mix)
         marker = f"load_{self.run_id}_{n}"
         self.in_flight += 1
         self.peak_in_flight = max(self.peak_in_flight, self.in_flight)
@@ -139,7 +162,7 @@ class Ramp:
                     },
                     "lang": "c++",
                 },
-                headers={"Accept": "application/json"},
+                headers={"Accept": "application/json", "User-Agent": USER_AGENT},
             ) as response:
                 secs = time.time() - started
                 if response.status != 200:
@@ -277,10 +300,11 @@ def run_ramp(
     ramp_seconds: int,
     window: int = 60,
     tail_windows: int = 6,
+    only: str | None = None,
 ) -> bool:
     """Ramp from rate_start to rate_end, returning True if it finished without aborting."""
-    ramp = Ramp(base, compiler, asg_name)
-    mix = ", ".join(f"{p.name} {p.weight}%" for p in PAYLOADS)
+    ramp = Ramp(base, compiler, asg_name, only)
+    mix = only if only else ", ".join(f"{p.name} {p.weight}%" for p in PAYLOADS)
     print(f"Run {ramp.run_id}: ramping {rate_start:g} -> {rate_end:g} req/s over {ramp_seconds}s against {base}")
     print(f"Mix: {mix}")
     print(f"Start: alarms={ramp.alarm_states()} workers={ramp.capacity()}", flush=True)

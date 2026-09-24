@@ -1068,6 +1068,11 @@ def smoke(
 @click.option("--rate-end", default=20.0, show_default=True, help="Requests per second at the end of the ramp")
 @click.option("--ramp-seconds", default=900, show_default=True, help="How long to take climbing from start to end")
 @click.option("--url", "base_override", help="API root to hit, e.g. https://alb.godbolt.org to bypass CloudFront")
+@click.option(
+    "--payload",
+    "only",
+    help="Send only this payload class, e.g. 'large'. Slow classes overload a worker at a lower request rate.",
+)
 @click.pass_obj
 def ce_router_load_cmd(
     cfg: Config,
@@ -1076,6 +1081,7 @@ def ce_router_load_cmd(
     rate_end: float,
     ramp_seconds: int,
     base_override: str | None,
+    only: str | None,
 ) -> None:
     """Ramp load at an environment and report what breaks first.
 
@@ -1107,6 +1113,7 @@ def ce_router_load_cmd(
         rate_start=rate_start,
         rate_end=rate_end,
         ramp_seconds=ramp_seconds,
+        only=only,
     )
     if not finished:
         raise SystemExit(1)
