@@ -301,6 +301,10 @@ half, which is cached with no expiry.
       one, which is the worst case for ack stalls and not representative of prod.
 - [ ] Watch whether SQS receive throughput plateaus — `MessageGroupId` is a constant, so
       FIFO serialises receives environment-wide.
+- [x] **Verify compiler-explorer#9160 under overload.** Done on beta with one worker pinned
+      and heavy payloads at 1.5 req/s: orphaned results now log 1.00 "No listeners" entries per
+      GUID against exactly 4.00 before the fix, so each one costs a single send and one 3s
+      timeout rather than four sends over nine seconds.
 - [ ] **Decide what to do about the 7-minute scale-out.** Measured on beta: load started
       11:54, backlog appeared 11:56, the scale-out alarm fired 12:01:26 and instances
       launched 12:01:37 — then 90s boot plus 90s warmup on top. The router deadline is 60s,

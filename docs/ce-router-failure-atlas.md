@@ -499,6 +499,15 @@ Closing it properly means not using the ack as a flow-control gate: decouple pol
 `pendingAcks`, so a missing ack costs a retry rather than an idle instance. A nack on zero
 subscribers would also let the worker give up at once instead of retrying into a void.
 
+**Measured before and after the fix.** With a worker that retried regardless, each orphaned
+result produced exactly 4.00 "No listeners" entries - the send plus three retries - and held
+the ack gate for about nine seconds. Since compiler-explorer#9160 it produces 1.00: the worker
+gives up at its first ack timeout once the requester's deadline has passed. The stall is
+reduced to about three seconds rather than removed, because the result is still sent once and
+still waits one timeout; closing it completely would need the worker to know before sending,
+which it cannot, since an absent subscriber is equally consistent with a router that is
+reconnecting.
+
 **Observed under load, 2026-09-23 11:55-12:05 UTC.** The API Gateway access log shows a
 steady 3-second cadence of `501`s on `$default` from `54.234.210.35` — the beta worker, not
 a router — matching `ackTimeoutMs = 3000` exactly, and `/aws/lambda/events-sendmessage`
