@@ -583,9 +583,15 @@ send rejects, so a reconnect resubscribes topics whose callers were failed and a
 every WebSocket at two hours regardless of health, this window is not a load artifact: it
 recurs per router, indefinitely. It costs nothing when idle and a burst of 500s when busy.
 
-Fixing it means having `subscribe()` await reconnection up to the request deadline rather
-than rejecting on a closed socket, and rolling back its bookkeeping when it does fail.
-**[read] + [measured]**
+Fixed in ce-router 0.6.0: `subscribe()` awaits reconnection up to `subscribeWaitMs` instead
+of rejecting on a closed socket, rolls back its bookkeeping when it does give up, and the
+first reconnection attempt is made immediately rather than after `reconnectInterval`.
+
+Verified by killing the socket on a beta router under traffic: the outage lasted under 600ms
+against the >=5s the interval used to impose, and 39 of 39 requests spanning the drop returned
+200 with latency flat at ~0.4s. Kill it on the instance with `ss -K`; `delete-connection` is
+not safe here, because the connections table is shared with prod and a row does not say which
+environment it belongs to. **[read] + [measured]**
 
 ### 5.5 Worker scale-out is slower than a request's lifetime
 

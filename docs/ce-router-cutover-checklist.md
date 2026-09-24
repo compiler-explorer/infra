@@ -221,8 +221,22 @@ so these only ever surface as user reports. Two are covered by `ce ce-router smo
 
 ## E. Failure injection
 
-- [ ] **Kill the router's WebSocket mid-flight.** Expect a heartbeat timeout, reconnect,
-      `Resubscribing to N pending subscriptions`, and in-flight compiles still answered.
+- [x] **Kill the router's WebSocket mid-flight.** Done on beta 2026-09-24 20:01 and 20:03 UTC.
+      Kill the socket on the instance rather than calling `delete-connection`: the
+      `events-connections` table is shared with prod and its rows carry only `connectionId`
+      and `subscription`, so there is no safe way to tell a beta router's connection from a
+      prod one. On the instance it is unambiguous:
+
+          ssh <router> "sudo ss -K dst <events-api-ip> dport 443"
+
+      The local port changes, which is how you confirm the old socket really went. Sampling
+      `/healthcheck` every ~260ms afterwards showed `disconnected` for two samples and
+      `connected` by the third - **under 600ms of outage**, against the >=5s that
+      `reconnectInterval` used to impose before ce-router 0.6.0 retried the first attempt
+      immediately. Steady traffic at 1.5 req/s across the drop returned **39/39 at 200**,
+      latency flat at ~0.4s, where the same event on 0.5.0 produced a burst of sub-second
+      500s. Keep traffic running during the kill; with nothing in flight the test proves
+      nothing.
 - [ ] **Flap it repeatedly.** `reconnectAttempts` resets on every successful open, so a
       flapping socket never exhausts its budget and never fails the healthcheck while
       returning 500s (F-02). Confirm what the target group does.
