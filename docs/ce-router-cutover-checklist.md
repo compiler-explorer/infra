@@ -311,8 +311,6 @@ half, which is cached with no expiry.
       (2 worker threads, ~1s each). At 3.6 req/s p50 latency was already 17.7s; by 6.2 req/s
       every request failed. Size the cutover against ~2 req/s per instance, not against
       request rate alone.
-- [ ] Run the load test at **one worker and at three or more**. Beta and staging default to
-      one, which is the worst case for ack stalls and not representative of prod.
 - [ ] Watch whether SQS receive throughput plateaus — `MessageGroupId` is a constant, so
       FIFO serialises receives environment-wide.
 - [x] **Verify compiler-explorer#9160 under overload.** Done on beta with one worker pinned
@@ -325,12 +323,6 @@ half, which is cached with no expiry.
       so every request arriving in that window fails. Queue-depth scaling cannot answer a
       spike inside one request's lifetime; either keep enough warm capacity for peak or
       accept a multi-minute failure window after any step change in load.
-- [ ] **Fix or accept the websocket-drop window (atlas 5.4).** A dropped router websocket
-      fails every arriving request with an instant `500` for at least `reconnectInterval`
-      (5s default), because `subscribe()` rejects on a closed socket rather than awaiting
-      reconnection. Seen live on beta at 12:00:12 UTC: 428 sub-second 5xx in one minute.
-      API Gateway closes every websocket at 2 hours regardless of health, so this recurs
-      per router whether or not there is load.
 
 ## H. What to watch throughout
 
