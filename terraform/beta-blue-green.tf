@@ -61,18 +61,25 @@ resource "aws_autoscaling_policy" "beta_blue_compilation_scaling" {
         return_data = false
       }
       metrics {
-        label = "Get the group size (the number of InService instances)"
+        label = "Instances that can actually take work, which is not the same as InService: an instance joins the group about forty seconds after launch but cannot serve until the application is up, roughly four minutes later. Counting those flatters the metric during exactly the window when the backlog is growing."
         id    = "m2"
         metric_stat {
           metric {
-            namespace   = "AWS/AutoScaling"
-            metric_name = "GroupInServiceInstances"
+            namespace   = "AWS/ApplicationELB"
+            metric_name = "HealthyHostCount"
             dimensions {
-              name  = "AutoScalingGroupName"
-              value = module.beta_blue_green.blue_asg_name
+              name  = "LoadBalancer"
+              value = aws_alb.GccExplorerApp.arn_suffix
+            }
+            dimensions {
+              name  = "TargetGroup"
+              value = module.beta_blue_green.target_group_arn_suffixes["blue"]
             }
           }
-          stat = "Average"
+          # Every availability zone reports the full target count, so Sum multiplies by the
+          # number of zones - it read 25 for a five-instance fleet. Maximum is the true count
+          # and tolerates a zone publishing late.
+          stat = "Maximum"
         }
         return_data = false
       }
@@ -126,18 +133,25 @@ resource "aws_autoscaling_policy" "beta_green_compilation_scaling" {
         return_data = false
       }
       metrics {
-        label = "Get the group size (the number of InService instances)"
+        label = "Instances that can actually take work, which is not the same as InService: an instance joins the group about forty seconds after launch but cannot serve until the application is up, roughly four minutes later. Counting those flatters the metric during exactly the window when the backlog is growing."
         id    = "m2"
         metric_stat {
           metric {
-            namespace   = "AWS/AutoScaling"
-            metric_name = "GroupInServiceInstances"
+            namespace   = "AWS/ApplicationELB"
+            metric_name = "HealthyHostCount"
             dimensions {
-              name  = "AutoScalingGroupName"
-              value = module.beta_blue_green.green_asg_name
+              name  = "LoadBalancer"
+              value = aws_alb.GccExplorerApp.arn_suffix
+            }
+            dimensions {
+              name  = "TargetGroup"
+              value = module.beta_blue_green.target_group_arn_suffixes["green"]
             }
           }
-          stat = "Average"
+          # Every availability zone reports the full target count, so Sum multiplies by the
+          # number of zones - it read 25 for a five-instance fleet. Maximum is the true count
+          # and tolerates a zone publishing late.
+          stat = "Maximum"
         }
         return_data = false
       }
@@ -214,18 +228,25 @@ resource "aws_autoscaling_policy" "beta_blue_arrival_rate_scaling" {
         return_data = false
       }
       metrics {
-        label = "Instances in service"
+        label = "Instances that can actually take work, which is not the same as InService: an instance joins the group about forty seconds after launch but cannot serve until the application is up, roughly four minutes later. Counting those flatters the metric during exactly the window when the backlog is growing."
         id    = "a2"
         metric_stat {
           metric {
-            namespace   = "AWS/AutoScaling"
-            metric_name = "GroupInServiceInstances"
+            namespace   = "AWS/ApplicationELB"
+            metric_name = "HealthyHostCount"
             dimensions {
-              name  = "AutoScalingGroupName"
-              value = module.beta_blue_green.blue_asg_name
+              name  = "LoadBalancer"
+              value = aws_alb.GccExplorerApp.arn_suffix
+            }
+            dimensions {
+              name  = "TargetGroup"
+              value = module.beta_blue_green.target_group_arn_suffixes["blue"]
             }
           }
-          stat = "Average"
+          # Every availability zone reports the full target count, so Sum multiplies by the
+          # number of zones - it read 25 for a five-instance fleet. Maximum is the true count
+          # and tolerates a zone publishing late.
+          stat = "Maximum"
         }
         return_data = false
       }
@@ -272,18 +293,25 @@ resource "aws_autoscaling_policy" "beta_green_arrival_rate_scaling" {
         return_data = false
       }
       metrics {
-        label = "Instances in service"
+        label = "Instances that can actually take work, which is not the same as InService: an instance joins the group about forty seconds after launch but cannot serve until the application is up, roughly four minutes later. Counting those flatters the metric during exactly the window when the backlog is growing."
         id    = "a2"
         metric_stat {
           metric {
-            metric_name = "GroupInServiceInstances"
-            namespace   = "AWS/AutoScaling"
+            namespace   = "AWS/ApplicationELB"
+            metric_name = "HealthyHostCount"
             dimensions {
-              name  = "AutoScalingGroupName"
-              value = module.beta_blue_green.green_asg_name
+              name  = "LoadBalancer"
+              value = aws_alb.GccExplorerApp.arn_suffix
+            }
+            dimensions {
+              name  = "TargetGroup"
+              value = module.beta_blue_green.target_group_arn_suffixes["green"]
             }
           }
-          stat = "Average"
+          # Every availability zone reports the full target count, so Sum multiplies by the
+          # number of zones - it read 25 for a five-instance fleet. Maximum is the true count
+          # and tolerates a zone publishing late.
+          stat = "Maximum"
         }
         return_data = false
       }

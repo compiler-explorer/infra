@@ -74,3 +74,10 @@ output "sqs_queue_green_arn" {
   description = "Green compilation queue ARN"
   value       = aws_sqs_queue.compilation_queue["green"].arn
 }
+
+# CloudWatch identifies a target group by the tail of its ARN, not the ARN itself - passing the
+# whole thing yields a metric that silently returns no data.
+output "target_group_arn_suffixes" {
+  description = "Per-colour target group ARN suffixes, in the form CloudWatch dimensions expect"
+  value       = { for color, tg in aws_alb_target_group.color : color => tg.arn_suffix }
+}
