@@ -849,38 +849,29 @@ def ce_router_login(cfg: Config, instance_id: str | None) -> None:
 @click.option("--skip-confirmation", is_flag=True, help="Skip confirmation prompt")
 @click.pass_obj
 def ce_router_restart(cfg: Config, skip_confirmation: bool) -> None:
-    """Restart CE Router service on all instances."""
-    asg_name = f"ce-router-{cfg.env.name.lower()}"
+    """Restart the CE Router service on all instances, which also picks up the latest release.
 
-    if not skip_confirmation and not are_you_sure("restart CE Router service on all instances", cfg):
+    The unit runs init/start-router.sh, and that installs whatever GitHub currently calls the
+    latest release, so this is the cheap way to move a fleet onto a new version: seconds per
+    instance rather than the several minutes an instance refresh spends on warmup.
+    """
+    instances = _get_ce_router_instances(cfg)
+
+    if not instances:
+        click.echo(f"No CE Router instances found for environment {cfg.env.name}")
         return
 
-    try:
-        # Get instances from ASG
-        response = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+    if not skip_confirmation and not are_you_sure(f"restart CE Router service on all {len(instances)} instances", cfg):
+        return
 
-        if not response["AutoScalingGroups"]:
-            print(f"ASG '{asg_name}' not found")
-            return
+    click.echo(f"Restarting CE Router service on {len(instances)} instances...")
+    exec_remote_all(instances, ["sudo", "systemctl", "restart", "ce-router"])
 
-        asg = response["AutoScalingGroups"][0]
-        instance_ids = [instance["InstanceId"] for instance in asg["Instances"]]
-
-        if not instance_ids:
-            print("No instances found in CE Router ASG")
-            return
-
-        print(f"Restarting CE Router service on {len(instance_ids)} instances...")
-        exec_remote_all(instance_ids, ["sudo", "systemctl", "restart", "ce-router"])
-
-        # Wait a moment for services to start
-        time.sleep(5)
-
-        print("Checking service status...")
-        exec_remote_all(instance_ids, ["sudo", "systemctl", "status", "ce-router", "--no-pager"])
-
-    except ClientError as e:
-        print(f"Error restarting CE Router service: {e}")
+    click.echo("")
+    click.echo("Version after restart:")
+    for instance in instances:
+        version = exec_remote(instance, ["cat", "/infra/.deploy/ce-router-version"], ignore_errors=True)
+        click.echo(f"  {instance}: {version.strip() if version else 'unknown'}")
 
 
 def format_healthcheck(response: str) -> str:
