@@ -340,7 +340,80 @@ There are no Grafana alerts covering the router or the compilation queues, and t
 exposes no Prometheus endpoint — this is manual watching. An
 `ApproximateAgeOfOldestMessage` alert is worth adding before staging.
 
+## H2. Switching prod's scaling to the queue
+
+Prod scales on CPU today. Under the router that is the wrong signal - not because CPU is
+inaccurate, but because it is late: it rises only once compilation is already loading the
+instance, whereas the queue metrics see the work arriving. Prod serves almost no web traffic
+(static content is on S3 behind CloudFront, the rest is cached), so nothing else is relying on
+CPU to size the fleet.
+
+One variable controls it. `prod_queue_scaling` in `terraform/prod-blue-green.tf` defaults to
+`false`, meaning the cpu-tracker policy exists and the queue policies do not.
+
+**To switch:**
+
+```
+cd terraform
+terraform apply -var 'prod_queue_scaling=true' \
+  -target=aws_autoscaling_policy.prod_blue_compilation_scaling \
+  -target=aws_autoscaling_policy.prod_green_compilation_scaling \
+  -target=aws_autoscaling_policy.prod_blue_arrival_rate_scaling \
+  -target=aws_autoscaling_policy.prod_green_arrival_rate_scaling \
+  -target=module.prod_blue_green.aws_autoscaling_policy.color
+```
+
+Expect `4 to add, 2 to destroy`. To revert, run the same command without the `-var`; see
+section I.
+
+- [ ] Commit the flip, so the repository and reality agree. Leaving prod running on a `-var`
+      that is not in the configuration means the next person to run a plan silently reverts it.
+- [ ] Watch `ApproximateAgeOfOldestMessage` on the active colour's queue. It is the clearest
+      signal that scaling is not keeping up, because it compares directly against the router's
+      60s deadline and needs no arithmetic - unlike depth, which means nothing without knowing
+      the fleet size.
+- [ ] Expect roughly 5.5 minutes from a metric breaching to instances launching, and about
+      three more before they serve. Measured on beta, twice. Capacity does not arrive quickly;
+      the fleet has to already be large enough, or the spike has to be short.
+
 ## I. Rollback
+
+Two separate levers, and they are not interchangeable. The killswitch stops traffic reaching
+the router; the scaling revert puts the fleet back under CPU control. A rollback usually wants
+both, in that order, but the killswitch alone restores service.
+
+**1. Killswitch — seconds, stops router traffic:**
+
+```
+ce ce-router disable -e prod
+```
+
+**2. Scaling revert — one targeted apply, then ~3-5 minutes for CPU tracking to take hold:**
+
+```
+cd terraform
+terraform apply \
+  -target=aws_autoscaling_policy.prod_blue_compilation_scaling \
+  -target=aws_autoscaling_policy.prod_green_compilation_scaling \
+  -target=aws_autoscaling_policy.prod_blue_arrival_rate_scaling \
+  -target=aws_autoscaling_policy.prod_green_arrival_rate_scaling \
+  -target=module.prod_blue_green.aws_autoscaling_policy.color
+```
+
+No `-var` is needed: `prod_queue_scaling` defaults to `false`, so the committed configuration
+*is* the reverted state. Expect `4 to destroy, 2 to add` — the queue policies go, the
+cpu-tracker policies come back. Both directions were planned and confirmed before the cutover.
+
+Removing a target-tracking policy does not move desired capacity; it only stops adjusting it.
+So the fleet stays where it is through either direction, and CPU tracking then needs its usual
+three datapoints, about three to five minutes, before it starts correcting. If capacity is
+already wrong and you need it now, set it directly — that is instant and beats waiting for any
+policy:
+
+```
+aws autoscaling update-auto-scaling-group --auto-scaling-group-name prod-green \
+  --desired-capacity <n>
+```
 
 - [ ] `ce ce-router disable -e <env>` — verified in step A, before you need it.
 - [ ] Confirm traffic falls back within seconds and compiles succeed on the old path.

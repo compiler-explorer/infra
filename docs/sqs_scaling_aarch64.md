@@ -2,7 +2,13 @@
 
 ## Overview
 
-Compiler Explorer implements sophisticated SQS-based auto-scaling specifically for AArch64 environments (both production and staging). Unlike other environments that use CPU-based scaling, AArch64 environments scale based on compilation job queue depth, providing more responsive and cost-effective scaling for batch workloads.
+Compiler Explorer implements SQS-based auto-scaling for AArch64 environments (both production
+and staging), scaling on compilation job queue depth rather than CPU.
+
+Beta uses queue-based scaling too, and prod can be switched to it with the `prod_queue_scaling`
+variable; see `ce-router-cutover-checklist.md`. Those two also run a second policy on the rate
+messages arrive, since depth only rises once the fleet is already behind - an ASG follows
+whichever active policy asks for the most capacity, so the two compose.
 
 ## Why SQS-Based Scaling?
 
