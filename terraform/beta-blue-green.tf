@@ -67,25 +67,9 @@ resource "aws_autoscaling_policy" "beta_blue_compilation_scaling" {
         return_data = false
       }
       metrics {
-        label = "Get blue target group connection count (to check if this ASG is active)"
-        id    = "m3"
-        metric_stat {
-          metric {
-            namespace   = "AWS/ApplicationELB"
-            metric_name = "ActiveConnectionCount"
-            dimensions {
-              name  = "TargetGroup"
-              value = module.beta_blue_green.blue_target_group_arn
-            }
-          }
-          stat = "Average"
-        }
-        return_data = false
-      }
-      metrics {
-        label       = "Calculate backlog per instance, but only scale if this ASG is receiving traffic"
+        label       = "Backlog per instance, or the raw backlog when this colour has none yet"
         id          = "e1"
-        expression  = "IF(m3 > 0 OR m2 > 0, IF(m2 > 0, (m1 + 1) / m2, m1 + 1), 0)"
+        expression  = "IF(m2 > 0, (m1 + 1) / m2, m1 + 1)"
         return_data = true
       }
     }
@@ -138,25 +122,9 @@ resource "aws_autoscaling_policy" "beta_green_compilation_scaling" {
         return_data = false
       }
       metrics {
-        label = "Get green target group connection count (to check if this ASG is active)"
-        id    = "m3"
-        metric_stat {
-          metric {
-            namespace   = "AWS/ApplicationELB"
-            metric_name = "ActiveConnectionCount"
-            dimensions {
-              name  = "TargetGroup"
-              value = module.beta_blue_green.green_target_group_arn
-            }
-          }
-          stat = "Average"
-        }
-        return_data = false
-      }
-      metrics {
-        label       = "Calculate backlog per instance, but only scale if this ASG is receiving traffic"
+        label       = "Backlog per instance, or the raw backlog when this colour has none yet"
         id          = "e1"
-        expression  = "IF(m3 > 0 OR m2 > 0, IF(m2 > 0, (m1 + 1) / m2, m1 + 1), 0)"
+        expression  = "IF(m2 > 0, (m1 + 1) / m2, m1 + 1)"
         return_data = true
       }
     }
