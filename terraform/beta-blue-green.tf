@@ -34,7 +34,12 @@ resource "aws_autoscaling_policy" "beta_blue_compilation_scaling" {
   estimated_instance_warmup = local.grace_period + 30
 
   target_tracking_configuration {
-    target_value = 2 # Reduced to 2 messages per instance for aggressive scaling
+    # A backlog worth roughly fifteen seconds of one instance's work. At 2 this policy was
+    # wildly overeager - replaying a real Friday through it asked for 40 instances for a peak
+    # needing four, because two messages per instance is about a second of work and any blip
+    # cleared it. Its job is to be the safety net the arrival-rate policy falls back on, not to
+    # set the fleet size.
+    target_value = 15
     customized_metric_specification {
       metrics {
         label = "Get the queue size (the number of compilation messages waiting to be processed)"
@@ -94,7 +99,12 @@ resource "aws_autoscaling_policy" "beta_green_compilation_scaling" {
   estimated_instance_warmup = local.grace_period + 30
 
   target_tracking_configuration {
-    target_value = 2 # Reduced to 2 messages per instance for aggressive scaling
+    # A backlog worth roughly fifteen seconds of one instance's work. At 2 this policy was
+    # wildly overeager - replaying a real Friday through it asked for 40 instances for a peak
+    # needing four, because two messages per instance is about a second of work and any blip
+    # cleared it. Its job is to be the safety net the arrival-rate policy falls back on, not to
+    # set the fleet size.
+    target_value = 15
     customized_metric_specification {
       metrics {
         label = "Get the queue size (the number of compilation messages waiting to be processed)"
@@ -173,13 +183,16 @@ resource "aws_autoscaling_policy" "beta_blue_arrival_rate_scaling" {
   estimated_instance_warmup = local.grace_period + 30
 
   target_tracking_configuration {
-    # Messages a minute one instance should absorb. A beta m5.large saturates around 120/min;
-    # 60 therefore runs at about half capacity, so a spike has somewhere to land while new
-    # instances boot. Raise it to run hotter, lower it for more headroom.
+    # Messages a minute one instance should absorb. Derived by replaying a real day of prod
+    # traffic (mean 149/min, peak 473/min) through this policy: at 20 the fleet averages 10.2
+    # instances against the 9.7 prod actually ran on CPU tracking that day, peaks at 24, and
+    # drops nothing - including against a synthetic 5x twenty-minute spike. Hotter settings
+    # start losing requests: 25 drops 0.26% of that spike, 30 drops 0.53%.
     #
-    # CALIBRATE PER ENVIRONMENT. Prod serves web traffic from the same instances, so its
-    # spare capacity for compilation is not beta's.
-    target_value = 60
+    # The earlier figure of 60 came from a beta instance saturating at ~120/min on synthetic
+    # payloads, which is neither prod's workload (p50 0.56s but p99 17.3s) nor a rate anything
+    # should sit at. Recalibrate against measurements, not against saturation.
+    target_value = 20
 
     customized_metric_specification {
       metrics {
@@ -239,7 +252,7 @@ resource "aws_autoscaling_policy" "beta_green_arrival_rate_scaling" {
   estimated_instance_warmup = local.grace_period + 30
 
   target_tracking_configuration {
-    target_value = 60
+    target_value = 20
 
     customized_metric_specification {
       metrics {
