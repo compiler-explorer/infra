@@ -392,7 +392,7 @@ ce ce-router disable -e prod
 
 ```
 cd terraform
-terraform apply \
+terraform apply -var 'prod_queue_scaling=false' \
   -target=aws_autoscaling_policy.prod_blue_compilation_scaling \
   -target=aws_autoscaling_policy.prod_green_compilation_scaling \
   -target=aws_autoscaling_policy.prod_blue_arrival_rate_scaling \
@@ -400,9 +400,9 @@ terraform apply \
   -target=module.prod_blue_green.aws_autoscaling_policy.color
 ```
 
-No `-var` is needed: `prod_queue_scaling` defaults to `false`, so the committed configuration
-*is* the reverted state. Expect `4 to destroy, 2 to add` — the queue policies go, the
-cpu-tracker policies come back. Both directions were planned and confirmed before the cutover.
+`prod_queue_scaling` defaults to `true` now that prod runs on the queue policies, so the
+revert needs `-var 'prod_queue_scaling=false'`. Expect `4 to destroy, 2 to add` — the queue
+policies go, the cpu-tracker policies come back.
 
 Removing a target-tracking policy does not move desired capacity; it only stops adjusting it.
 So the fleet stays where it is through either direction, and CPU tracking then needs its usual

@@ -2,17 +2,17 @@ variable "prod_queue_scaling" {
   description = <<-EOT
     Scale prod's compilation fleet on SQS queue metrics instead of CPU.
 
-    false (the default, and the state to return to): the module's cpu-tracker policy runs and
-    the queue policies below do not exist. true: the reverse.
+    true (the default, and what prod runs): the queue policies below exist and the module's
+    cpu-tracker policy does not. false: the reverse, which is the revert.
 
     Flipping this is the whole switch, and the whole revert. Both directions are one targeted
-    apply; see docs/ce-router-cutover-checklist.md for the commands. Nothing else needs to
-    change, and neither direction moves desired capacity on its own - removing a target
-    tracking policy leaves the fleet where it is and simply stops adjusting it, so the switch
-    is a change of control loop rather than a change of size.
+    apply; see docs/ce-router-cutover-checklist.md for the commands. Neither direction moves
+    desired capacity on its own - removing a target tracking policy leaves the fleet where it
+    is and simply stops adjusting it, so the switch is a change of control loop rather than a
+    change of size.
   EOT
   type        = bool
-  default     = false
+  default     = true
 }
 
 # Blue-Green deployment infrastructure for Production environment
