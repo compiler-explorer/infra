@@ -14,6 +14,10 @@ leave them alone. Contact point **Discord Alerts** is managed here too (provisio
 webhook comes from SSM `/admin/discord_webhook_url`, shared with the AWS root's
 `cloudwatch_to_discord` Lambda so CloudWatch and Grafana alerts reach the same
 channel. Change the channel by updating that parameter and applying both roots.
+Dashboard **Queue Scaling** (`dashboards.tf`, uid `ce-queue-scaling`) graphs the
+arrival-rate scaling metric for prod and beta, computed the way the ASG policies
+do, against each environment's target; keep its targets in step with
+`target_value` in `../prod-blue-green.tf` and `../beta-blue-green.tf`.
 
 Provisioned rules are read-only in the UI (the "Provisioned" badge); use
 silences during incidents. To experiment, build a rule in another folder,
