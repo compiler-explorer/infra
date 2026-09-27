@@ -23,6 +23,10 @@ const subscriptionCache = new Set();
 // GUID sender tracking cache: Map<guid, connectionId>
 const guidSenderCache = new Map();
 
+const GSI_RETRY_DELAYS_MS = [50, 150];
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 export class EventsConnections {
     static async subscribers(subscription) {
         // Check cache first - find all connectionIds with this subscription
@@ -53,7 +57,17 @@ export class EventsConnections {
             },
         });
 
-        const result = await ddbClient.send(queryCommand);
+        let result = await ddbClient.send(queryCommand);
+
+        // The GSI is eventually consistent, so a subscription written moments ago may not be
+        // visible yet. Give it a couple of chances before concluding nobody is listening.
+        if (result.Count === 0) {
+            for (const delay of GSI_RETRY_DELAYS_MS) {
+                await sleep(delay);
+                result = await ddbClient.send(queryCommand);
+                if (result.Count > 0) break;
+            }
+        }
         // eslint-disable-next-line no-console
         console.info(`DynamoDB query end for subscription: ${subscription}, found ${result.Count} items`);
 

@@ -92,3 +92,67 @@ test('getGuidSender falls back to dynamo when not cached', async t => {
     const sender = await EventsConnections.getGuidSender('guid-uncached');
     assert.equal(sender, 'fallback-sender');
 });
+
+test('subscribers retries the index when a subscription has not propagated yet', async t => {
+    // SubscriptionIndex is a GSI, so a write that has already succeeded can be invisible to a
+    // query moments later. Seen when a compile finishes faster than the index propagates.
+    let attempts = 0;
+    const calls = recordSend(t, cmd => {
+        if (!(cmd instanceof QueryCommand)) return {};
+        attempts++;
+        return attempts < 2 ? {Items: [], Count: 0} : {Items: [{connectionId: {S: 'conn-late'}}], Count: 1};
+    });
+
+    const result = await EventsConnections.subscribers('guid-late');
+
+    assert.equal(result.Count, 1);
+    assert.equal(result.Items[0].connectionId.S, 'conn-late');
+    assert.ok(calls.length >= 2, 'should have queried more than once');
+});
+
+test('subscribers does not retry when the first query finds someone', async t => {
+    let attempts = 0;
+    recordSend(t, cmd => {
+        if (!(cmd instanceof QueryCommand)) return {};
+        attempts++;
+        return {Items: [{connectionId: {S: 'conn-fast'}}], Count: 1};
+    });
+
+    const result = await EventsConnections.subscribers('guid-fast');
+
+    assert.equal(result.Count, 1);
+    assert.equal(attempts, 1, 'the common path must not pay for the retry');
+});
+
+test('subscribers gives up after its retries and reports nobody', async t => {
+    let attempts = 0;
+    recordSend(t, cmd => {
+        if (!(cmd instanceof QueryCommand)) return {};
+        attempts++;
+        return {Items: [], Count: 0};
+    });
+
+    const result = await EventsConnections.subscribers('guid-absent');
+
+    assert.equal(result.Count, 0);
+    assert.equal(attempts, 3, 'one initial query plus the two retries');
+});
+
+test('subscribers still waits on the index even when the cache has someone', async t => {
+    // The cache is an optimisation and may be incomplete or stale, so it does not excuse us
+    // from letting the index propagate - it might name a different or additional subscriber.
+    let attempts = 0;
+    recordSend(t, cmd => {
+        if (!(cmd instanceof QueryCommand)) return {};
+        attempts++;
+        return {Items: [], Count: 0};
+    });
+    await EventsConnections.update('conn-cached', 'guid-cached');
+    attempts = 0;
+
+    const result = await EventsConnections.subscribers('guid-cached');
+
+    assert.equal(result.Count, 1, 'the cached subscriber is still returned');
+    assert.equal(result.Items[0].connectionId.S, 'conn-cached');
+    assert.equal(attempts, 3, 'and the index was given its chances regardless');
+});
