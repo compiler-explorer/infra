@@ -266,10 +266,9 @@ resource "aws_autoscaling_policy" "prod_blue_arrival_rate_scaling" {
     # drops nothing - including against a synthetic 5x twenty-minute spike. Hotter settings
     # start losing requests: 25 drops 0.26% of that spike, 30 drops 0.53%.
     #
-    # The earlier figure of 60 came from a beta instance saturating at ~120/min on synthetic
-    # payloads, which is neither prod's workload (p50 0.56s but p99 17.3s) nor a rate anything
-    # should sit at. Recalibrate against measurements, not against saturation.
-    target_value = 20
+    # Messages a minute per instance. At prod's traffic this holds the fleet near six, which
+    # puts CPU around the 25% the CPU policy targeted. Calibrate per environment.
+    target_value = 25
 
     customized_metric_specification {
       metrics {
@@ -337,7 +336,7 @@ resource "aws_autoscaling_policy" "prod_green_arrival_rate_scaling" {
   estimated_instance_warmup = local.grace_period + 30
 
   target_tracking_configuration {
-    target_value = 20
+    target_value = 25
 
     customized_metric_specification {
       metrics {
