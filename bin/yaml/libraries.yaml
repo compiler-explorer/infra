@@ -184,6 +184,7 @@ libraries:
       repo: bitfactory-software/anyxx
       targets:
       - 0.7.0
+      - develop
       type: github
     async_simple:
       build_type: none
