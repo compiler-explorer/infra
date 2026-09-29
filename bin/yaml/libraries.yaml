@@ -2800,6 +2800,7 @@ libraries:
       - 3.1.5
       - 3.10.0
       - 4.0.0
+      - 5.0.1
       type: github
     sol2:
       build_type: none
