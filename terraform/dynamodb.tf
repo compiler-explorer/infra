@@ -144,9 +144,6 @@ resource "aws_dynamodb_table" "events-connections" {
   }
 
   # Global Secondary Index for efficient subscription lookups.
-  #
-  # Needs aws provider >= 6.66.0: older versions rebuild a key_schema-declared GSI on any edit, and a
-  # rebuilt index is empty until backfilled, which breaks every queue-routed compile meanwhile.
   global_secondary_index {
     name = "SubscriptionIndex"
     key_schema {

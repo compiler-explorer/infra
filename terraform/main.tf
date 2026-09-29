@@ -12,7 +12,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws",
-      version = "~> 6.66" # >= 6.66 keeps key_schema GSI edits in place (see dynamodb.tf)
+      version = "~> 6.66"
     }
   }
   backend "s3" {
