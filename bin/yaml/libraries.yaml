@@ -926,6 +926,7 @@ libraries:
       targets:
       - 1.1.0
       - 1.1.1
+      - 1.2.0
       type: github
     gsl:
       check_file: README.md
