@@ -8,6 +8,7 @@ compilers:
     package:
       - tilelang=={{name}}
     check_exe: [ "bin/python3.12", "-c", "import tilelang; print(tilelang.__version__)" ]
+    check_env:
+      - TILELANG_CACHE_DIR=/tmp/tilelang-check-cache
     targets:
       - 0.1.14
-      - 0.1.13
