@@ -126,16 +126,12 @@ resource "aws_dynamodb_table" "compiler-builds" {
 resource "aws_dynamodb_table" "events-connections" {
   name = "events-connections"
   lifecycle {
-    ignore_changes = [
-      read_capacity,
-      write_capacity
-    ]
     prevent_destroy = true
   }
-  billing_mode   = "PROVISIONED"
-  read_capacity  = 25 # Baseline for production WebSocket traffic
-  write_capacity = 10 # Baseline for connection updates
-  hash_key       = "connectionId"
+  # On-demand because a GSI's autoscaled capacity can't be ignore_changes'd (the provider only offers
+  # an experimental separate resource), so provisioned mode drifted on every plan.
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "connectionId"
 
   attribute {
     name = "connectionId"
@@ -151,16 +147,13 @@ resource "aws_dynamodb_table" "events-connections" {
   #
   # hash_key rather than a key_schema block, despite the deprecation warning: with key_schema the
   # provider leaves hash_key unknown at plan time, and an unknown inside a set element replaces the
-  # element rather than updating it - so any diff here, including one autoscaling causes by moving
-  # the index's capacity off the baseline below, deletes and recreates SubscriptionIndex. The index
+  # element rather than updating it - so any diff here deletes and recreates SubscriptionIndex. The index
   # comes back empty and every subscriber lookup fails until the backfill completes, which takes
   # the whole queue-routed compile path down with it.
   global_secondary_index {
     name     = "SubscriptionIndex"
     hash_key = "subscription"
 
-    read_capacity   = 25          # Match main table baseline
-    write_capacity  = 10          # Match main table baseline
     projection_type = "KEYS_ONLY" # Only project connectionId and subscription for minimal data transfer
   }
 
@@ -172,109 +165,6 @@ resource "aws_dynamodb_table" "events-connections" {
   ttl {
     attribute_name = "ttl"
     enabled        = true
-  }
-}
-
-# Auto-scaling for events-connections table read capacity
-resource "aws_appautoscaling_target" "events_connections_read_target" {
-  max_capacity       = 100
-  min_capacity       = 25
-  resource_id        = "table/${aws_dynamodb_table.events-connections.name}"
-  scalable_dimension = "dynamodb:table:ReadCapacityUnits"
-  service_namespace  = "dynamodb"
-}
-
-resource "aws_appautoscaling_policy" "events_connections_read_policy" {
-  name               = "DynamoDBReadCapacityUtilization:${aws_appautoscaling_target.events_connections_read_target.resource_id}"
-  policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.events_connections_read_target.resource_id
-  scalable_dimension = aws_appautoscaling_target.events_connections_read_target.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.events_connections_read_target.service_namespace
-
-  target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = "DynamoDBReadCapacityUtilization"
-    }
-    target_value = 70.0 # Scale up when utilization exceeds 70%
-  }
-}
-
-# Auto-scaling for events-connections table write capacity
-resource "aws_appautoscaling_target" "events_connections_write_target" {
-  # A load test on 2026-09-22 drove ~48 subscribe requests/sec at this table and autoscaling
-  # resolved the resulting throttling only by reaching 50, its former ceiling - it had no room
-  # left at the moment the load stopped. Ceilings cost nothing until they are used, and the
-  # failure they prevent is silent: a throttled subscribe is never reported to the router, so
-  # the request is queued anyway and the caller waits out the full 60s deadline.
-  max_capacity       = 200
-  min_capacity       = 10
-  resource_id        = "table/${aws_dynamodb_table.events-connections.name}"
-  scalable_dimension = "dynamodb:table:WriteCapacityUnits"
-  service_namespace  = "dynamodb"
-}
-
-resource "aws_appautoscaling_policy" "events_connections_write_policy" {
-  name               = "DynamoDBWriteCapacityUtilization:${aws_appautoscaling_target.events_connections_write_target.resource_id}"
-  policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.events_connections_write_target.resource_id
-  scalable_dimension = aws_appautoscaling_target.events_connections_write_target.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.events_connections_write_target.service_namespace
-
-  target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = "DynamoDBWriteCapacityUtilization"
-    }
-    target_value = 70.0 # Scale up when utilization exceeds 70%
-  }
-}
-
-# Auto-scaling for SubscriptionIndex GSI read capacity
-resource "aws_appautoscaling_target" "events_connections_gsi_read_target" {
-  max_capacity       = 100
-  min_capacity       = 25
-  resource_id        = "table/${aws_dynamodb_table.events-connections.name}/index/SubscriptionIndex"
-  scalable_dimension = "dynamodb:index:ReadCapacityUnits"
-  service_namespace  = "dynamodb"
-}
-
-resource "aws_appautoscaling_policy" "events_connections_gsi_read_policy" {
-  name               = "DynamoDBReadCapacityUtilization:${aws_appautoscaling_target.events_connections_gsi_read_target.resource_id}"
-  policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.events_connections_gsi_read_target.resource_id
-  scalable_dimension = aws_appautoscaling_target.events_connections_gsi_read_target.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.events_connections_gsi_read_target.service_namespace
-
-  target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = "DynamoDBReadCapacityUtilization"
-    }
-    target_value = 70.0 # Scale up when utilization exceeds 70%
-  }
-}
-
-# Auto-scaling for SubscriptionIndex GSI write capacity
-resource "aws_appautoscaling_target" "events_connections_gsi_write_target" {
-  # Matches the base table: insufficient index write capacity throttles base-table writes too,
-  # so a lower ceiling here would cap the table regardless of its own setting.
-  max_capacity       = 200
-  min_capacity       = 10
-  resource_id        = "table/${aws_dynamodb_table.events-connections.name}/index/SubscriptionIndex"
-  scalable_dimension = "dynamodb:index:WriteCapacityUnits"
-  service_namespace  = "dynamodb"
-}
-
-resource "aws_appautoscaling_policy" "events_connections_gsi_write_policy" {
-  name               = "DynamoDBWriteCapacityUtilization:${aws_appautoscaling_target.events_connections_gsi_write_target.resource_id}"
-  policy_type        = "TargetTrackingScaling"
-  resource_id        = aws_appautoscaling_target.events_connections_gsi_write_target.resource_id
-  scalable_dimension = aws_appautoscaling_target.events_connections_gsi_write_target.scalable_dimension
-  service_namespace  = aws_appautoscaling_target.events_connections_gsi_write_target.service_namespace
-
-  target_tracking_scaling_policy_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = "DynamoDBWriteCapacityUtilization"
-    }
-    target_value = 70.0 # Scale up when utilization exceeds 70%
   }
 }
 
