@@ -16,7 +16,7 @@ from typing import Any
 from lib import amazon
 from lib.amazon import list_compilers
 from lib.installable.installable import Installable, command_config
-from lib.installation_context import InstallationContext, is_windows
+from lib.installation_context import InstallationContext, is_windows, parse_sha256
 from lib.nightly_versions import NightlyVersions
 from lib.staging import StagingDir
 
@@ -201,6 +201,7 @@ class TarballInstallable(Installable):
         else:
             self.untar_to = "."
         self.url = self.config_get("url")
+        self.sha256 = parse_sha256(self.config.get("sha256"))
         if self.config_get("compression") == "xz":
             decompress_flag = "J"
         elif self.config_get("compression") == "gz":
@@ -242,7 +243,9 @@ class TarballInstallable(Installable):
         self.num_to_keep = self.config_get("num_to_keep", 5)
 
     def stage(self, staging: StagingDir) -> None:
-        self.install_context.fetch_url_and_pipe_to(staging, f"{self.url}", self.tar_cmd, self.untar_to)
+        self.install_context.fetch_url_and_pipe_to(
+            staging, f"{self.url}", self.tar_cmd, self.untar_to, sha256=self.sha256
+        )
         if self.configure_command:
             self.install_context.stage_command(staging, self.configure_command)
         if self.strip:
@@ -306,6 +309,7 @@ class ZipArchiveInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
         self.url = self.config_get("url")
+        self.sha256 = parse_sha256(self.config.get("sha256"))
         self.install_path = self.config_get("dir")
         self.extract_into_folder = self.config_get("extract_into_folder", False)
         self.folder_to_rename = self.config_get("folder", None if not self.extract_into_folder else "tmp")
@@ -315,7 +319,7 @@ class ZipArchiveInstallable(Installable):
     def stage(self, staging: StagingDir) -> None:
         # Unzip does not support stdin piping so we need to create a file
         with (staging.path / "distribution.zip").open("wb") as fd:
-            self.install_context.fetch_to(self.url, fd)
+            self.install_context.fetch_to(self.url, fd, sha256=self.sha256)
             if not is_windows():
                 unzip_cmd = ["unzip", "-q", fd.name]
                 if self.extract_into_folder:

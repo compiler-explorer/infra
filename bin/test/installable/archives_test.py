@@ -1,7 +1,12 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from lib.installable.archives import NightlyInstallable, RestQueryTarballInstallable
+from lib.installable.archives import (
+    NightlyInstallable,
+    RestQueryTarballInstallable,
+    TarballInstallable,
+    ZipArchiveInstallable,
+)
 from lib.installation_context import InstallationContext
 from lib.staging import StagingDir
 
@@ -108,3 +113,61 @@ def test_other_installables_have_no_dated_s3_prefix(fake_context):
     installable = make_installable(fake_context, "document[0]['cdn_url']")
 
     assert installable.dated_s3_prefix is None
+
+
+DIGEST = "ab" * 32
+
+
+def tarball_config(**extras) -> dict:
+    config = dict(
+        context=["compilers", "example"],
+        name="1.0",
+        url="https://example.com/example-1.0.tar.gz",
+        dir="example-1.0",
+        compression="gz",
+    )
+    config.update(extras)
+    return config
+
+
+def test_tarball_passes_its_sha256_to_the_fetch(fake_context, tmp_path):
+    (tmp_path / "example-1.0").mkdir()
+    installable = TarballInstallable(fake_context, tarball_config(sha256=DIGEST.upper()))
+
+    installable.stage(MagicMock(spec=StagingDir, path=tmp_path))
+
+    fake_context.fetch_url_and_pipe_to.assert_called_once()
+    assert fake_context.fetch_url_and_pipe_to.call_args.kwargs["sha256"] == DIGEST
+
+
+def test_tarball_without_sha256_fetches_unverified(fake_context, tmp_path):
+    (tmp_path / "example-1.0").mkdir()
+    installable = TarballInstallable(fake_context, tarball_config())
+
+    installable.stage(MagicMock(spec=StagingDir, path=tmp_path))
+
+    assert fake_context.fetch_url_and_pipe_to.call_args.kwargs["sha256"] is None
+
+
+def test_tarball_rejects_a_malformed_sha256_at_load(fake_context):
+    with pytest.raises(ValueError, match="expected 64 hex digits"):
+        TarballInstallable(fake_context, tarball_config(sha256="not-a-digest"))
+
+
+def test_zip_passes_its_sha256_to_the_fetch(fake_context, tmp_path):
+    (tmp_path / "example-1.0").mkdir()
+    installable = ZipArchiveInstallable(
+        fake_context,
+        dict(
+            context=["compilers", "example"],
+            name="1.0",
+            url="https://example.com/example-1.0.zip",
+            dir="example-1.0",
+            folder="example-1.0",
+            sha256=DIGEST,
+        ),
+    )
+
+    installable.stage(MagicMock(spec=StagingDir, path=tmp_path))
+
+    assert fake_context.fetch_to.call_args.kwargs["sha256"] == DIGEST

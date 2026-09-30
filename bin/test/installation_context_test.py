@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import hashlib
+import io
 import stat
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock
 
+import pytest
 from lib.config import Config
-from lib.installation_context import InstallationContext, fix_permissions
+from lib.installation_context import ChecksumMismatch, FetchFailure, InstallationContext, fix_permissions, parse_sha256
 from lib.library_platform import LibraryPlatform
 
 
@@ -129,3 +133,61 @@ def make_context(s3_bucket: str, s3_dir: str) -> InstallationContext:
 def test_s3_url_follows_the_bucket_and_directory():
     assert make_context("compiler-explorer", "opt").s3_url == "https://s3.amazonaws.com/compiler-explorer/opt"
     assert make_context("other-bucket", "opt-nonfree").s3_url == "https://s3.amazonaws.com/other-bucket/opt-nonfree"
+
+
+PAYLOAD = b"a" * 10 + b"b" * 10
+PAYLOAD_SHA256 = hashlib.sha256(PAYLOAD).hexdigest()
+
+
+def make_fetching_context(payload: bytes) -> InstallationContext:
+    context = make_context("compiler-explorer", "opt")
+    response = MagicMock(ok=True, headers={"content-length": str(len(payload))})
+    response.iter_content.return_value = [payload[:7], payload[7:]]
+    context.fetcher = MagicMock()
+    context.fetcher.get.return_value = response
+    return context
+
+
+def test_fetch_to_accepts_a_matching_sha256():
+    fd = io.BytesIO()
+    make_fetching_context(PAYLOAD).fetch_to("https://example.com/x.tar.gz", fd, sha256=PAYLOAD_SHA256)
+    assert fd.getvalue() == PAYLOAD
+
+
+def test_fetch_to_rejects_a_mismatched_sha256():
+    with pytest.raises(ChecksumMismatch, match="expected sha256 0{64}, got " + PAYLOAD_SHA256):
+        make_fetching_context(PAYLOAD).fetch_to("https://example.com/x.tar.gz", io.BytesIO(), sha256="0" * 64)
+
+
+def test_checksum_mismatch_is_a_fetch_failure():
+    assert issubclass(ChecksumMismatch, FetchFailure)
+
+
+def test_fetch_to_without_sha256_does_not_verify():
+    fd = io.BytesIO()
+    make_fetching_context(PAYLOAD).fetch_to("https://example.com/x.tar.gz", fd)
+    assert fd.getvalue() == PAYLOAD
+
+
+def test_fetch_url_and_pipe_to_does_not_run_the_command_on_mismatch(tmp_path, monkeypatch):
+    context = make_fetching_context(PAYLOAD)
+    check_call = MagicMock()
+    monkeypatch.setattr("lib.installation_context.subprocess.check_call", check_call)
+    staging = MagicMock(path=tmp_path)
+    with pytest.raises(ChecksumMismatch):
+        context.fetch_url_and_pipe_to(staging, "https://example.com/x.tar.gz", ["tar", "zxf", "-"], sha256="0" * 64)
+    check_call.assert_not_called()
+
+
+def test_parse_sha256_normalises_case_and_whitespace():
+    assert parse_sha256(f" {PAYLOAD_SHA256.upper()}\n") == PAYLOAD_SHA256
+
+
+def test_parse_sha256_passes_through_none():
+    assert parse_sha256(None) is None
+
+
+@pytest.mark.parametrize("value", ["", "abc", "g" * 64, "0" * 63, "0" * 65])
+def test_parse_sha256_rejects_malformed_digests(value):
+    with pytest.raises(ValueError, match="expected 64 hex digits"):
+        parse_sha256(value)

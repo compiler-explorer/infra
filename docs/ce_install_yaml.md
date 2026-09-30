@@ -113,6 +113,7 @@ The following properties are commonly used by installation targets:
 | `untar_dir` | Directory name when extracting archives |
 | `create_untar_dir` | Whether to create the untar directory if it doesn't exist |
 | `strip_components` | Number of leading path components to strip when extracting |
+| `sha256` | Expected SHA-256 of the downloaded archive (`tarballs`, `go`, `ziparchive`). The download is checked before anything is extracted, and a mismatch fails the install. Pin the digest here rather than fetching a checksum file from the same place as the archive |
 | `strip` | Whether to apply stripping to executables |
 | `depends` | List of target dependencies |
 | `symlink` | Symlink to create for the installed target (only needed in rare cases) |
