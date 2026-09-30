@@ -1350,6 +1350,24 @@ compilers:
             macro_gen: edg-compiler/make_predef_macro_table_v1
             depends:
               - compilers/c++/x86/gcc 15.2.0
+    edgcpp:
+      type: edg-s3tarballs
+      s3_path_prefix: edg-{{edg_version}}
+      untar_dir: edg-{{edg_version}}/{{compiler_type}}
+      path_name: edg-{{name}}
+      check_exe: eccp-scripts/eccp-{{compiler_type}} --version
+      targets:
+        - name: 7.0-gcc-16
+          edg_version: '7.0'
+          compiler_type: gcc
+          macro_output_dir: base/lib
+          depends:
+            - compilers/c++/x86/gcc 16.1.0
+        - name: 7.0-default-16
+          edg_version: '7.0'
+          compiler_type: default
+          depends:
+            - compilers/c++/x86/gcc 16.1.0
     ellccs:
       check_exe: bin/clang++ --version
       dir: ellcc-{{name}}
@@ -1736,6 +1754,19 @@ compilers:
         check_exe: bin/vast-front --version
         targets:
           - trunk
+      edgcpp:
+        type: edg-nightly
+        compiler_name: edg-trunk
+        path_name_prefix: edg-trunk-{{compiler_type}}
+        check_exe: eccp-scripts/eccp-{{compiler_type}} --version
+        depends:
+          - compilers/c++/x86/gcc 16.1.0
+        targets:
+          - name: trunk-gcc
+            compiler_type: gcc
+            macro_output_dir: base/lib
+          - name: trunk-default
+            compiler_type: default
       llvmmos:
         type: nightlytarballs
         compression: xz

@@ -151,7 +151,9 @@ The following installer types are available, each with specific required and opt
 | `ziparchive` | Downloads and extracts a ZIP archive | `check_exe` or `check_file`, `url` | `dir` |
 | `cratesio` | Installs a Rust crate from crates.io | `check_exe` or `check_file` | `dir` |
 | `non-free-s3tarballs` | Downloads and extracts a non-free tarball from S3 | `check_exe` or `check_file` | `dir`, `s3_path_prefix` |
-| `edg` | Installs an EDG compiler (very special-case) | `check_exe` or `check_file` | `dir` |
+| `edg` | Installs a non-free EDG compiler supplied by EDG (very special-case) | `check_exe` or `check_file` | `dir` |
+| `edg-s3tarballs` | Installs one mode of an open-source EDG release we build (misc-builder `edg` image) | `check_exe` or `check_file`, `compiler_type` | `untar_dir`, `s3_path_prefix`, `macro_output_dir` |
+| `edg-nightly` | Installs one mode of the daily open-source EDG build | `check_exe` or `check_file`, `compiler_type`, `compiler_name` | `path_name_prefix`, `macro_output_dir` |
 | `restQueryTarballs` | Downloads tarball using REST API information | `check_exe` or `check_file`, `url`, `query` | `dir` |
 | `go` | Installs a Go compiler and automatically builds the standard library | `check_exe` or `check_file` | `dir`, `build_stdlib`, `build_stdlib_archs` |
 
