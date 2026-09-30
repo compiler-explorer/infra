@@ -1444,6 +1444,14 @@ libraries:
       - 4.3.11
       type: github
     nightly:
+      anyxx:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: bitfactory-software/anyxx
+        targets:
+        - develop
+        type: github
       array:
         check_file: include/array/array.h
         method: nightlyclone
