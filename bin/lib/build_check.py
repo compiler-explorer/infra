@@ -24,6 +24,8 @@ BUILD_REQUIRED_TYPES = frozenset({
     "nightly",
     "nightlytarballs",
     "edg",
+    "edg-s3tarballs",
+    "edg-nightly",
 })
 
 

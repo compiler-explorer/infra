@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from lib import amazon
-from lib.installable.archives import NonFreeS3TarballInstallable
+from lib.installable.archives import NightlyInstallable, NonFreeS3TarballInstallable, S3TarballInstallable
+from lib.installable.installable import Installable
 from lib.installation_context import InstallationContext
 from lib.staging import StagingDir
 
@@ -80,15 +81,26 @@ _SHIM_SHELL_FUNCS: dict[str, Callable[..., str]] = {
 }
 
 
-class EdgCompilerInstallable(NonFreeS3TarballInstallable):
-    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
-        super().__init__(install_context, config)
-        self._scraper = self.config_get("scraper")
-        self._macro_gen = self.config_get("macro_gen", "")
-        self._macro_dir = self.config_get("macro_output_dir", "")
-        self._scrape_cmd = self.config_get("scrape_cmd")
-        self._compiler_type = self.config_get("compiler_type")
-        self.install_path = self.config_get("path_name")
+class _EdgPackageMixin(Installable):
+    """Turns an unpacked EDG package (bin/, lib/, base/) into a usable compiler.
+
+    EDG emulates a backend gcc, so each install is tied to one: we generate that
+    gcc's predefined macro table, scrape its include paths and version, and write
+    an eccp-scripts/eccp-<mode> shim that wires it all together. Subclasses say
+    where the package was unpacked and how to run EDG's scraper and macro tools.
+    """
+
+    _compiler_type: str
+    _macro_dir: str
+
+    def _package_dir(self, staging: StagingDir) -> Path:
+        raise NotImplementedError
+
+    def _query_scraper(self, staging: StagingDir, backend_compiler_path: Path, lang: str, query_type: str) -> str:
+        raise NotImplementedError
+
+    def _run_macro_gen(self, staging: StagingDir, command_args: list[str], output_path: Path) -> None:
+        raise NotImplementedError
 
     def _resolve_backend_install_path(self) -> Path:
         if len(self.depends) != 1:
@@ -140,32 +152,11 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         if self._compiler_type == "default":
             return EdgBackendCompilerScrape("", "", "")
 
-        scrapper_unzip_dir = staging.path / "backend-scrapping"
-        scrapper_unzip_dir.mkdir(exist_ok=True, parents=True)
-
-        def _query(lang: str, query_type: str) -> str:
-            """Query the EDG compiler scrape tool for the given language and query type."""
-            command_to_run = [
-                self._scrape_cmd,
-                f"--compiler-path={backend_compiler_path}",
-                f"--lang={lang}",
-                self._compiler_type,
-                query_type,
-            ]
-            _LOGGER.info("Running %s", shlex.join(command_to_run))
-            return subprocess.check_output(command_to_run, cwd=scrapper_unzip_dir).decode("utf-8").strip()
-
         # Gather the C and C++ include paths as well as the emulated compiler version number.
-        with tempfile.NamedTemporaryFile() as temp_file:
-            amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{self._scraper}", temp_file)
-            temp_file.flush()
-            command = ["unzip", temp_file.name]
-            _LOGGER.info("Running %s", shlex.join(command))
-            subprocess.check_call(command, cwd=scrapper_unzip_dir)
-            c_includes = _query("c", "includes")
-            cpp_includes = _query("c++", "includes")
-            version = _query("c", "version")
-            return EdgBackendCompilerScrape(c_includes, cpp_includes, version)
+        c_includes = self._query_scraper(staging, backend_compiler_path, "c", "includes")
+        cpp_includes = self._query_scraper(staging, backend_compiler_path, "c++", "includes")
+        version = self._query_scraper(staging, backend_compiler_path, "c", "version")
+        return EdgBackendCompilerScrape(c_includes, cpp_includes, version)
 
     def _write_emulated_predefined_macros(
         self, staging: StagingDir, emulated_c_compiler_path: Path, emulated_cpp_compiler_path: Path
@@ -176,29 +167,22 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         # If the compiler is in default mode the default predefined macros are used.
         assert self._compiler_type != "default"
 
-        # Check some prerequisites before doing further work.
-        if len(self._macro_gen) == 0 or len(self._macro_dir) == 0:
-            raise RuntimeError("No macro generation script provided for non-default mode EDG compiler")
+        if len(self._macro_dir) == 0:
+            raise RuntimeError("No macro output directory provided for non-default mode EDG compiler")
 
-        # Gather the predefined macros for the emulated compiler.
-        with tempfile.NamedTemporaryFile() as temp_file:
-            amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{self._macro_gen}", temp_file)
-            temp_file.flush()
-            if self._compiler_type == "gcc":
-                command_args = ["--g++", str(emulated_cpp_compiler_path), "--gcc", str(emulated_c_compiler_path)]
-            elif self._compiler_type == "clang":
-                assert emulated_c_compiler_path == emulated_cpp_compiler_path, (
-                    "The emulate clang C and C++ compiler should be the same binary"
-                )
-                command_args = ["--clang", str(emulated_cpp_compiler_path)]
-            else:
-                raise AssertionError(f"Cannot generate macros for {self._compiler_type}")
+        if self._compiler_type == "gcc":
+            command_args = ["--g++", str(emulated_cpp_compiler_path), "--gcc", str(emulated_c_compiler_path)]
+        elif self._compiler_type == "clang":
+            assert emulated_c_compiler_path == emulated_cpp_compiler_path, (
+                "The emulate clang C and C++ compiler should be the same binary"
+            )
+            command_args = ["--clang", str(emulated_cpp_compiler_path)]
+        else:
+            raise AssertionError(f"Cannot generate macros for {self._compiler_type}")
 
-            command = ["bash", temp_file.name, *command_args]
-            _LOGGER.info("Running %s", shlex.join(command))
-            output_path = staging.path / self.untar_dir / self._macro_dir
-            output_path.mkdir(parents=True, exist_ok=True)
-            subprocess.check_call(command, cwd=output_path)
+        output_path = self._package_dir(staging) / self._macro_dir
+        output_path.mkdir(parents=True, exist_ok=True)
+        self._run_macro_gen(staging, command_args, output_path)
 
     def _write_compiler_shim(
         self, staging: StagingDir, backend_compiler_path: Path, backend_compiler_scrape: EdgBackendCompilerScrape
@@ -206,7 +190,7 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         """The EDG front end is configured via a "shim" script in compiler
         explorer. Generate this shim script with the collected information.
         """
-        output_path = staging.path / self.untar_dir / "eccp-scripts"
+        output_path = self._package_dir(staging) / "eccp-scripts"
         output_path.mkdir(parents=True, exist_ok=True)
         script_path = output_path / f"eccp-{self._compiler_type}"
         with script_path.open("w") as out:
@@ -219,9 +203,7 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
             )
         script_path.chmod(0o755)
 
-    def stage(self, staging: StagingDir) -> None:
-        super().stage(staging)
-
+    def _configure_package(self, staging: StagingDir) -> None:
         if self._compiler_type != "default":
             emulated_c_compiler_path = self._resolve_emulated_c_compiler()
             emulated_cpp_compiler_path = self._resolve_emulated_cpp_compiler()
@@ -230,6 +212,64 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         backend_compiler_path = self._resolve_backend_compiler()
         backend_compiler_scrape = self._scrape_backend_compiler(staging, backend_compiler_path)
         self._write_compiler_shim(staging, backend_compiler_path, backend_compiler_scrape)
+
+
+class EdgCompilerInstallable(_EdgPackageMixin, NonFreeS3TarballInstallable):
+    """EDG releases supplied by EDG before the front end was open-sourced.
+
+    One tarball per mode in opt-nonfree/, with the scraper and macro table tools
+    fetched separately from opt-nonfree/ too.
+    """
+
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
+        super().__init__(install_context, config)
+        self._scraper = self.config_get("scraper")
+        self._macro_gen = self.config_get("macro_gen", "")
+        self._macro_dir = self.config_get("macro_output_dir", "")
+        self._scrape_cmd = self.config_get("scrape_cmd")
+        self._compiler_type = self.config_get("compiler_type")
+        self.install_path = self.config_get("path_name")
+
+    def _package_dir(self, staging: StagingDir) -> Path:
+        return staging.path / self.untar_dir
+
+    def _scraper_dir(self, staging: StagingDir) -> Path:
+        scrapper_unzip_dir = staging.path / "backend-scrapping"
+        if not scrapper_unzip_dir.exists():
+            scrapper_unzip_dir.mkdir(parents=True)
+            with tempfile.NamedTemporaryFile() as temp_file:
+                amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{self._scraper}", temp_file)
+                temp_file.flush()
+                command = ["unzip", temp_file.name]
+                _LOGGER.info("Running %s", shlex.join(command))
+                subprocess.check_call(command, cwd=scrapper_unzip_dir)
+        return scrapper_unzip_dir
+
+    def _query_scraper(self, staging: StagingDir, backend_compiler_path: Path, lang: str, query_type: str) -> str:
+        """Query the EDG compiler scrape tool for the given language and query type."""
+        command_to_run = [
+            self._scrape_cmd,
+            f"--compiler-path={backend_compiler_path}",
+            f"--lang={lang}",
+            self._compiler_type,
+            query_type,
+        ]
+        _LOGGER.info("Running %s", shlex.join(command_to_run))
+        return subprocess.check_output(command_to_run, cwd=self._scraper_dir(staging)).decode("utf-8").strip()
+
+    def _run_macro_gen(self, staging: StagingDir, command_args: list[str], output_path: Path) -> None:
+        if len(self._macro_gen) == 0:
+            raise RuntimeError("No macro generation script provided for non-default mode EDG compiler")
+        with tempfile.NamedTemporaryFile() as temp_file:
+            amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{self._macro_gen}", temp_file)
+            temp_file.flush()
+            command = ["bash", temp_file.name, *command_args]
+            _LOGGER.info("Running %s", shlex.join(command))
+            subprocess.check_call(command, cwd=output_path)
+
+    def stage(self, staging: StagingDir) -> None:
+        super().stage(staging)
+        self._configure_package(staging)
 
     def verify(self) -> bool:
         if not super().verify():
@@ -246,3 +286,81 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
 
     def __repr__(self) -> str:
         return f"EdgCompilerInstallable({self.name}, {self.install_path})"
+
+
+class _OpenSourceEdgMixin(_EdgPackageMixin):
+    """EDG built by us from github.com/edgcpp/compiler (misc-builder's edg image).
+
+    The build's tarball unpacks to <name>/ holding one package per mode (gcc/,
+    default/) plus tools/ with EDG's scraper and macro table script, so nothing
+    comes from opt-nonfree/.
+    """
+
+    def _init_edg(self) -> None:
+        self._compiler_type = self.config_get("compiler_type")
+        self._macro_dir = self.config_get("macro_output_dir", "")
+
+    def _tools_dir(self, staging: StagingDir) -> Path:
+        return self._package_dir(staging).parent / "tools"
+
+    def _query_scraper(self, staging: StagingDir, backend_compiler_path: Path, lang: str, query_type: str) -> str:
+        command_to_run = [
+            str(self._tools_dir(staging) / "edg-scrape-compiler"),
+            f"--compiler-path={backend_compiler_path}",
+            f"--lang={lang}",
+            self._compiler_type,
+            query_type,
+        ]
+        _LOGGER.info("Running %s", shlex.join(command_to_run))
+        return subprocess.check_output(command_to_run).decode("utf-8").strip()
+
+    def _run_macro_gen(self, staging: StagingDir, command_args: list[str], output_path: Path) -> None:
+        command = ["bash", str(self._tools_dir(staging) / "make_predef_macro_table"), *command_args]
+        _LOGGER.info("Running %s", shlex.join(command))
+        subprocess.check_call(command, cwd=output_path)
+
+
+class EdgS3TarballInstallable(_OpenSourceEdgMixin, S3TarballInstallable):
+    """A tagged open-source EDG release, e.g. opt/edg-7.0.tar.xz."""
+
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
+        super().__init__(install_context, config)
+        self._init_edg()
+
+    def _package_dir(self, staging: StagingDir) -> Path:
+        return staging.path / self.untar_dir
+
+    def stage(self, staging: StagingDir) -> None:
+        super().stage(staging)
+        self._configure_package(staging)
+
+    def __repr__(self) -> str:
+        return f"EdgS3TarballInstallable({self.name}, {self.install_path})"
+
+
+class EdgNightlyInstallable(_OpenSourceEdgMixin, NightlyInstallable):
+    """A daily open-source EDG build, e.g. opt/edg-trunk-20260930.tar.xz.
+
+    Both modes come from the one dated tarball, so each target moves just its
+    mode's directory into place.
+    """
+
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
+        super().__init__(install_context, config)
+        self._init_edg()
+        self.local_path = f"{self.s3_path}/{self._compiler_type}"
+
+    def _package_dir(self, staging: StagingDir) -> Path:
+        return staging.path / self.local_path
+
+    def should_install(self) -> bool:
+        # local_path is now a directory inside the tarball, not the install's own name.
+        target = self.install_context.get_current_link_target(self.path_name_symlink)
+        return not target.as_posix().endswith(self.install_path)
+
+    def stage(self, staging: StagingDir) -> None:
+        super().stage(staging)
+        self._configure_package(staging)
+
+    def __repr__(self) -> str:
+        return f"EdgNightlyInstallable({self.name}, {self.install_path})"
