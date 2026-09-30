@@ -1447,7 +1447,7 @@ libraries:
       anyxx:
         build_type: none
         check_file: bit_factory/anyxx.hpp
-        method: nightlyclone
+        method: nightlybranch
         repo: bitfactory-software/anyxx
         targets:
         - develop
