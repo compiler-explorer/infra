@@ -180,7 +180,7 @@ libraries:
       - '20260107.1'
       type: github
     anyxx:
-      check_file: README.md
+      check_file: bit_factory/anyxx.hpp
       repo: bitfactory-software/anyxx
       targets:
       - 0.7.0
