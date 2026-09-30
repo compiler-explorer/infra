@@ -1,7 +1,7 @@
 compilers:
   ocaml:
     type: s3tarballs
-    check_exe: bin/ocaml --version
+    check_exe: bin/ocaml -version
     targets:
       - 3.12.1
       - 4.00.1
