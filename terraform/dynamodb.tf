@@ -144,15 +144,12 @@ resource "aws_dynamodb_table" "events-connections" {
   }
 
   # Global Secondary Index for efficient subscription lookups.
-  #
-  # hash_key rather than a key_schema block, despite the deprecation warning: with key_schema the
-  # provider leaves hash_key unknown at plan time, and an unknown inside a set element replaces the
-  # element rather than updating it - so any diff here deletes and recreates SubscriptionIndex. The index
-  # comes back empty and every subscriber lookup fails until the backfill completes, which takes
-  # the whole queue-routed compile path down with it.
   global_secondary_index {
-    name     = "SubscriptionIndex"
-    hash_key = "subscription"
+    name = "SubscriptionIndex"
+    key_schema {
+      attribute_name = "subscription"
+      key_type       = "HASH"
+    }
 
     projection_type = "KEYS_ONLY" # Only project connectionId and subscription for minimal data transfer
   }
