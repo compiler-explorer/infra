@@ -253,6 +253,19 @@ resource "aws_s3_bucket_lifecycle_configuration" "storage-godbolt-org" {
       prefix = "cache/"
     }
   }
+  rule {
+    id     = "Remove stale compiler info cache"
+    status = "Enabled"
+    expiration {
+      days = 90
+    }
+    noncurrent_version_expiration {
+      noncurrent_days = 1
+    }
+    filter {
+      prefix = "compiler-info-cache/"
+    }
+  }
 }
 
 resource "aws_s3_bucket" "ce-cdn-net" {
