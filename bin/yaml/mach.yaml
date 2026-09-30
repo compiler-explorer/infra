@@ -1,0 +1,24 @@
+compilers:
+  mach:
+    type: tarballs
+    compression: gz
+    dir: mach-{{name}}
+    untar_dir: mach-{{name}}
+    create_untar_dir: true
+    check_exe: mach info --version
+    url: https://github.com/briar-systems/mach/releases/download/v{{name}}/mach-{{name}}-x86_64-linux.tar.gz
+    # each compiler bundles the std release it builds against.
+    # std publishes no checksums, so it is pinned to the commit its tag peels to
+    # and fetched with git, which verifies every object against that hash.
+    after_stage_script:
+      - git init -q std
+      - git -C std fetch -q --depth 1 https://github.com/briar-systems/mach-std {{std_commit}}
+      - git -C std checkout -q --detach FETCH_HEAD
+      - test "$(git -C std rev-parse HEAD)" = {{std_commit}}
+      - rm -rf std/.git
+    # sha256 is the x86_64-linux tarball's entry in each release's SHA256SUMS
+    targets:
+      - name: 6.7.0
+        sha256: f0f4fd2f1a0fc05f9a841b38c09c73f61940afb4c55d15d6eb051d6eb5a41326
+        std: 9.4.1
+        std_commit: 69a02f2a183a12297843eef581e30252f8e5c215
