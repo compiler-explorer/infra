@@ -22,3 +22,7 @@ compilers:
         sha256: f0f4fd2f1a0fc05f9a841b38c09c73f61940afb4c55d15d6eb051d6eb5a41326
         std: 9.4.1
         std_commit: 69a02f2a183a12297843eef581e30252f8e5c215
+      - name: 6.7.2
+        sha256: 3cffe0cadfcb23776bfc4a9a661ef06a5d3b1181b051dc2beee5bba57e931eed
+        std: 9.4.1
+        std_commit: 69a02f2a183a12297843eef581e30252f8e5c215
