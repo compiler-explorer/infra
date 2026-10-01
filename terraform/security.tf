@@ -873,8 +873,7 @@ resource "aws_security_group_rule" "WinBuilder_SmbLocally" {
   description              = "Allow SMB access from Windows builder"
 }
 
-# Read-only IAM user for Molty (AI assistant) to monitor CE infrastructure and AWS usage.
-# Grants read-only access to EC2, ALB/ELB, AutoScaling, CloudWatch, Billing, SQS, and S3, with no write permissions.
+# Read-only IAM user for Molty (AI assistant) to monitor and debug CE infrastructure and AWS usage.
 # Access key is managed outside Terraform.
 # force_destroy allows terraform destroy to succeed even if an access key exists.
 resource "aws_iam_user" "molty" {
@@ -888,13 +887,7 @@ resource "aws_iam_user" "molty" {
 locals {
   molty_readonly_policy_arns = toset([
     "arn:aws:iam::aws:policy/AWSBillingReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonSQSReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AutoScalingReadOnlyAccess",
-    "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess",
-    "arn:aws:iam::aws:policy/ElasticLoadBalancingReadOnly",
+    "arn:aws:iam::aws:policy/ReadOnlyAccess",
   ])
 }
 
@@ -903,4 +896,37 @@ resource "aws_iam_user_policy_attachment" "molty_readonly" {
 
   user       = aws_iam_user.molty.name
   policy_arn = each.value
+}
+
+resource "aws_iam_user_policy" "molty_readonly_extras" {
+  name = "molty-readonly-extras"
+  user = aws_iam_user.molty.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "NoSecrets"
+        Effect   = "Deny"
+        Action   = ["ssm:GetParameter*", "secretsmanager:GetSecretValue"]
+        Resource = "*"
+      },
+      {
+        Sid    = "AthenaQueries"
+        Effect = "Allow"
+        Action = [
+          "athena:StartQueryExecution",
+          "athena:StopQueryExecution",
+          "athena:GetQueryExecution",
+          "athena:GetQueryResults",
+        ]
+        Resource = aws_athena_workgroup.molty.arn
+      },
+      {
+        Sid      = "AthenaResultsOutput"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject", "s3:AbortMultipartUpload"]
+        Resource = "${aws_s3_bucket.compiler-explorer-logs.arn}/athena-results/molty/*"
+      },
+    ]
+  })
 }

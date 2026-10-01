@@ -33,6 +33,26 @@ resource "aws_athena_workgroup" "primary" {
   }
 }
 
+# For the molty read-only user: results confined to its own prefix, and a per-query scan cap.
+resource "aws_athena_workgroup" "molty" {
+  name  = "molty"
+  state = "ENABLED"
+
+  configuration {
+    enforce_workgroup_configuration    = true
+    publish_cloudwatch_metrics_enabled = false
+    bytes_scanned_cutoff_per_query     = 64 * 1024 * 1024 * 1024
+
+    result_configuration {
+      output_location = "s3://${aws_s3_bucket.compiler-explorer-logs.bucket}/athena-results/molty/"
+    }
+
+    engine_version {
+      selected_engine_version = "AUTO"
+    }
+  }
+}
+
 # ALB access logs, as shipped by the load balancer. Queried by `ce compiler_stats`.
 resource "aws_glue_catalog_table" "alb_logs" {
   name          = "alb_logs"
