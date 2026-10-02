@@ -115,6 +115,11 @@ compilers:
         check_exe: ccc --version
         targets:
           - main
+      sdcc:
+        type: nightly
+        check_exe: bin/sdcc --version
+        targets:
+          - trunk
       movfuscator:
         type: nightly
         check_env:
