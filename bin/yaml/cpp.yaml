@@ -1767,6 +1767,13 @@ compilers:
             macro_output_dir: base/lib
           - name: trunk-default
             compiler_type: default
+          - name: notadragon-contracts-p3850-gcc
+            compiler_type: gcc
+            macro_output_dir: base/lib
+            compiler_name: edg-notadragon-contracts-p3850
+            path_name_prefix: edg-notadragon-contracts-p3850-{{compiler_type}}
+            depends:
+              - compilers/c++/nightly/gcc notadragon-contracts-p3850
       llvmmos:
         type: nightlytarballs
         compression: xz

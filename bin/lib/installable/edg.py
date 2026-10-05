@@ -105,7 +105,22 @@ class _EdgPackageMixin(Installable):
     def _resolve_backend_install_path(self) -> Path:
         if len(self.depends) != 1:
             raise RuntimeError("Assumes we have the backend compiler as a dep")
-        return self.install_context.destination / self.depends[0].install_path
+        backend = self.depends[0]
+        # A dated (nightly) backend is pruned after a few days, long before an EDG
+        # build that has not changed is reinstalled, so pair with its stable symlink.
+        symlink = getattr(backend, "install_path_symlink", None) or getattr(backend, "path_name_symlink", None)
+        return self.install_context.destination / (symlink or backend.install_path)
+
+    def _unresolve_backend_paths(self, scraped: str) -> str:
+        """gcc reports its include paths from its resolved location, so through
+        a nightly's symlink they name today's dated install. Put the symlink
+        back so they outlive that install.
+        """
+        backend_path = self._resolve_backend_install_path()
+        resolved_path = backend_path.resolve()
+        if resolved_path == backend_path:
+            return scraped
+        return scraped.replace(str(resolved_path), str(backend_path))
 
     def _resolve_backend_compiler(self) -> Path:
         """The EDG front end generates C files and thus uses a backing C
@@ -153,8 +168,10 @@ class _EdgPackageMixin(Installable):
             return EdgBackendCompilerScrape("", "", "")
 
         # Gather the C and C++ include paths as well as the emulated compiler version number.
-        c_includes = self._query_scraper(staging, backend_compiler_path, "c", "includes")
-        cpp_includes = self._query_scraper(staging, backend_compiler_path, "c++", "includes")
+        c_includes = self._unresolve_backend_paths(self._query_scraper(staging, backend_compiler_path, "c", "includes"))
+        cpp_includes = self._unresolve_backend_paths(
+            self._query_scraper(staging, backend_compiler_path, "c++", "includes")
+        )
         version = self._query_scraper(staging, backend_compiler_path, "c", "version")
         return EdgBackendCompilerScrape(c_includes, cpp_includes, version)
 
