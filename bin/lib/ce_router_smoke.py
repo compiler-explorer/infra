@@ -146,6 +146,23 @@ def source_emitting_at_least_that_runs(target_bytes: int) -> str:
     return "#include <cstdio>\n" + body + main
 
 
+def source_printing_at_least(target_bytes: int) -> str:
+    """C++ whose program output is at least roughly target_bytes.
+
+    An executor request's result is what running the program produced rather than its assembly, so
+    the size that matters is the output. Each stream is truncated at 32KB, hence writing to both to
+    get clear of the threshold, and the marker goes first so truncation cannot eat it.
+    """
+    filler = "x" * 100
+    count = max(1, target_bytes // (len(filler) + 1))
+    return (
+        "#include <cstdio>\n"
+        f"int main() {{ puts(\"{EXEC_MARKER}\"); fputs(\"{EXEC_MARKER}\\n\", stderr); "
+        f"for (int i = 0; i < {count}; ++i) {{ puts(\"{filler}\"); fputs(\"{filler}\\n\", stderr); }} "
+        "return 0; }\n"
+    )
+
+
 def compile_body(source: str, user_arguments: str = "-O0", lang: str = "c++", **extra: Any) -> dict[str, Any]:
     body: dict[str, Any] = {
         "source": source,
@@ -551,6 +568,7 @@ def run_checks(
     check_accept_default(base, queue_compiler, findings)
     check_charset_keeps_user_arguments(base, queue_compiler, findings)
     check_oversized_execution_keeps_output(base, queue_compiler, findings)
+    check_oversized_executor_request(base, queue_compiler, findings)
 
     check_large_result(base, queue_compiler, findings)
     check_large_result_bypass_cache(base, queue_compiler, findings)
@@ -610,6 +628,31 @@ def check_oversized_execution_keeps_output(base: str, compiler_id: str, findings
                 f"asm {asm_size // 1024}KB arrived but the program's output did not (execResult={exec_result!r:.80})"
             )
     findings.add("oversized result keeps execution output", ok, detail, secs, tracked="compiler-explorer#9149")
+
+
+def check_oversized_executor_request(base: str, compiler_id: str, findings: Findings) -> None:
+    """An executor request whose result is too big for the websocket must still come back.
+
+    Executor requests return from compile() before afterCompilation, which is where an oversized
+    result is normally stored so only its key travels. Without that the whole thing went to the
+    events websocket, and over its message size API Gateway closes the connection rather than
+    refusing the frame - so one of these took down every other compilation on that worker too.
+    """
+    body = compile_body(source_printing_at_least(2 * WEBSOCKET_SIZE_THRESHOLD))
+    body["options"]["filters"]["execute"] = True
+    body["options"]["compilerOptions"]["executorRequest"] = True
+    status, payload, secs = post_compile(_compile_url(base, compiler_id), body, timeout=180)
+    ok, detail = classify_compilation(status, payload, require_success=True)
+    if ok:
+        stdout = "\n".join(line.get("text", "") for line in (payload.get("stdout") or []))
+        size = len(json.dumps(payload))
+        if size < WEBSOCKET_SIZE_THRESHOLD:
+            ok, detail = False, f"result only {size}B - too small to have exercised the oversized path"
+        elif EXEC_MARKER not in stdout:
+            ok, detail = False, f"{size // 1024}KB came back but the program's output did not"
+        else:
+            detail = f"{size // 1024}KB result with the program's output intact"
+    findings.add("oversized executor request", ok, detail, secs)
 
 
 def check_concurrent_distinct_results(base: str, compiler_id: str, findings: Findings, concurrency: int) -> None:
