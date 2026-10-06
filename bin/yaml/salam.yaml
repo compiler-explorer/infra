@@ -1,0 +1,13 @@
+compilers:
+  salam:
+    salam:
+      dir: salam-{{name}}
+      check_exe: salam version
+      url: https://github.com/SalamLang/Salam/releases/download/v{{name}}/salam-{{name}}-linux-x86_64.tar.gz
+      type: tarballs
+      compression: gz
+      untar_dir: salam-linux-x86_64
+      create_untar_dir: true
+      strip_components: 1
+      targets:
+        - 0.4.3
