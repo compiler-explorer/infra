@@ -43,6 +43,8 @@ windows:
       extract_into_folder: true
       check_file: "rga.exe"
       targets:
+        - name: "2.15"
+          url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.15/rga-windows-x64-2.15.zip
         - name: "2.14.2"
           url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.14.2/rga-windows-x64-2.14.2.zip
         - name: "2.14.1"
