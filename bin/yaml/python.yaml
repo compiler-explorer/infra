@@ -22,13 +22,11 @@ compilers:
     strip_components: 1
     create_untar_dir: true
     targets:
-      - 3.11-v7.3.23
       - 3.10-v7.3.19
       - 3.9-v7.3.16
       - 3.8-v7.3.11
       - 3.7-v7.3.9
       - 3.6-v7.3.3
-      - 2.7-v7.3.23
     v8:
       compression: gz
       url: https://downloads.python.org/pypy/pypy{{name}}-linux64.tar.gz
