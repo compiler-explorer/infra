@@ -1,4 +1,5 @@
 import logging
+from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
@@ -7,6 +8,26 @@ from lib.library_platform import LibraryPlatform
 
 logger = logging.getLogger(__name__)
 logger.level = 9
+
+
+def test_parses_compilers_without_groups_or_libraries():
+    response = MagicMock()
+    response.ok = True
+    response.text = """compilers=carbon-trunk
+compiler.carbon-trunk.exe=/opt/compiler-explorer/carbon-trunk/bin/carbon
+compiler.carbon-trunk.supportsBinary=false
+"""
+    with patch("lib.amazon_properties.requests.get", return_value=response):
+        [_compilers, _libraries] = get_properties_compilers_and_libraries(
+            "carbon", logger, LibraryPlatform.Linux, False
+        )
+
+    assert _compilers["carbon-trunk"] == {
+        "exe": "/opt/compiler-explorer/carbon-trunk/bin/carbon",
+        "supportsBinary": False,
+    }
+    assert not _libraries
+
 
 # def test_should_contain_some_compilers_and_libraries():
 #     [_compilers, _libraries] = get_properties_compilers_and_libraries('c++', logger)
