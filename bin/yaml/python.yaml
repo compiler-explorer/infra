@@ -14,7 +14,7 @@ compilers:
       - 3.13.0
       - 3.14.0
   pypy:
-    type: tarballs
+    type: s3tarballs
     compression: bz2
     url: https://downloads.python.org/pypy/pypy{{name}}-linux64.tar.bz2
     check_exe: bin/pypy --version
@@ -47,7 +47,7 @@ compilers:
         - name: 2.7-nightly
           branch: main
   codon:
-    type: tarballs
+    type: s3tarballs
     compression: gz
     url: https://github.com/exaloop/codon/releases/download/v{{name}}/codon-linux-x86_64.tar.gz
     check_exe: bin/codon --version
