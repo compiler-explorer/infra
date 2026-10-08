@@ -22,9 +22,32 @@ compilers:
     strip_components: 1
     create_untar_dir: true
     targets:
-      - 3.11-v7.3.18
-      - 3.10-v7.3.14
-      - 3.9-v7.3.14
+      - 3.11-v7.3.23
+      - 3.10-v7.3.19
+      - 3.9-v7.3.16
+      - 3.8-v7.3.11
+      - 3.7-v7.3.9
+      - 3.6-v7.3.3
+      - 2.7-v7.3.23
+    v8:
+      compression: gz
+      url: https://downloads.python.org/pypy/pypy{{name}}-linux64.tar.gz
+      targets:
+        - 3.12-v8.0.0
+        - 3.11-v8.0.0
+        - 2.7-v8.0.0
+    nightly:
+      if: nightly
+      type: nightlytarballs
+      compression: gz
+      url: https://buildbot.pypy.org/nightly/{{branch}}/pypy-c-jit-latest-linux64.tar.gz
+      targets:
+        - name: 3.12-nightly
+          branch: py3.12
+        - name: 3.11-nightly
+          branch: py3.11
+        - name: 2.7-nightly
+          branch: main
   codon:
     type: tarballs
     compression: gz
