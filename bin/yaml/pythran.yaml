@@ -5,4 +5,8 @@ compilers:
     s3_path_prefix: "pythran-{{name}}"
     check_exe: "bin/pythran --version"
     targets:
-      - "0.15"
+      - "0.15.0"
+      - "0.16.1"
+      - "0.17.0"
+      - "0.18.1"
+      - "0.19.0"
