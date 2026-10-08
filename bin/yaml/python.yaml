@@ -34,4 +34,9 @@ compilers:
     strip_components: 1
     create_untar_dir: true
     targets:
-      - 0.19.2
+      - 0.15.5
+      - 0.16.3
+      - 0.17.0
+      - 0.18.2
+      - 0.19.6
+      - 0.20.3
