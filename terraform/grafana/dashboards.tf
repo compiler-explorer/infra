@@ -186,3 +186,28 @@ data "aws_lb_target_group" "compilation" {
   for_each = local.queue_scaling_env_colours
   name     = "${title(each.value.env.name)}-${title(each.value.colour)}"
 }
+
+# Public stats page; stats.compiler-explorer.com redirects to its public share (../alb.tf).
+resource "grafana_dashboard" "public" {
+  config_json = file("${path.module}/dashboards/public.json")
+}
+
+import {
+  to = grafana_dashboard.public
+  id = "sf2UXlzVk"
+}
+
+resource "grafana_dashboard_public" "public" {
+  dashboard_uid          = grafana_dashboard.public.uid
+  uid                    = "FVXir_z4z"
+  access_token           = "326d9aa2606b4efea25f4458a4c3f065"
+  is_enabled             = true
+  share                  = "public"
+  time_selection_enabled = false
+  annotations_enabled    = false
+}
+
+import {
+  to = grafana_dashboard_public.public
+  id = "sf2UXlzVk:FVXir_z4z"
+}
