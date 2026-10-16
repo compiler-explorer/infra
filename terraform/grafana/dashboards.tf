@@ -232,7 +232,10 @@ locals {
 
 # Public stats page; stats.compiler-explorer.com redirects to its public share (../alb.tf).
 resource "grafana_dashboard" "public" {
-  config_json = templatefile("${path.module}/dashboards/public.json.tftpl", { expr = local.public_exprs })
+  config_json = templatefile("${path.module}/dashboards/public.json.tftpl", {
+    expr  = local.public_exprs
+    about = file("${path.module}/dashboards/public-about.html")
+  })
 }
 
 resource "grafana_dashboard_public" "public" {
