@@ -192,11 +192,6 @@ resource "grafana_dashboard" "public" {
   config_json = file("${path.module}/dashboards/public.json")
 }
 
-import {
-  to = grafana_dashboard.public
-  id = "sf2UXlzVk"
-}
-
 resource "grafana_dashboard_public" "public" {
   dashboard_uid          = grafana_dashboard.public.uid
   uid                    = "FVXir_z4z"
@@ -205,9 +200,4 @@ resource "grafana_dashboard_public" "public" {
   share                  = "public"
   time_selection_enabled = false
   annotations_enabled    = false
-}
-
-import {
-  to = grafana_dashboard_public.public
-  id = "sf2UXlzVk:FVXir_z4z"
 }
