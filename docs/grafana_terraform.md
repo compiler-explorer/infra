@@ -19,10 +19,12 @@ arrival-rate scaling metric for prod and beta, computed the way the ASG policies
 do, against each environment's target; keep its targets in step with
 `target_value` in `../prod-blue-green.tf` and `../beta-blue-green.tf`.
 Dashboard **Compiler Explorer Public Dashboard** (uid `sf2UXlzVk`) and its public
-share are managed here too: the JSON lives in `dashboards/public.json`, and the
-share's access token is the one `stats.compiler-explorer.com` redirects to
-(`../alb.tf`), so don't regenerate it in the UI. Edit the dashboard by changing the
-JSON; a UI edit is overwritten on the next apply.
+share are managed here too. The JSON lives in `dashboards/public.json.tftpl`; its
+compilation and execution queries are built in `dashboards.tf`, because each has to
+sum the direct and queue-worker counters. The share's access token is the one
+`stats.compiler-explorer.com` redirects to (`../alb.tf`), so don't regenerate it in
+the UI. Edit the dashboard by changing the template; a UI edit is overwritten on the
+next apply.
 
 Provisioned rules are read-only in the UI (the "Provisioned" badge); use
 silences during incidents. To experiment, build a rule in another folder,

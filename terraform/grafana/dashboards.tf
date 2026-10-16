@@ -167,7 +167,8 @@ resource "grafana_dashboard" "queue_scaling" {
   config_json = jsonencode({
     uid           = "ce-queue-scaling"
     title         = "Queue Scaling"
-    tags          = ["autoscaling", "sqs"]
+    tags          = ["autoscaling", "sqs", "terraform"]
+    editable      = false
     timezone      = "utc"
     refresh       = "1m"
     schemaVersion = 39
@@ -187,9 +188,51 @@ data "aws_lb_target_group" "compilation" {
   name     = "${title(each.value.env.name)}-${title(each.value.colour)}"
 }
 
+locals {
+  public_envs = "prod|gpu|winprod"
+  # Direct and queue-worker requests increment different counters, so totals need all of them.
+  public_compile_counters = [
+    "ce_compilations_total",
+    "ce_sqs_compilations_total",
+    "ce_project_build_compilations_total",
+    "ce_sqs_project_build_compilations_total",
+  ]
+  public_execute_counters = [
+    "ce_executions_total",
+    "ce_sqs_executions_total",
+    "ce_project_build_executions_total",
+    "ce_sqs_project_build_executions_total",
+  ]
+  # rate/increase drop __name__, so each counter is relabelled to keep `or` from discarding one.
+  public_counter_sums = {
+    for name, q in {
+      compiles_6m         = { counters = local.public_compile_counters, fn = "increase", range = "360s", filter = "" }
+      compiles_1w         = { counters = local.public_compile_counters, fn = "increase", range = "1w", filter = "" }
+      compiles_30d        = { counters = local.public_compile_counters, fn = "increase", range = "30d", filter = "" }
+      compiles_rate       = { counters = local.public_compile_counters, fn = "rate", range = "$__rate_interval", filter = "" }
+      compiles_rate_not_c = { counters = local.public_compile_counters, fn = "rate", range = "$__rate_interval", filter = ", language!~\"c(\\\\+\\\\+)?\"" }
+      executions_6m       = { counters = local.public_execute_counters, fn = "increase", range = "360s", filter = "" }
+      executions_rate     = { counters = local.public_execute_counters, fn = "rate", range = "$__rate_interval", filter = "" }
+      } : name => join(" or ", [
+        for c in q.counters : "label_replace(${q.fn}(${c}{env=~\"${local.public_envs}\"${q.filter}}[${q.range}]), \"counter\", \"${c}\", \"\", \"\")"
+    ])
+  }
+  public_exprs = {
+    compiles_per_sec                   = "sum(${local.public_counter_sums.compiles_6m}) / 360"
+    executions_per_sec                 = "sum(${local.public_counter_sums.executions_6m}) / 360"
+    million_compiles_per_month         = "sum(${local.public_counter_sums.compiles_30d}) / 1000000"
+    compiles_last_week_by_language     = "sum by (language) (${local.public_counter_sums.compiles_1w})"
+    compiles_last_week_top20           = "topk(20, sum by (language) (${local.public_counter_sums.compiles_1w}))"
+    compiles_last_week_rest            = "sum(${local.public_counter_sums.compiles_1w}) - sum(topk(20, sum by (language) (${local.public_counter_sums.compiles_1w})))"
+    compiles_per_min_by_language       = "sum by (language) (${local.public_counter_sums.compiles_rate}) * 60"
+    compiles_per_min_by_language_not_c = "sum by (language) (${local.public_counter_sums.compiles_rate_not_c}) * 60"
+    executions_per_min_by_language     = "sum by (language) (${local.public_counter_sums.executions_rate}) * 60"
+  }
+}
+
 # Public stats page; stats.compiler-explorer.com redirects to its public share (../alb.tf).
 resource "grafana_dashboard" "public" {
-  config_json = file("${path.module}/dashboards/public.json")
+  config_json = templatefile("${path.module}/dashboards/public.json.tftpl", { expr = local.public_exprs })
 }
 
 resource "grafana_dashboard_public" "public" {

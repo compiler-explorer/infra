@@ -24,7 +24,7 @@
     ]
   },
   "description": "Various statistics for Compiler Explorer https://godbolt.org/",
-  "editable": true,
+  "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "links": [
@@ -258,7 +258,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": " sum(increase(ce_compilations_total{env=\"prod\"}[360s])) / 360",
+          "expr": ${jsonencode(expr.compiles_per_sec)},
           "instant": true,
           "legendFormat": "Compiles/Sec",
           "range": false,
@@ -271,7 +271,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": " sum(increase(ce_executions_total{env=\"prod\"}[360s])) / 360",
+          "expr": ${jsonencode(expr.executions_per_sec)},
           "instant": true,
           "legendFormat": "Executions/Sec",
           "range": false,
@@ -284,7 +284,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": " sum(increase(ce_compilations_total{env=\"prod\"}[30d])) / 1000000",
+          "expr": ${jsonencode(expr.million_compiles_per_month)},
           "format": "time_series",
           "instant": true,
           "legendFormat": "Million Compiles/Month",
@@ -357,7 +357,7 @@
           },
           "editorMode": "builder",
           "exemplar": false,
-          "expr": "sum by(language) (increase(ce_compilations_total{env=\"prod\"}[1w]))",
+          "expr": ${jsonencode(expr.compiles_last_week_by_language)},
           "instant": true,
           "interval": "",
           "legendFormat": "{{language}}",
@@ -461,7 +461,7 @@
           },
           "expression": "",
           "id": "",
-          "label": "${PROP('Stat')}",
+          "label": "$${PROP('Stat')}",
           "matchExact": true,
           "metricEditorMode": 0,
           "metricName": "TargetResponseTime",
@@ -484,7 +484,7 @@
           },
           "expression": "",
           "id": "",
-          "label": "${PROP('Stat')}",
+          "label": "$${PROP('Stat')}",
           "matchExact": true,
           "metricEditorMode": 0,
           "metricName": "TargetResponseTime",
@@ -507,7 +507,7 @@
           },
           "expression": "",
           "id": "",
-          "label": "${PROP('Stat')}",
+          "label": "$${PROP('Stat')}",
           "matchExact": true,
           "metricEditorMode": 0,
           "metricName": "TargetResponseTime",
@@ -530,7 +530,7 @@
           },
           "expression": "",
           "id": "",
-          "label": "${PROP('Stat')}",
+          "label": "$${PROP('Stat')}",
           "matchExact": true,
           "metricEditorMode": 0,
           "metricName": "TargetResponseTime",
@@ -613,7 +613,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "topk(20, sum by(language) (increase(ce_compilations_total{env=~\"prod|gpu\"}[1w])))",
+          "expr": ${jsonencode(expr.compiles_last_week_top20)},
           "instant": true,
           "interval": "",
           "legendFormat": "{{language}}",
@@ -627,26 +627,11 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(increase(ce_compilations_total{env=~\"prod|gpu\"}[1w])) - sum(topk(20, sum by(language) (increase(ce_compilations_total{env=~\"prod|gpu\"}[1w]))))",
+          "expr": ${jsonencode(expr.compiles_last_week_rest)},
           "instant": true,
           "legendFormat": "Everything Else",
           "range": false,
           "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "grafanacloud-prom"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "topk(20, sum by(language) (increase(ce_compilations_total{env=~\"prod|gpu\"}[1w]) + \n  increase(ce_sqs_compilations_total{env=~\"prod|gpu\"}[1w]) ))",
-          "hide": true,
-          "instant": true,
-          "interval": "",
-          "legendFormat": "{{language}}",
-          "queryType": "randomWalk",
-          "refId": "C"
         }
       ],
       "title": "Compilations in the Last Week (top 20)",
@@ -864,7 +849,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum by(language) (rate(ce_compilations_total{env=~\"prod|gpu\"}[$__rate_interval])*60)",
+          "expr": ${jsonencode(expr.compiles_per_min_by_language)},
           "interval": "75s",
           "legendFormat": "{{language}}",
           "queryType": "randomWalk",
@@ -889,7 +874,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "<div style=\"/*display: flex;*/\"> \n\n<div style=\"text-align: center\">\n<img src=\"https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/logo/site-logo-inverse.svg\" alt=\"Compiler Explorer\" style=\"max-height: 12em\">\n</div>\n\n<div>\n\n<p>\nCompiler Explorer is a site that lets you see how your compiler works. Type in C, C++, D, Rust, Java, Kotlin, Go (or many other languages) into one window and instantly see the compiler output, with useful highlighting of how the source language maps to the generated assembly or bytecode.\n</p>\n\n<p>\nVisit the site at <a href=\"https://godbolt.org/\" target=\"_blank\">godbolt.org</a>.\n</p>\n\n<p>The information is gathered by a combination of AWS stats and prometheus stats we keep internally. All our stats come from\n  the very simple and limited information we keep on the site to enable monitoring and debugging (for more on the information we keep,\n  see our <a href=\"https://godbolt.org/#privacy\" target=\"_blank\">Privacy Policy</a>). In the stats, the term \"instance\" refers to one\n  of the EC2 instances (virtual machines running on Amazon's infrastructure) that serves requests. We load balance all the requests to one\n  of these instances. For some (outdated) information on how the site runs, see <a href=\"https://www.youtube.com/watch?v=kIoZDUd5DKw\" target=\"_blank\">this video</a>.\n\n<p>\nSupport us by:\n\n<ul>\n  <li>Contributing on <a href=\"https://github.com/compiler-explorer/compiler-explorer\" target=\"_blank\">GitHub</a></li>\n  <li>Becoming a <a href=\"https://github.com/sponsors/mattgodbolt\" target=\"_blank\">GitHub sponsor</a></li>\n  <li>Support us on <a href=\"https://patreon.com/mattgodbolt\" target=\"_blank\">Patreon</a></li>\n  <li>Follow us on <a href=\"https://twitter.com/CompileExplore\" target=\"_blank\">Twitter</a></li>\n  <li>Spreading the word to anyone who might benefit</li>\n</ul>\n</p>\n\n</div>\n\n</div>",
+        "content": "<div style=\"text-align: center\">\n<img src=\"https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/logo/site-logo-inverse.svg\" alt=\"Compiler Explorer\" style=\"max-height: 12em\">\n</div>\n\n<p>\nCompiler Explorer is a site that lets you see how your compiler works. Type in C, C++, D, Rust, Java, Kotlin, Go (or many other languages) into one window and instantly see the compiler output, with useful highlighting of how the source language maps to the generated assembly or bytecode.\n</p>\n\n<p>\nVisit the site at <a href=\"https://godbolt.org/\" target=\"_blank\">godbolt.org</a>.\n</p>\n\n<p>\nThese stats come from AWS CloudWatch and the Prometheus metrics the site reports, which are the very simple and limited information\nwe keep to monitor and debug the site (for more on what we keep, see our <a href=\"https://godbolt.org/#privacy\" target=\"_blank\">Privacy Policy</a>).\nThey cover the public site, including its Windows and GPU compilers. An \"instance\" is one of the EC2 virtual machines, on Amazon's\ninfrastructure, that run the compilers. Most compilations are queued and picked up by whichever instance is free; Windows and GPU\ncompilations go to instances of their own. For more on how it all fits together, see\n<a href=\"https://xania.org/202506/how-compiler-explorer-works\" target=\"_blank\">How Compiler Explorer works</a>.\n</p>\n\n<p>Support us by:</p>\n<ul>\n  <li>Contributing on <a href=\"https://github.com/compiler-explorer/compiler-explorer\" target=\"_blank\">GitHub</a></li>\n  <li>Becoming a <a href=\"https://github.com/sponsors/compiler-explorer\" target=\"_blank\">GitHub sponsor</a></li>\n  <li>Supporting us on <a href=\"https://patreon.com/mattgodbolt\" target=\"_blank\">Patreon</a></li>\n  <li>Buying gear from the <a href=\"https://shop.compiler-explorer.com\" target=\"_blank\">Compiler Explorer store</a></li>\n  <li>Following us on <a href=\"https://hachyderm.io/@compiler_explorer\" target=\"_blank\">Mastodon</a> or <a href=\"https://bsky.app/profile/compiler-explorer.com\" target=\"_blank\">Bluesky</a></li>\n  <li>Spreading the word to anyone who might benefit</li>\n</ul>\n",
         "mode": "html"
       },
       "pluginVersion": "12.3.0-18686767985.patch2",
@@ -987,7 +972,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum by(language) (rate(ce_compilations_total{env=~\"prod|gpu\", language!~\"c(\\\\+\\\\+)?\"}[$__rate_interval])*60)",
+          "expr": ${jsonencode(expr.compiles_per_min_by_language_not_c)},
           "interval": "75s",
           "legendFormat": "{{language}}",
           "queryType": "randomWalk",
@@ -1086,9 +1071,9 @@
             "type": "prometheus",
             "uid": "grafanacloud-prom"
           },
-          "expr": "sum by(language) (rate(ce_executions_total{env=~\"prod|gpu\"}[$__rate_interval])*60)",
+          "expr": ${jsonencode(expr.executions_per_min_by_language)},
           "interval": "75s",
-          "legendFormat": "{{lanugage}}",
+          "legendFormat": "{{language}}",
           "queryType": "randomWalk",
           "refId": "A"
         }
@@ -1218,5 +1203,8 @@
   },
   "timezone": "browser",
   "title": "Compiler Explorer Public Dashboard",
-  "uid": "sf2UXlzVk"
+  "uid": "sf2UXlzVk",
+  "tags": [
+    "terraform"
+  ]
 }
