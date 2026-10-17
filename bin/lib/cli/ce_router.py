@@ -18,6 +18,7 @@ from collections.abc import Sequence
 
 import boto3
 import click
+import requests
 from botocore.exceptions import ClientError
 
 from lib import ce_router_load, ce_router_smoke
@@ -30,6 +31,10 @@ from lib.env import Config
 from lib.ssh import exec_remote, exec_remote_all, run_remote_shell
 
 LOGGER = logging.getLogger(__name__)
+
+LATEST_RELEASE_URL = "https://api.github.com/repos/compiler-explorer/ce-router/releases/latest"
+VERSION_FILE = "/infra/.deploy/ce-router-version"
+RESTART_HEALTH_TIMEOUT_SECONDS = 120
 
 
 @cli.group()
@@ -541,7 +546,7 @@ def version(cfg: Config):
 
     for instance in instances:
         try:
-            version_output = exec_remote(instance, ["cat", "/infra/.deploy/ce-router-version"], ignore_errors=True)
+            version_output = exec_remote(instance, ["cat", VERSION_FILE], ignore_errors=True)
             version_str = version_output.strip() if version_output else "unknown"
             click.echo(f"  {instance}: {version_str}")
         except RuntimeError:
@@ -867,11 +872,67 @@ def ce_router_restart(cfg: Config, skip_confirmation: bool) -> None:
     click.echo(f"Restarting CE Router service on {len(instances)} instances...")
     exec_remote_all(instances, ["sudo", "systemctl", "restart", "ce-router"])
 
+    # The version file is only rewritten once start-router.sh has installed the new release,
+    # so reading it before the router is healthy again reports the version it replaced.
     click.echo("")
-    click.echo("Version after restart:")
+    click.echo("Waiting for routers to install the latest release and report healthy...")
+    latest = latest_ce_router_release()
     for instance in instances:
-        version = exec_remote(instance, ["cat", "/infra/.deploy/ce-router-version"], ignore_errors=True)
-        click.echo(f"  {instance}: {version.strip() if version else 'unknown'}")
+        health = _wait_for_healthcheck(instance, RESTART_HEALTH_TIMEOUT_SECONDS)
+        installed = exec_remote(instance, ["cat", VERSION_FILE], ignore_errors=True)
+        health_summary = format_healthcheck(health)
+        version_summary = format_installed_version(installed.strip() if installed else None, latest)
+        click.echo(f"  {instance}: {health_summary}, version {version_summary}")
+
+
+def latest_ce_router_release() -> str | None:
+    """The release tag install_ce_router fetches, or None if GitHub cannot be asked."""
+    try:
+        response = requests.get(LATEST_RELEASE_URL, timeout=30)
+        response.raise_for_status()
+        return response.json().get("tag_name")
+    except (requests.RequestException, ValueError):
+        return None
+
+
+def format_installed_version(installed: str | None, latest: str | None) -> str:
+    """Flag a router that did not end up on the latest release after a restart."""
+    if not installed:
+        return "unknown"
+    if latest is None:
+        return f"{installed} (could not check the latest release)"
+    if installed != latest:
+        # install_ce_router keeps the old release when the download fails, and says nothing.
+        return f"{installed} ⚠️  latest release is {latest}, the install may have failed"
+    return installed
+
+
+def is_healthy(response: str) -> bool:
+    try:
+        payload = json.loads(response)
+    except json.JSONDecodeError:
+        return False
+    return isinstance(payload, dict) and payload.get("status") == "healthy"
+
+
+def _fetch_healthcheck(instance: CERouterInstance) -> str:
+    url = f"http://{instance.instance.private_ip_address}/healthcheck"
+    # Deliberately no -f: an unhealthy router answers 503 with a body saying why,
+    # and that body is the point of asking.
+    return exec_remote(instance, ["curl", "-s", url])
+
+
+def _wait_for_healthcheck(instance: CERouterInstance, timeout_seconds: int) -> str:
+    """Poll the router until it reports healthy, returning its last answer either way."""
+    deadline = time.monotonic() + timeout_seconds
+    while True:
+        try:
+            response = _fetch_healthcheck(instance)
+        except RuntimeError as e:
+            response = str(e)
+        if is_healthy(response) or time.monotonic() >= deadline:
+            return response
+        time.sleep(5)
 
 
 def format_healthcheck(response: str) -> str:
@@ -911,11 +972,8 @@ def ce_router_healthcheck(cfg: Config) -> None:
             click.echo(f"  {instance}: SKIPPED - instance state is {state}")
             continue
 
-        url = f"http://{instance.instance.private_ip_address}/healthcheck"
         try:
-            # Deliberately no -f: an unhealthy router answers 503 with a body saying why,
-            # and that body is the point of asking.
-            response = exec_remote(instance, ["curl", "-s", url])
+            response = _fetch_healthcheck(instance)
         except RuntimeError as e:
             click.echo(f"  {instance}: ❌ ERROR - {e}")
             continue

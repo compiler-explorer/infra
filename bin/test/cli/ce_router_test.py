@@ -3,14 +3,19 @@ from __future__ import annotations
 import unittest
 from unittest.mock import MagicMock, patch
 
+import requests
 from click.testing import CliRunner
 from lib.cli.ce_router import (
     ce_router_healthcheck,
+    ce_router_restart,
     compilation_path_patterns,
     enable,
     exec_all,
     format_healthcheck,
+    format_installed_version,
     get_rule_path_patterns,
+    is_healthy,
+    latest_ce_router_release,
     version,
 )
 from lib.env import Config, Environment
@@ -395,3 +400,112 @@ class TestCERouterHealthcheck(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("No CE Router instances found", result.output)
+
+
+HEALTHY_BODY = '{"status": "healthy", "websocket": "connected"}'
+BAD_GATEWAY = "<html><head><title>502 Bad Gateway</title></head></html>"
+
+
+class TestFormatInstalledVersion(unittest.TestCase):
+    def test_matching_latest_is_shown_plainly(self):
+        self.assertEqual(format_installed_version("0.8.0", "0.8.0"), "0.8.0")
+
+    def test_stale_version_is_flagged(self):
+        result = format_installed_version("0.7.0", "0.8.0")
+        self.assertIn("0.7.0", result)
+        self.assertIn("latest release is 0.8.0", result)
+
+    def test_unknown_latest_is_noted(self):
+        self.assertIn("could not check", format_installed_version("0.8.0", None))
+
+    def test_missing_version_file(self):
+        self.assertEqual(format_installed_version(None, "0.8.0"), "unknown")
+
+
+class TestIsHealthy(unittest.TestCase):
+    def test_healthy(self):
+        self.assertTrue(is_healthy(HEALTHY_BODY))
+
+    def test_unhealthy(self):
+        self.assertFalse(is_healthy('{"status": "unhealthy"}'))
+
+    def test_bad_gateway_while_installing(self):
+        self.assertFalse(is_healthy(BAD_GATEWAY))
+
+    def test_json_that_is_not_an_object(self):
+        self.assertFalse(is_healthy("null"))
+
+
+class TestLatestCERouterRelease(unittest.TestCase):
+    @patch("lib.cli.ce_router.requests.get")
+    def test_returns_tag_name(self, mock_get):
+        mock_get.return_value.json.return_value = {"tag_name": "0.8.0"}
+        self.assertEqual(latest_ce_router_release(), "0.8.0")
+
+    @patch("lib.cli.ce_router.requests.get")
+    def test_github_failure_returns_none(self, mock_get):
+        mock_get.side_effect = requests.ConnectionError("rate limited")
+        self.assertIsNone(latest_ce_router_release())
+
+
+class TestCERouterRestart(unittest.TestCase):
+    def setUp(self):
+        self.runner = CliRunner()
+        self.cfg = Config(env=Environment.STAGING)
+        self.instance = MagicMock()
+        self.instance.instance.id = "i-12345"
+        self.instance.instance.private_ip_address = "10.0.1.100"
+        self.instance.__str__ = MagicMock(return_value="i-12345@10.0.1.100")
+
+    @patch("lib.cli.ce_router.time.sleep")
+    @patch("lib.cli.ce_router.latest_ce_router_release", return_value="0.8.0")
+    @patch("lib.cli.ce_router.exec_remote")
+    @patch("lib.cli.ce_router.exec_remote_all")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    def test_restart_reads_version_only_once_healthy(
+        self, mock_get_instances, mock_exec_remote_all, mock_exec_remote, _mock_latest, mock_sleep
+    ):
+        mock_get_instances.return_value = [self.instance]
+        mock_exec_remote.side_effect = [BAD_GATEWAY, HEALTHY_BODY, "0.8.0\n"]
+
+        result = self.runner.invoke(ce_router_restart, ["--skip-confirmation"], obj=self.cfg)
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("i-12345@10.0.1.100: ✅ HEALTHY, version 0.8.0", result.output)
+        mock_sleep.assert_called_once()
+        self.assertEqual(mock_exec_remote.call_args_list[-1][0][1], ["cat", "/infra/.deploy/ce-router-version"])
+
+    @patch("lib.cli.ce_router.time.sleep")
+    @patch("lib.cli.ce_router.latest_ce_router_release", return_value="0.8.0")
+    @patch("lib.cli.ce_router.exec_remote")
+    @patch("lib.cli.ce_router.exec_remote_all")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    def test_restart_flags_a_router_left_on_an_old_release(
+        self, mock_get_instances, mock_exec_remote_all, mock_exec_remote, _mock_latest, _mock_sleep
+    ):
+        mock_get_instances.return_value = [self.instance]
+        mock_exec_remote.side_effect = [HEALTHY_BODY, "0.7.0\n"]
+
+        result = self.runner.invoke(ce_router_restart, ["--skip-confirmation"], obj=self.cfg)
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("latest release is 0.8.0", result.output)
+
+    @patch("lib.cli.ce_router.time.monotonic")
+    @patch("lib.cli.ce_router.time.sleep")
+    @patch("lib.cli.ce_router.latest_ce_router_release", return_value="0.8.0")
+    @patch("lib.cli.ce_router.exec_remote")
+    @patch("lib.cli.ce_router.exec_remote_all")
+    @patch("lib.cli.ce_router._get_ce_router_instances")
+    def test_restart_gives_up_on_a_router_that_never_recovers(
+        self, mock_get_instances, mock_exec_remote_all, mock_exec_remote, _mock_latest, _mock_sleep, mock_monotonic
+    ):
+        mock_get_instances.return_value = [self.instance]
+        mock_monotonic.side_effect = [0, 10, 1000]
+        mock_exec_remote.side_effect = [RuntimeError("connection refused"), BAD_GATEWAY, "0.7.0\n"]
+
+        result = self.runner.invoke(ce_router_restart, ["--skip-confirmation"], obj=self.cfg)
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("UNHEALTHY", result.output)
+        self.assertIn("latest release is 0.8.0", result.output)
