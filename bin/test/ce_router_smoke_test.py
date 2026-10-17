@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from botocore.exceptions import ClientError
 from lib.ce_router_smoke import (  # noqa: I001
+    EXEC_MARKER,
     S3_RESOLVE_FAILURE,
     WEBSOCKET_SIZE_THRESHOLD,
     Findings,
@@ -13,6 +14,7 @@ from lib.ce_router_smoke import (  # noqa: I001
     compile_body,
     in_service_worker_count,
     source_emitting_at_least,
+    source_printing_at_least,
 )
 
 
@@ -36,6 +38,15 @@ class TestSourceGeneration:
     def test_always_compilable(self):
         for target in (0, 1, 1024, WEBSOCKET_SIZE_THRESHOLD):
             assert source_emitting_at_least(target).endswith("int main() { return 0; }\n")
+
+    def test_printing_source_scales_its_loop_with_the_target(self):
+        assert "i < 1;" in source_printing_at_least(0)
+        assert "i < 648;" in source_printing_at_least(2 * 32 * 1024)
+
+    def test_printing_source_emits_the_marker_before_the_filler(self):
+        source = source_printing_at_least(WEBSOCKET_SIZE_THRESHOLD)
+        assert source.index(EXEC_MARKER) < source.index("for (")
+        assert source.count(EXEC_MARKER) == 2
 
 
 class TestCompileBody:
