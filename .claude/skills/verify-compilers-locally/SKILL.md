@@ -64,8 +64,7 @@ and id prefix. These files are gitignored — they are throwaway.
 ### 4. Launch CE locally
 Needs `node_modules` (run `npm ci` in the checkout/worktree if absent). Then:
 ```bash
-nohup npm run dev -- --port 10240 > /tmp/ce_dev.log 2>&1 &
-echo $! > /tmp/ce_dev.pid
+setsid bash -c 'echo $$ > /tmp/ce_dev.pid; exec npm run dev -- --port 10240' > /tmp/ce_dev.log 2>&1 < /dev/null &
 ```
 Wait for `Listening on http://localhost:10240/`. The log will say
 `Failed to create N out of M compilers` — that's expected (other languages'
@@ -97,8 +96,7 @@ python3 .claude/skills/verify-compilers-locally/compile_matrix.py --execute \
 
 ### 6. Teardown
 ```bash
-# npm spawns the server as a child, so kill the whole process group
-kill -- -"$(ps -o pgid= "$(cat /tmp/ce_dev.pid)" | tr -d ' ')" && rm -f /tmp/ce_dev.pid
+kill -- -"$(cat /tmp/ce_dev.pid)" && rm -f /tmp/ce_dev.pid   # setsid made it a group leader; this also kills npm's children
 rm -f <ce-checkout>/etc/config/*.local.properties   # so the next `npm run dev` isn't AOCC-only
 ```
 Leave the `/opt/compiler-explorer` installs in place unless asked to remove
