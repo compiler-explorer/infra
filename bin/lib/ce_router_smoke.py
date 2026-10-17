@@ -157,8 +157,8 @@ def source_printing_at_least(target_bytes: int) -> str:
     count = max(1, target_bytes // (len(filler) + 1))
     return (
         "#include <cstdio>\n"
-        f"int main() {{ puts(\"{EXEC_MARKER}\"); fputs(\"{EXEC_MARKER}\\n\", stderr); "
-        f"for (int i = 0; i < {count}; ++i) {{ puts(\"{filler}\"); fputs(\"{filler}\\n\", stderr); }} "
+        f'int main() {{ puts("{EXEC_MARKER}"); fputs("{EXEC_MARKER}\\n", stderr); '
+        f'for (int i = 0; i < {count}; ++i) {{ puts("{filler}"); fputs("{filler}\\n", stderr); }} '
         "return 0; }\n"
     )
 
