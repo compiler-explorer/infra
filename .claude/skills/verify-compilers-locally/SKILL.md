@@ -23,15 +23,19 @@ Find both checkouts before starting. The CE checkout is usually a sibling
 ### 1. Identify the targets
 From the CE properties PR, list the new compiler **ids** per language and the
 group(s) they belong to. From the infra PR, get the matching `ce_install`
-filter (e.g. `compilers/c++/aocc`). Confirm with:
+filter (e.g. `compilers/c++/aocc`). List what it matches and pick the exact
+installables the PR adds:
 ```bash
 uv run bin/ce_install list 'compilers/c++/aocc'
 ```
 
 ### 2. Install the compilers (+ toolchain deps)
-Default dest is `/opt/compiler-explorer` (must be writable). Install the group:
+Default dest is `/opt/compiler-explorer` (must be writable). Install only the
+exact versions selected from the `list` output, never a whole group: a filter
+like `compilers/c++/x86/gcc`, `clang` or `rust` matches hundreds of versions and
+will spend hours downloading and fill the disk.
 ```bash
-uv run bin/ce_install install 'compilers/c++/aocc'
+uv run bin/ce_install install 'compilers/c++/aocc 5.0.0'
 ```
 **Resolve `--gcc-toolchain` deps.** Inspect the properties `options=` for the
 group: clang-based compilers usually pass
@@ -61,6 +65,7 @@ and id prefix. These files are gitignored — they are throwaway.
 Needs `node_modules` (run `npm ci` in the checkout/worktree if absent). Then:
 ```bash
 nohup npm run dev -- --port 10240 > /tmp/ce_dev.log 2>&1 &
+echo $! > /tmp/ce_dev.pid
 ```
 Wait for `Listening on http://localhost:10240/`. The log will say
 `Failed to create N out of M compilers` — that's expected (other languages'
@@ -92,7 +97,8 @@ python3 .claude/skills/verify-compilers-locally/compile_matrix.py --execute \
 
 ### 6. Teardown
 ```bash
-pkill -f "app.ts --port 10240"
+# npm spawns the server as a child, so kill the whole process group
+kill -- -"$(ps -o pgid= "$(cat /tmp/ce_dev.pid)" | tr -d ' ')" && rm -f /tmp/ce_dev.pid
 rm -f <ce-checkout>/etc/config/*.local.properties   # so the next `npm run dev` isn't AOCC-only
 ```
 Leave the `/opt/compiler-explorer` installs in place unless asked to remove
@@ -101,8 +107,9 @@ them (they're slow to re-fetch). Report what was left installed.
 ## Gotchas (hard-won)
 - **Never `--env amazon` locally** — it does AWS-side things. Use `local.properties`.
 - **Remove `local.properties` afterwards** or the user's next `npm run dev` shows only your test compilers.
+- **Never install a whole compiler group** (gcc, clang, rust, ...). `list` first and install exact versions.
 - **`--gcc-toolchain` GCC must be installed** or clang C/C++ fails to find the stdlib. Fortran/flang doesn't need it.
-- Compile API: `POST /api/compiler/<id>/compile`, JSON body, `Accept: application/json`; check `code==0` and a non-empty `asm` array.
+- Compile API: `POST /api/compiler/<id>/compile`, JSON body, `Accept: application/json`; check `code==0` and a non-empty `asm` array (or `devices[].asm` for GPU compilers).
 - **Disassembly passing does NOT mean execution works.** They're separate paths: the asm/listing comes from the compiler, execution runs a (possibly different) binary. A real bug shipped where every Lua version disassembled correctly but all executed with the wrong interpreter — the disassembly matrix was all-green. For `supportsExecute` languages, run `compile_matrix.py --execute` too and confirm `didExecute` + `execResult.code==0` (and the stdout looks right).
 - **`code==0` + non-empty asm is necessary, not sufficient.** A wrapper can exit 0 and emit a *placeholder* (e.g. "// No PTX was generated") that still counts as asm lines — a false pass. Always eyeball the actual output for at least one compiler per distinct line-count bucket; differing asm-line counts across versions usually means some produce real output and others a fallback.
 - Interpreted DSLs (cutedsl, triton): the source comes from `examples/<lang>/default.py`, not the built-in C snippet. Pass it with `--source-file <lang>=<path>` and usually `--args ""` (per-compiler flags like `--arch sm_90a` already come from config). Real output may live in the `devices` map (MLIR/SASS/PTX views), not just `asm`.

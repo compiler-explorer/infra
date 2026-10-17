@@ -30,6 +30,14 @@ DEFAULT_SOURCES = {
 }
 
 
+def join_text(lines: list[dict] | None) -> str:
+    return " ".join(x.get("text", "") for x in (lines or [])).strip()
+
+
+def count_asm_lines(asm: list[dict] | None) -> int:
+    return sum(1 for a in (asm or []) if (a.get("text") or "").strip())
+
+
 def compile_one(base: str, lang: str, cid: str, src: str, args: str, execute: bool, timeout: int) -> dict:
     options: dict[str, object] = {
         "userArguments": args,
@@ -54,18 +62,18 @@ def compile_one(base: str, lang: str, cid: str, src: str, args: str, execute: bo
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         res = json.load(resp)
-    asm = res.get("asm") or []
     exec_res = res.get("execResult") or {}
-    exec_stdout = " ".join(x.get("text", "") for x in (exec_res.get("stdout") or [])).strip()
-    # The build/setup stderr (e.g. a failed interpreter spawn) surfaces at the top level.
-    setup_err = " ".join(x.get("text", "") for x in (res.get("stderr") or [])).strip()
+    # GPU/device compilers put their output under devices[].asm rather than the top-level asm.
+    device_lines = sum(count_asm_lines(dev.get("asm")) for dev in (res.get("devices") or {}).values())
     return {
         "code": res.get("code"),
-        "asm_lines": sum(1 for a in asm if (a.get("text") or "").strip()),
+        "asm_lines": count_asm_lines(res.get("asm")) + device_lines,
         "did_execute": exec_res.get("didExecute"),
         "exec_code": exec_res.get("code"),
-        "stdout": exec_stdout,
-        "setup_err": setup_err,
+        "stdout": join_text(exec_res.get("stdout")),
+        # The build/setup stderr (e.g. a failed interpreter spawn) surfaces at the top level.
+        "setup_err": join_text(res.get("stderr")),
+        "exec_err": join_text(exec_res.get("stderr")),
     }
 
 
@@ -80,7 +88,7 @@ def run_disassembly(cases: list[tuple[str, str]], sources: dict, opts: argparse.
             ok = r["code"] == 0 and r["asm_lines"] > 0
             note = "OK" if ok else f"FAIL: {r['setup_err'][:200]}"
             print(f"{lang:8} {cid:16} {str(r['code']):4} {r['asm_lines']:<8} {note}")
-        except Exception as exc:  # noqa: BLE001 - report any failure per-row
+        except (OSError, ValueError) as exc:
             ok = False
             print(f"{lang:8} {cid:16} {'ERR':4} {'-':8} {exc}")
         all_ok = all_ok and ok
@@ -96,9 +104,10 @@ def run_execution(cases: list[tuple[str, str]], sources: dict, opts: argparse.Na
         try:
             r = compile_one(opts.base, lang, cid, src, opts.args, True, opts.timeout)
             ok = r["did_execute"] is True and r["exec_code"] == 0
-            note = (f"stdout={r['stdout'][:60]!r}" if ok else f"FAIL: {r['setup_err'][:200]}").strip()
+            err = r["setup_err"] or r["exec_err"]
+            note = (f"stdout={r['stdout'][:60]!r}" if ok else f"FAIL: {err[:200]}").strip()
             print(f"{lang:8} {cid:16} {str(r['did_execute']):7} {str(r['exec_code']):4} {note}")
-        except Exception as exc:  # noqa: BLE001 - report any failure per-row
+        except (OSError, ValueError) as exc:
             ok = False
             print(f"{lang:8} {cid:16} {'ERR':7} {'-':4} {exc}")
         all_ok = all_ok and ok
@@ -141,7 +150,12 @@ def main() -> int:
         with open(path, encoding="utf-8") as handle:
             sources[lang] = handle.read()
 
-    cases = [(case.partition(":")[0], case.partition(":")[2]) for case in opts.cases]
+    cases = []
+    for case in opts.cases:
+        lang, _, cid = case.partition(":")
+        if not lang or not cid:
+            parser.error(f"invalid case {case!r}, expected LANG:ID (e.g. c++:gcc142)")
+        cases.append((lang, cid))
     all_ok = run_execution(cases, sources, opts) if opts.execute else run_disassembly(cases, sources, opts)
     print("-" * 72)
     print("ALL PASS" if all_ok else "SOME FAILED")
