@@ -51,9 +51,20 @@ etc.) under each install dir before continuing.
 `--env amazon` triggers AWS/instance bootstrap you don't want locally. Instead
 layer the relevant blocks as `local` properties (loaded last, highest
 precedence, gitignored). For each language, pull just the target group + its
-compiler entries out of the amazon file:
+compiler entries out of the amazon file.
+
+The user may already have their own `*.local.properties` in the checkout. Move
+them aside first so they neither leak into the test nor get deleted at
+teardown. If `mkdir` fails, a previous run's backup was never restored:
+restore it (step 6) before continuing, never overwrite it.
 ```bash
 cd <ce-checkout>
+mkdir /tmp/ce_local_backup && \
+  find etc/config -maxdepth 1 -name '*.local.properties' -exec mv -t /tmp/ce_local_backup {} +
+ls /tmp/ce_local_backup   # note what was backed up, to report at the end
+```
+Then write the test files:
+```bash
 { echo "compilers=&aocc"; echo "defaultCompiler=aocc520";
   grep -E '^group\.aocc\.|^compiler\.aocc[0-9]' etc/config/c++.amazon.properties; } \
   > etc/config/c++.local.properties
@@ -97,14 +108,18 @@ python3 .claude/skills/verify-compilers-locally/compile_matrix.py --execute \
 ### 6. Teardown
 ```bash
 kill -- -"$(cat /tmp/ce_dev.pid)" && rm -f /tmp/ce_dev.pid   # setsid made it a group leader; this also kills npm's children
-rm -f <ce-checkout>/etc/config/*.local.properties   # so the next `npm run dev` isn't AOCC-only
+cd <ce-checkout>
+rm -f etc/config/*.local.properties   # the test files, so the next `npm run dev` isn't AOCC-only
+find /tmp/ce_local_backup -maxdepth 1 -name '*.local.properties' -exec mv -t etc/config {} + && \
+  rmdir /tmp/ce_local_backup
 ```
+Check `etc/config` holds exactly the files listed from the backup in step 3.
 Leave the `/opt/compiler-explorer` installs in place unless asked to remove
 them (they're slow to re-fetch). Report what was left installed.
 
 ## Gotchas (hard-won)
 - **Never `--env amazon` locally** — it does AWS-side things. Use `local.properties`.
-- **Remove `local.properties` afterwards** or the user's next `npm run dev` shows only your test compilers.
+- **Back up the user's own `local.properties` before writing yours, and restore them afterwards.** Removing only the test files is not enough if theirs were overwritten; leaving yours means their next `npm run dev` shows only your test compilers.
 - **Never install a whole compiler group** (gcc, clang, rust, ...). `list` first and install exact versions.
 - **`--gcc-toolchain` GCC must be installed** or clang C/C++ fails to find the stdlib. Fortran/flang doesn't need it.
 - Compile API: `POST /api/compiler/<id>/compile`, JSON body, `Accept: application/json`; check `code==0` and a non-empty `asm` array (or `devices[].asm` for GPU compilers).
