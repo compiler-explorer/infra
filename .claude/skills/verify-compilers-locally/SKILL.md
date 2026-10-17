@@ -28,6 +28,19 @@ installables the PR adds:
 ```bash
 uv run bin/ce_install list 'compilers/c++/aocc'
 ```
+Read the infra diff for renamed targets too. Changing an existing target (e.g.
+`"0.15"` to `"0.15.0"`) makes ce_install treat it as a new version and install
+the same release again under a new directory; the PR should keep the old name.
+
+For `s3tarballs` (and other prebuilt) installables, confirm every tarball exists
+before installing. A "Build Required" comment from github-actions on the infra
+PR lists the `bespoke-build.yaml` commands; until those have run, the install
+can't be tested:
+```bash
+curl -sI https://s3.amazonaws.com/compiler-explorer/opt/pythran-0.19.0.tar.xz | head -1
+```
+A failing bespoke build may be the builder image, not the version: read the
+log before blaming the compiler.
 
 ### 2. Install the compilers (+ toolchain deps)
 Default dest is `/opt/compiler-explorer` (must be writable). Install only the
@@ -37,6 +50,10 @@ will spend hours downloading and fill the disk.
 ```bash
 uv run bin/ce_install install 'compilers/c++/aocc 5.0.0'
 ```
+If the install fails with `Permission denied: '/efs/cefs-images/...'`, the
+machine's config enables CEFS; add `--force-traditional` (before `install`) to
+extract into `/opt/compiler-explorer` instead.
+
 **Resolve `--gcc-toolchain` deps.** Inspect the properties `options=` for the
 group: clang-based compilers usually pass
 `--gcc-toolchain=/opt/compiler-explorer/gcc-X.Y.Z`. That GCC must exist locally
@@ -105,6 +122,15 @@ python3 .claude/skills/verify-compilers-locally/compile_matrix.py --execute \
   --base http://localhost:10240 lua:lua515 lua:lua550 ...
 ```
 
+For groups that set `supportsBinary=true`, also run with `--binary`. Some
+compilers only invoke the backend toolchain in binary mode (pythran emits C++
+by default and builds a module only for binary), so the default run alone
+misses toolchain problems:
+```bash
+python3 .claude/skills/verify-compilers-locally/compile_matrix.py --binary --args "" \
+  --source-file python=/path/to/pythran_test.py --base http://localhost:10240 python:pythran0190 ...
+```
+
 ### 6. Teardown
 ```bash
 kill -- -"$(cat /tmp/ce_dev.pid)" && rm -f /tmp/ce_dev.pid   # setsid made it a group leader; this also kills npm's children
@@ -126,4 +152,6 @@ them (they're slow to re-fetch). Report what was left installed.
 - **Disassembly passing does NOT mean execution works.** They're separate paths: the asm/listing comes from the compiler, execution runs a (possibly different) binary. A real bug shipped where every Lua version disassembled correctly but all executed with the wrong interpreter — the disassembly matrix was all-green. For `supportsExecute` languages, run `compile_matrix.py --execute` too and confirm `didExecute` + `execResult.code==0` (and the stdout looks right).
 - **`code==0` + non-empty asm is necessary, not sufficient.** A wrapper can exit 0 and emit a *placeholder* (e.g. "// No PTX was generated") that still counts as asm lines — a false pass. Always eyeball the actual output for at least one compiler per distinct line-count bucket; differing asm-line counts across versions usually means some produce real output and others a fallback.
 - Interpreted DSLs (cutedsl, triton): the source comes from `examples/<lang>/default.py`, not the built-in C snippet. Pass it with `--source-file <lang>=<path>` and usually `--args ""` (per-compiler flags like `--arch sm_90a` already come from config). Real output may live in the `devices` map (MLIR/SASS/PTX views), not just `asm`.
+- **A system compiler can mask a missing toolchain.** Compiler classes that append a toolchain `bin` to the *end* of PATH (e.g. pythran's `cpp_compiler_root`) still find `/usr/bin/g++` locally, so a wrong or missing root passes here and fails in production. Pointing the setting at a bogus path and getting a pass proves nothing; say the check was inconclusive.
+- Pythran sources need a `#pythran export name(type)` line, or there is nothing to compile; pass one with `--source-file python=<path>` and `--args ""`.
 - The CE properties repo uses **squash merges only**.

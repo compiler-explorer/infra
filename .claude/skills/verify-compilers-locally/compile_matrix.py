@@ -4,6 +4,7 @@
 Usage:
     compile_matrix.py --base http://localhost:10240 LANG:ID [LANG:ID ...]
     compile_matrix.py --execute --base http://localhost:10240 LANG:ID [LANG:ID ...]
+    compile_matrix.py --binary --base http://localhost:10240 LANG:ID [LANG:ID ...]
 
 Each positional arg is `lang:compilerid`, e.g. `c++:aocc520`, `fortran:aoccflang500`.
 A simple per-language program is used (override with --source 'lang=...' or --source-file 'lang=path').
@@ -12,6 +13,8 @@ Default mode checks the disassembly path: pass = compile code 0 and non-empty as
 --execute checks the execution path instead: pass = didExecute and execResult.code 0.
 These are separate code paths -- a compiler can disassemble fine yet fail to execute
 (e.g. a misresolved interpreter), so run both for languages that set supportsExecute.
+--binary checks the disassembly path with binary output, for compilers that only invoke
+their backend toolchain when asked for a binary (supportsBinary).
 Exits non-zero if any case fails.
 """
 
@@ -38,7 +41,7 @@ def count_asm_lines(asm: list[dict] | None) -> int:
     return sum(1 for a in (asm or []) if (a.get("text") or "").strip())
 
 
-def compile_one(base: str, lang: str, cid: str, src: str, args: str, execute: bool, timeout: int) -> dict:
+def compile_one(base: str, lang: str, cid: str, src: str, args: str, execute: bool, binary: bool, timeout: int) -> dict:
     options: dict[str, object] = {
         "userArguments": args,
         "filters": {
@@ -48,6 +51,7 @@ def compile_one(base: str, lang: str, cid: str, src: str, args: str, execute: bo
             "intel": True,
             "demangle": True,
             "execute": execute,
+            "binary": binary,
         },
         "compilerOptions": {},
         "tools": [],
@@ -84,7 +88,7 @@ def run_disassembly(cases: list[tuple[str, str]], sources: dict, opts: argparse.
     for lang, cid in cases:
         src = sources.get(lang, sources["_default"])
         try:
-            r = compile_one(opts.base, lang, cid, src, opts.args, False, opts.timeout)
+            r = compile_one(opts.base, lang, cid, src, opts.args, False, opts.binary, opts.timeout)
             ok = r["code"] == 0 and r["asm_lines"] > 0
             note = "OK" if ok else f"FAIL: {r['setup_err'][:200]}"
             print(f"{lang:8} {cid:16} {str(r['code']):4} {r['asm_lines']:<8} {note}")
@@ -102,7 +106,7 @@ def run_execution(cases: list[tuple[str, str]], sources: dict, opts: argparse.Na
     for lang, cid in cases:
         src = sources.get(lang, sources["_default"])
         try:
-            r = compile_one(opts.base, lang, cid, src, opts.args, True, opts.timeout)
+            r = compile_one(opts.base, lang, cid, src, opts.args, True, False, opts.timeout)
             ok = r["did_execute"] is True and r["exec_code"] == 0
             err = r["setup_err"] or r["exec_err"]
             note = (f"stdout={r['stdout'][:60]!r}" if ok else f"FAIL: {err[:200]}").strip()
@@ -123,6 +127,11 @@ def main() -> int:
         "--execute",
         action="store_true",
         help="Check the execution path (didExecute + execResult.code) instead of disassembly",
+    )
+    parser.add_argument(
+        "--binary",
+        action="store_true",
+        help="Request binary output in the disassembly check (for supportsBinary compilers)",
     )
     parser.add_argument(
         "--source",
