@@ -6,7 +6,7 @@ from lib.env import Environment
 
 @pytest.mark.parametrize(
     "env",
-    [Environment.PROD, Environment.STAGING, Environment.BETA, Environment.GPU, Environment.AARCH64PROD],
+    [Environment.PROD, Environment.STAGING, Environment.BETA, Environment.GPU],
 )
 def test_discovery_is_required_for_serving_environments(env):
     assert env.discovery_required
@@ -20,6 +20,12 @@ def test_discovery_is_required_for_windows_environments_it_is_produced_for(env):
 def test_discovery_is_not_required_for_wintest():
     """Nothing produces a discovery for wintest, which serves its own compiler set."""
     assert not Environment.WINTEST.discovery_required
+
+
+@pytest.mark.parametrize("env", [Environment.AARCH64PROD, Environment.AARCH64STAGING])
+def test_discovery_is_not_required_for_execution_only_environments(env):
+    """The aarch64 environments only run executables sent from other environments."""
+    assert not env.discovery_required
 
 
 @pytest.mark.parametrize("env", [Environment.RUNNER, Environment.GPU_RUNNER, Environment.WINRUNNER])
