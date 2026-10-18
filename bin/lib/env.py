@@ -77,11 +77,12 @@ class Environment(Enum):
         """Whether deploys here should insist a discovery has been run for the version.
 
         Runners produce discovery rather than consume it, and nothing produces one for wintest,
-        which serves its own compiler set from the windows-docker properties.
+        which serves its own compiler set from the windows-docker properties. The aarch64
+        environments are execution-only, with no compilers to discover.
         """
         if self.is_runner:
             return False
-        return self != Environment.WINTEST
+        return self not in (Environment.WINTEST, Environment.AARCH64PROD, Environment.AARCH64STAGING)
 
     @property
     def is_prod(self):
