@@ -8,8 +8,6 @@ anonymised client address that records written since the fix hold.
 Nothing here may print or log a raw address: reports use address kinds and masked patterns only.
 """
 
-from __future__ import annotations
-
 import bisect
 import ipaddress
 import re
@@ -18,7 +16,7 @@ from collections import Counter
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Self
 
 import requests
 from botocore.exceptions import ClientError
@@ -37,15 +35,19 @@ PRIVATE = "private"
 AWS = "aws"
 PUBLIC_RAW = "public-raw"
 UNPARSEABLE = "unparseable"
+NOT_A_STRING = "not a string"
 
 # A CloudFront edge address belongs to AWS, not to a user. Any other AWS address may be someone's own proxy.
 SAFE_KINDS = frozenset({SENTINEL, ANONYMISED, CLOUDFRONT})
+# Kinds that can stand for the client. A sentinel or an edge never does.
+_CLIENT_KINDS = frozenset({ANONYMISED, PRIVATE, AWS, PUBLIC_RAW})
 
-_ANONYMISED_IPV4_RE = re.compile(r"^(?:::ffff:)?\d{1,3}\.\d{1,3}\.\d{1,3}\.0$", re.IGNORECASE)
+_ANONYMISED_IPV4_RE = re.compile(r"(?:::ffff:)?\d{1,3}\.\d{1,3}\.\d{1,3}\.0", re.IGNORECASE | re.ASCII)
 # anonymizeIp swaps the last three groups for ":0:0:0" textually, so a "::"-compressed address comes out
 # with fewer than eight groups and is not valid IPv6. It is anonymised all the same.
-_ANONYMISED_IPV6_RE = re.compile(r"^[0-9A-Fa-f:]*:0:0:0$")
-_ANONYMIZE_IPV4_RE = re.compile(r"\.\d{1,3}\Z")
+# anonymizeIp keeps at most five groups in front of ":0:0:0"; anything longer has a raw address inside it.
+_ANONYMISED_IPV6_RE = re.compile(r"(?:[0-9A-Fa-f]{0,4}:){1,5}0:0:0")
+_ANONYMIZE_IPV4_RE = re.compile(r"\.\d{1,3}\Z", re.ASCII)
 _ANONYMIZE_IPV6_RE = re.compile(r"(?::[0-9A-Fa-f]{0,4}){3}\Z")
 _MASK_GROUP_RE = re.compile(r"[0-9A-Fa-f]+")
 
@@ -73,8 +75,9 @@ IpAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
 def anonymize_ip(ip: str) -> str:
     """Port of anonymizeIp from compiler-explorer's lib/utils.ts, so scrubbed records match new ones.
 
-    One deliberate difference: an IPv4-mapped address such as ::ffff:192.0.2.1 gets the IPv4 rule.
-    CE's version sends it down the IPv6 path, whose pattern cannot match a dotted tail, and returns it whole.
+    One deliberate difference: any address with a dotted IPv4 tail, such as ::ffff:192.0.2.1, gets the IPv4
+    rule. CE's version sends anything containing ":" down the IPv6 path, whose pattern cannot match a dotted
+    tail, and returns it whole.
     """
     if "localhost" in ip:
         return ip
@@ -86,7 +89,7 @@ def anonymize_ip(ip: str) -> str:
 
 
 def looks_anonymised(value: str) -> bool:
-    return value in SENTINELS or bool(_ANONYMISED_IPV4_RE.match(value) or _ANONYMISED_IPV6_RE.match(value))
+    return value in SENTINELS or bool(_ANONYMISED_IPV4_RE.fullmatch(value) or _ANONYMISED_IPV6_RE.fullmatch(value))
 
 
 def _mask_group(match: re.Match[str]) -> str:
@@ -182,13 +185,20 @@ class Assessment:
 
 def assess(creation_ip: str, classifier: AddressClassifier) -> Assessment:
     entries = [entry.strip() for entry in creation_ip.split(",")]
-    shape = "|".join(classifier.kind(entry) for entry in entries)
-    if all(kind in SAFE_KINDS for kind in shape.split("|")):
+    kinds = [classifier.kind(entry) for entry in entries]
+    shape = "|".join(kinds)
+    if all(kind in SAFE_KINDS for kind in kinds):
         return Assessment(shape)
-    # Behind CloudFront and the ALB the header ends with the edge's address, so the entry before it is the
-    # client as CE has recorded it since the fix (trust proxy=2). Any entries further left are dropped.
-    client = entries[-2] if len(entries) > 1 else entries[0]
-    replacement = anonymize_ip(client)
+    # An entry we cannot parse may be the real client in a form we don't recognise (a port, brackets), so
+    # picking another entry could silently record the wrong address.
+    if UNPARSEABLE in kinds:
+        return Assessment(shape, unscrubbable=True)
+    # Behind CloudFront and the ALB the header ends with the edge's address, so the rightmost entry before it
+    # is the client as CE has recorded it since the fix (trust proxy=2). Entries further left are dropped.
+    candidates = [entry for entry, kind in zip(entries, kinds, strict=True) if kind in _CLIENT_KINDS]
+    if not candidates:
+        return Assessment(shape, unscrubbable=True)
+    replacement = anonymize_ip(candidates[-1])
     if not looks_anonymised(replacement):
         return Assessment(shape, unscrubbable=True)
     return Assessment(shape, replacement)
@@ -214,9 +224,14 @@ class ScanReport:
 
     def add(self, item: dict[str, Any], classifier: AddressClassifier) -> None:
         self.scanned += 1
-        creation_ip = item.get("creation_ip", {}).get("S")
-        if creation_ip is None:
+        attribute = item.get("creation_ip")
+        if attribute is None:
             self.without_ip += 1
+            return
+        creation_ip = attribute.get("S")
+        if creation_ip is None:
+            self.shapes[NOT_A_STRING] += 1
+            self.unscrubbable[NOT_A_STRING] += 1
             return
         assessment = assess(creation_ip, classifier)
         self.shapes[assessment.shape] += 1
@@ -235,7 +250,7 @@ class ScanReport:
             )
         )
 
-    def merge(self, other: ScanReport) -> None:
+    def merge(self, other: Self) -> None:
         self.scanned += other.scanned
         self.without_ip += other.without_ip
         self.shapes.update(other.shapes)
@@ -278,16 +293,25 @@ def scan_links(classifier: AddressClassifier, total_segments: int) -> ScanReport
 def format_report(report: ScanReport) -> list[str]:
     lines = [f"Scanned {report.scanned:,} records, {report.without_ip:,} without a creation_ip", "", "All shapes:"]
     for shape, count in report.shapes.most_common():
-        safe = all(kind in SAFE_KINDS for kind in shape.split("|"))
-        lines.append(f"  {count:>10,}  {shape}{'' if safe else '  <- scrub'}")
-    lines += ["", f"To rewrite: {len(report.updates):,} records, as shape -> new value pattern:"]
+        unscrubbable = report.unscrubbable[shape]
+        if unscrubbable == count:
+            marker = "  <- UNSCRUBBABLE"
+        elif unscrubbable:
+            marker = f"  <- scrub, {unscrubbable:,} UNSCRUBBABLE"
+        elif all(kind in SAFE_KINDS for kind in shape.split("|")):
+            marker = ""
+        else:
+            marker = "  <- scrub"
+        lines.append(f"  {count:>10,}  {shape}{marker}")
+    to_rewrite = len(report.updates)
+    lines += ["", f"To rewrite: {to_rewrite:,} records, as shape -> new value pattern:"]
     for (shape, pattern), count in report.scrubs.most_common():
         lines.append(f"  {count:>10,}  {shape} -> {pattern}")
     lines += ["", "To rewrite, by creation year:"]
     for year, count in sorted(report.scrubs_by_year.items()):
         lines.append(f"  {count:>10,}  {year}")
     if report.unscrubbable:
-        lines += ["", "UNSCRUBBABLE: anonymising the client entry did not give an anonymised value. Left untouched:"]
+        lines += ["", "UNSCRUBBABLE: no entry could be anonymised. --apply refuses to run while any remain:"]
         for shape, count in report.unscrubbable.most_common():
             lines.append(f"  {count:>10,}  {shape}")
     return lines
@@ -298,9 +322,12 @@ def point_in_time_recovery() -> dict[str, Any]:
     return response["ContinuousBackupsDescription"]["PointInTimeRecoveryDescription"]
 
 
-def apply_updates(updates: list[PlannedUpdate], writes_per_second: float) -> Counter[str]:
-    """Rewrite each record, but only if creation_ip still holds what the scan saw. Safe to re-run."""
-    outcomes: Counter[str] = Counter()
+def apply_updates(updates: list[PlannedUpdate], writes_per_second: float, outcomes: Counter[str]) -> None:
+    """Rewrite each record, but only if creation_ip still holds what the scan saw. Safe to re-run.
+
+    Outcomes are counted into the caller's counter, so they survive an error part way through.
+    """
+    total = len(updates)
     interval = 1.0 / writes_per_second
     next_write = time.monotonic()
     for done, update in enumerate(updates, start=1):
@@ -323,5 +350,4 @@ def apply_updates(updates: list[PlannedUpdate], writes_per_second: float) -> Cou
                 raise
             outcomes["changed since scan, skipped"] += 1
         if done % 1000 == 0:
-            print(f"  {done:,} / {len(updates):,}")
-    return outcomes
+            print(f"  {done:,} / {total:,}")

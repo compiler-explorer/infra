@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from collections import Counter
 from pprint import pformat
 
 import click
@@ -155,12 +156,15 @@ def links_scrub_ips(apply: bool, segments: int, writes_per_second: float):
     report = scan_links(classifier, segments)
     print("\n".join(format_report(report)))
 
+    to_rewrite = len(report.updates)
     if not report.updates:
         print("\nNothing to rewrite.")
         return
     if not apply:
-        print(f"\nDRY RUN: would rewrite {len(report.updates):,} records. Pass --apply to do it.")
+        print(f"\nDRY RUN: would rewrite {to_rewrite:,} records. Pass --apply to do it.")
         return
+    if report.unscrubbable:
+        raise click.ClickException("Some records cannot be scrubbed automatically; refusing to write any")
 
     pitr = point_in_time_recovery()
     if pitr["PointInTimeRecoveryStatus"] != "ENABLED":
@@ -168,8 +172,11 @@ def links_scrub_ips(apply: bool, segments: int, writes_per_second: float):
     started = datetime.datetime.now(datetime.UTC).isoformat()
     print(f"\nPITR is enabled; latest restorable time {pitr['LatestRestorableDateTime']}.")
     print(f"To undo, restore links to a time before {started}.")
-    are_you_sure(f"rewrite creation_ip on {len(report.updates):,} links records")
+    are_you_sure(f"rewrite creation_ip on {to_rewrite:,} links records")
 
-    outcomes = apply_updates(report.updates, writes_per_second)
-    for outcome, count in outcomes.most_common():
-        print(f"  {count:>10,}  {outcome}")
+    outcomes: Counter[str] = Counter()
+    try:
+        apply_updates(report.updates, writes_per_second, outcomes)
+    finally:
+        for outcome, count in outcomes.most_common():
+            print(f"  {count:>10,}  {outcome}")
