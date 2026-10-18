@@ -50,6 +50,14 @@ For a specific version
 
 `ce_install --enable nightly install <name>`
 
+### On CE infrastructure
+
+Installs on the admin node run as root, and CEFS's working directories are owned by root, so without sudo the install fails with `PermissionError` under `/tmp/ce-cefs-temp`. Pull first so the merged YAML is present:
+
+```bash
+cd /home/ubuntu/infra && git pull && sudo ./bin/ce_install install '<compilername> <version>'
+```
+
 ## On Windows
 
 You can install a small amount of Windows compilers using ce_install.ps1, a regular powershell installation should be enough

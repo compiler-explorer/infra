@@ -237,6 +237,8 @@ The admin instance runs fish as its default shell, so `ce` is not in its path. U
 bin/ce admin exec /home/ubuntu/infra/bin/ce conan restart
 ```
 
+Compiler installs on the admin node need sudo (`sudo ./bin/ce_install install ...`); see `docs/installing_compilers.md`.
+
 After restarting the conan proxy, wait ~10 seconds before making requests to it -- it returns 502 while starting up.
 
 ## GitHub Workflow Integration
