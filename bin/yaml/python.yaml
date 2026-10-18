@@ -37,7 +37,7 @@ compilers:
     nightly:
       if: nightly
       type: nightlytarballs
-      compression: gz
+      compression: tar
       url: https://buildbot.pypy.org/nightly/{{branch}}/pypy-c-jit-latest-linux64.tar.gz
       targets:
         - name: 3.12-nightly
