@@ -3619,6 +3619,11 @@ libraries:
       targets:
       - 0.6.3
       type: cratesio
+    cortex-m:
+      build_type: cargo
+      targets:
+      - 0.7.9
+      type: cratesio
     crossbeam-channel:
       build_type: cargo
       targets:
