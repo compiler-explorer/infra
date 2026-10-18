@@ -47,7 +47,7 @@ compilers:
         - name: 2.7-nightly
           branch: main
   codon:
-    type: s3tarballs
+    type: tarballs
     compression: gz
     url: https://github.com/exaloop/codon/releases/download/v{{name}}/codon-linux-x86_64.tar.gz
     check_exe: bin/codon --version
