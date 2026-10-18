@@ -1668,6 +1668,8 @@ libraries:
         - Catch2WithMain
         method: nightlyclone
         repo: catchorg/Catch2
+        # Catch2 v3 needs C++14 and a hosted standard library, so these can never
+        # build it and only add noise to the nightly build log.
         skip_compilers:
         - g485
         - g510
@@ -2379,14 +2381,14 @@ libraries:
         - trunk
         type: github
       xvec:
-        build_type: none
-        check_file: README.md
-        description: Intel's Extensible Vectorization Library (std::simd implementation)
+        description: "Intel's Extensible Vectorization Library (std::simd implementation)"
+        type: github
         method: nightlyclone
         repo: intel/xvec
+        check_file: README.md
+        build_type: none
         targets:
         - main
-        type: github
       yomm2:
         build_type: none
         check_file: include/yorel/yomm2.hpp
@@ -4276,15 +4278,6 @@ libraries:
       targets:
       - 0.7.32
       type: cratesio
-  solidity:
-    openzeppelin:
-      build_type: none
-      check_file: contracts/token/ERC20/ERC20.sol
-      repo: OpenZeppelin/openzeppelin-contracts
-      target_prefix: v
-      targets:
-      - 5.4.0
-      type: github
   sway:
     std:
       build_type: none
@@ -4296,6 +4289,15 @@ libraries:
       targets:
       - 0.66.7
       - 0.68.9
+      type: github
+  solidity:
+    openzeppelin:
+      build_type: none
+      check_file: contracts/token/ERC20/ERC20.sol
+      repo: OpenZeppelin/openzeppelin-contracts
+      target_prefix: v
+      targets:
+      - 5.4.0
       type: github
   zig:
     nightly:
