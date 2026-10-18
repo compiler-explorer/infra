@@ -24,6 +24,9 @@ on:
 jobs:
   win-compiler-discovery:
     runs-on: ['admin']
+    env:
+      # So progress lines appear as they happen rather than all at once when a step exits.
+      PYTHONUNBUFFERED: '1'
 
     steps:
     - name: Update infra
@@ -36,6 +39,8 @@ jobs:
     # Booting is what updates infra on the instance: packer/Startup.ps1 clones it before
     # init/start.ps1 closes the firewall, and there is no reaching github afterwards.
     - name: Start Windows runner
+      # Normally under two minutes; the waits inside are bounded, this is the backstop.
+      timeout-minutes: 15
       run: ce win-runner start
     - name: Do compiler discovery
       run: ce win-runner discovery
