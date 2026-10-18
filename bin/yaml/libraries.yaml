@@ -90,6 +90,55 @@ libraries:
       targets:
       - 9.1.0
       type: github
+    glibc:
+      build_type: never
+      check_file: lib/libc.so.6
+      path_name: glibc/{{name}}/{{triple}}
+      s3_path_prefix: glibc-{{triple}}-{{name}}
+      type: s3tarballs
+      untar_dir: glibc-{{triple}}-{{name}}
+      aarch64-linux-gnu:
+        triple: aarch64-linux-gnu
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
+      arm-linux-gnueabihf:
+        triple: arm-linux-gnueabihf
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
+      powerpc64le-linux-gnu:
+        triple: powerpc64le-linux-gnu
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
+      riscv64-linux-gnu:
+        triple: riscv64-linux-gnu
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
+      s390x-linux-gnu:
+        triple: s390x-linux-gnu
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
+      x86_64-linux-gnu:
+        triple: x86_64-linux-gnu
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
   c++:
     abseil:
       build_type: cmake
