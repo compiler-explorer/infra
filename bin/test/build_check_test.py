@@ -9,12 +9,15 @@ from lib.build_check import (
     BUILD_REQUIRED_TYPES,
     Addition,
     AnalysisResult,
+    extract_build_required_targets,
     extract_targets_with_context,
     format_result_for_pr_comment,
     get_all_targets_from_yaml,
     get_available_builder_images,
     get_targets_with_types,
+    is_ce_s3_url,
     parse_yaml_file,
+    requires_build,
 )
 
 
@@ -120,6 +123,91 @@ class TestExtractTargetsWithContext:
         assert len(result) == 2
         assert (["cross", "arm"], "4.5.4", "s3tarballs") in result
         assert (["cross", "arm"], "5.4.0", "s3tarballs") in result
+
+
+class TestRequiresBuild:
+    """Test which targets need CE to build their artifact."""
+
+    def test_s3_types_always_require_build(self):
+        for installer_type in ("s3tarballs", "non-free-s3tarballs", "nightly", "edg", "edg-s3tarballs", "edg-nightly"):
+            assert requires_build(installer_type, None)
+            # These types ignore `url` entirely: the artifact always comes from CE's S3.
+            assert requires_build(installer_type, "https://example.com/foo.tar.xz")
+
+    def test_non_build_types(self):
+        assert not requires_build("tarballs", None)
+        assert not requires_build("script", None)
+        assert not requires_build(None, None)
+
+    def test_nightlytarballs_upstream_url_does_not_require_build(self):
+        assert not requires_build(
+            "nightlytarballs", "https://github.com/hkalbasi/co2/releases/download/trunk/co2-ce.tar.zstd"
+        )
+
+    def test_nightlytarballs_ce_s3_url_requires_build(self):
+        assert requires_build("nightlytarballs", "https://s3.amazonaws.com/compiler-explorer/opt/foo-trunk.tar.xz")
+
+    def test_is_ce_s3_url(self):
+        assert is_ce_s3_url("https://s3.amazonaws.com/compiler-explorer/opt/foo.tar.xz")
+        assert is_ce_s3_url("https://compiler-explorer.s3.amazonaws.com/opt/foo.tar.xz")
+        assert is_ce_s3_url("https://compiler-explorer.s3.us-east-1.amazonaws.com/opt/foo.tar.xz")
+        assert not is_ce_s3_url("https://s3.amazonaws.com/someone-else/compiler-explorer/foo.tar.xz")
+        assert not is_ce_s3_url("https://julialangnightlies-s3.julialang.org/bin/linux/x86_64/julia-latest.tar.gz")
+        assert not is_ce_s3_url(
+            "https://github.com/compiler-explorer/asm-parser/releases/latest/download/asm-parser.tar.xz"
+        )
+
+
+class TestExtractBuildRequiredTargets:
+    """Test filtering YAML targets down to those needing a CE build."""
+
+    def test_upstream_nightlytarballs_not_flagged(self):
+        # Shaped like co2.yaml and the PyPy nightlies from #2409: url inherited from the group.
+        node = {
+            "compilers": {
+                "co2": {
+                    "type": "nightlytarballs",
+                    "url": "https://github.com/hkalbasi/co2/releases/download/trunk/co2-ce.tar.zstd",
+                    "targets": ["trunk"],
+                },
+                "pypy": {
+                    "nightly": {
+                        "type": "nightlytarballs",
+                        "url": "https://buildbot.pypy.org/nightly/{{branch}}/pypy-c-jit-latest-linux64.tar.gz",
+                        "targets": [{"name": "3.11-nightly", "branch": "py3.11"}],
+                    }
+                },
+            }
+        }
+        assert extract_build_required_targets(node) == []
+
+    def test_s3_nightlytarballs_flagged(self):
+        node = {
+            "compilers": {
+                "foo": {
+                    "type": "nightlytarballs",
+                    "targets": [
+                        {"name": "trunk", "url": "https://s3.amazonaws.com/compiler-explorer/opt/foo-trunk.tar.xz"},
+                        {"name": "upstream", "url": "https://example.com/foo.tar.xz"},
+                    ],
+                }
+            }
+        }
+        assert extract_build_required_targets(node) == [(["compilers", "foo"], "trunk", "nightlytarballs")]
+
+    def test_s3tarballs_and_nightly_still_flagged(self):
+        node = {
+            "compilers": {
+                "erlang": {"type": "s3tarballs", "targets": ["26.2.2"]},
+                "ccc": {"type": "nightly", "targets": ["main"]},
+                "julia": {"type": "tarballs", "url": "https://example.com/julia.tar.gz", "targets": ["1.0"]},
+            }
+        }
+        result = extract_build_required_targets(node)
+        assert sorted(result) == [
+            (["compilers", "ccc"], "main", "nightly"),
+            (["compilers", "erlang"], "26.2.2", "s3tarballs"),
+        ]
 
 
 class TestParseYamlFile:

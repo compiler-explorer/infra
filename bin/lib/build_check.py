@@ -12,12 +12,13 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
 
 from lib.config_safe_loader import ConfigSafeLoader
 
-# Installer types that require CE to build/upload to S3
+# Installer types whose artifact may come from CE's S3, and so may need CE to build/upload it
 BUILD_REQUIRED_TYPES = frozenset({
     "s3tarballs",
     "non-free-s3tarballs",
@@ -27,6 +28,32 @@ BUILD_REQUIRED_TYPES = frozenset({
     "edg-s3tarballs",
     "edg-nightly",
 })
+
+# Of BUILD_REQUIRED_TYPES, the ones that fetch their artifact from the target's `url`
+# rather than a CE S3 path. They only need a CE build when that url points at CE's bucket.
+URL_SOURCED_TYPES = frozenset({"nightlytarballs"})
+
+CE_S3_BUCKET = "compiler-explorer"
+
+
+def is_ce_s3_url(url: str) -> bool:
+    """Return True if url points into CE's own S3 bucket (path- or virtual-hosted style)."""
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if not host.endswith(".amazonaws.com"):
+        return False
+    if host.startswith(f"{CE_S3_BUCKET}.s3."):
+        return True
+    return host.startswith("s3.") and parsed.path.split("/")[1:2] == [CE_S3_BUCKET]
+
+
+def requires_build(installer_type: str | None, url: str | None) -> bool:
+    """Return True if a target of this type and url needs CE to build its artifact."""
+    if installer_type not in BUILD_REQUIRED_TYPES:
+        return False
+    if installer_type in URL_SOURCED_TYPES:
+        return url is not None and is_ce_s3_url(url)
+    return True
 
 
 def get_misc_builder_scripts() -> dict[str, str]:
@@ -203,6 +230,56 @@ def parse_yaml_file(yaml_path: Path) -> dict[str, Any]:
         return yaml.load(f, Loader=ConfigSafeLoader) or {}
 
 
+def _walk_targets(
+    node: Any, context: list[str], inherited: dict[str, Any]
+) -> list[tuple[list[str], str, dict[str, Any]]]:
+    """Walk a YAML node, returning (context, target, config) for every target.
+
+    config holds the cascaded `type` and `url` (group keys flow down to
+    descendants, and a dict target's own keys override them), mirroring how
+    ce_install resolves them.
+    """
+    results: list[tuple[list[str], str, dict[str, Any]]] = []
+
+    if not isinstance(node, dict):
+        return results
+
+    current = dict(inherited)
+    for key in ("type", "url"):
+        if key in node:
+            current[key] = node[key]
+
+    if "targets" in node:
+        targets = node["targets"]
+        if isinstance(targets, list):
+            for target in targets:
+                target_config = current
+                if isinstance(target, str):
+                    target_name = target
+                elif isinstance(target, (int, float)):
+                    target_name = str(target)
+                elif isinstance(target, dict):
+                    target_name = target.get("name", str(target))
+                    target_config = {**current, **{k: target[k] for k in ("type", "url") if k in target}}
+                else:
+                    continue
+
+                if target_config.get("type"):
+                    results.append((context[:], target_name, target_config))
+
+    for key, value in node.items():
+        if key in ("targets", "type", "url", "if"):
+            continue
+        if isinstance(value, dict):
+            results.extend(_walk_targets(value, context + [key], current))
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    results.extend(_walk_targets(item, context + [key], current))
+
+    return results
+
+
 def extract_targets_with_context(
     node: Any, context: list[str], inherited_type: str | None = None
 ) -> list[tuple[list[str], str, str]]:
@@ -210,40 +287,20 @@ def extract_targets_with_context(
 
     Returns list of (context, target, installer_type) tuples.
     """
-    results: list[tuple[list[str], str, str]] = []
+    inherited = {"type": inherited_type} if inherited_type else {}
+    return [(ctx, target, config["type"]) for ctx, target, config in _walk_targets(node, context, inherited)]
 
-    if not isinstance(node, dict):
-        return results
 
-    current_type = node.get("type", inherited_type)
+def extract_build_required_targets(node: Any) -> list[tuple[list[str], str, str]]:
+    """Extract the targets that need CE to build their artifact.
 
-    if "targets" in node:
-        targets = node["targets"]
-        if isinstance(targets, list):
-            for target in targets:
-                if isinstance(target, str):
-                    target_name = target
-                elif isinstance(target, (int, float)):
-                    target_name = str(target)
-                elif isinstance(target, dict):
-                    target_name = target.get("name", str(target))
-                else:
-                    continue
-
-                if current_type:
-                    results.append((context[:], target_name, current_type))
-
-    for key, value in node.items():
-        if key in ("targets", "type", "if"):
-            continue
-        if isinstance(value, dict):
-            results.extend(extract_targets_with_context(value, context + [key], current_type))
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, dict):
-                    results.extend(extract_targets_with_context(item, context + [key], current_type))
-
-    return results
+    Returns list of (context, target, installer_type) tuples.
+    """
+    return [
+        (ctx, target, config["type"])
+        for ctx, target, config in _walk_targets(node, [], {})
+        if requires_build(config.get("type"), config.get("url"))
+    ]
 
 
 def get_all_targets_from_yaml(yaml_path: Path) -> set[tuple[tuple[str, ...], str]]:
@@ -297,7 +354,10 @@ def analyze_git_diff(yaml_dir: Path, base_ref: str = "origin/main") -> AnalysisR
         if not current_path.exists():
             continue
 
-        current_targets = get_targets_with_types(current_path)
+        current_targets = {
+            (tuple(ctx), target): inst_type
+            for ctx, target, inst_type in extract_build_required_targets(parse_yaml_file(current_path))
+        }
 
         try:
             base_content_result = subprocess.run(
@@ -315,16 +375,14 @@ def analyze_git_diff(yaml_dir: Path, base_ref: str = "origin/main") -> AnalysisR
         new_target_keys = set(current_targets.keys()) - base_targets
 
         for ctx_tuple, target in new_target_keys:
-            installer_type = current_targets[(ctx_tuple, target)]
-            if installer_type in BUILD_REQUIRED_TYPES:
-                result.requires_build.append(
-                    Addition(
-                        yaml_file=yaml_file,
-                        context=list(ctx_tuple),
-                        target=target,
-                        installer_type=installer_type,
-                    )
+            result.requires_build.append(
+                Addition(
+                    yaml_file=yaml_file,
+                    context=list(ctx_tuple),
+                    target=target,
+                    installer_type=current_targets[(ctx_tuple, target)],
                 )
+            )
 
     return result
 
