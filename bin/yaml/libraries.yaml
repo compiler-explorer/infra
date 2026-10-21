@@ -644,8 +644,8 @@ libraries:
       - '1.0'
       type: github
     cppp:
-      check_file: README.md
-      repo: marralesfios/cppp
+      check_file: include/cppp/string.hpp
+      repo: marralesfios/cppp-release
       targets:
       - trunk
       type: github
