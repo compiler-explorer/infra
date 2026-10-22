@@ -646,6 +646,7 @@ libraries:
     cppp:
       check_file: include/cppp/string.hpp
       repo: marralesfios/cppp-release
+      method: clone_branch
       targets:
       - trunk
       type: github
