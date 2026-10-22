@@ -1,24 +1,36 @@
 name: Release operations
-run-name: ${{ inputs.command == 'staging-deploy' && format('{0} {1}', inputs.command, inputs.buildnumber) || inputs.command }}
+run-name: ${{ inputs.environment }} ${{ inputs.action }}${{ inputs.action == 'deploy' && format(' {0}', inputs.buildnumber) || '' }}
 
 on:
   workflow_dispatch:
     inputs:
-      command:
-        description: 'Operation to run'
+      environment:
+        description: 'Environment to operate on'
         type: choice
-        default: 'staging-deploy'
+        default: 'staging'
         required: true
         options:
-        - staging-deploy
-        - staging-shutdown
-        - staging-cleanup
+        - staging
+        - beta
+        - winstaging
+        - wintest
+        - aarch64staging
+        - gpu
+      action:
+        description: 'Operation to run'
+        type: choice
+        default: 'deploy'
+        required: true
+        options:
+        - deploy
+        - shutdown
+        - cleanup
       branch:
-        description: 'Branch to deploy (staging-deploy only; ignored otherwise)'
+        description: 'Branch to deploy (deploy only; ignored otherwise)'
         default: 'main'
         required: true
       buildnumber:
-        description: 'Build number, or "latest" (staging-deploy only; ignored otherwise)'
+        description: 'Build number, or "latest" (deploy only; ignored otherwise)'
         default: 'latest'
         required: true
 
@@ -27,41 +39,42 @@ jobs:
     runs-on: ['admin']
 
     steps:
-    # The environment comes from the command, never from a free-form input, so this
-    # workflow can only ever touch environments we have explicitly listed here.
-    # Adding e.g. prod-deploy later means adding an option above and a case below.
-    - name: Resolve command
-      id: resolve
+    # The choice inputs are the first gate; this case is the second, so the workflow can only
+    # ever touch the environment/action pairs listed here. prod, winprod and aarch64prod are
+    # deliberately absent. gpu serves live traffic, so it can be deployed but not shut down.
+    - name: Validate operation
       env:
-        COMMAND: ${{ inputs.command }}
+        ENVIRONMENT: ${{ inputs.environment }}
+        ACTION: ${{ inputs.action }}
         BUILDNUMBER: ${{ inputs.buildnumber }}
       run: |
-        case "${COMMAND}" in
-          staging-deploy) environment=staging; action=deploy ;;
-          staging-shutdown) environment=staging; action=shutdown ;;
-          staging-cleanup) environment=staging; action=cleanup ;;
-          *) echo "::error::Unsupported command '${COMMAND}'"; exit 1 ;;
+        case "${ENVIRONMENT}/${ACTION}" in
+          staging/*|beta/*|winstaging/*|wintest/*|aarch64staging/*) ;;
+          gpu/deploy|gpu/cleanup) ;;
+          *) echo "::error::Unsupported operation '${ACTION}' on '${ENVIRONMENT}'"; exit 1 ;;
         esac
-        if [[ "${action}" = "deploy" && -z "${BUILDNUMBER}" ]]; then
-          echo "::error::${COMMAND} needs a build number (or 'latest')"
+        case "${ACTION}" in
+          deploy|shutdown|cleanup) ;;
+          *) echo "::error::Unsupported action '${ACTION}'"; exit 1 ;;
+        esac
+        if [[ "${ACTION}" = "deploy" && -z "${BUILDNUMBER}" ]]; then
+          echo "::error::deploy needs a build number (or 'latest')"
           exit 1
         fi
-        echo "environment=${environment}" >> "${GITHUB_OUTPUT}"
-        echo "action=${action}" >> "${GITHUB_OUTPUT}"
     - name: Update infra
       run: cd /home/ubuntu/infra && git pull && make ce
     - name: Blue-green deploy
-      if: steps.resolve.outputs.action == 'deploy'
+      if: inputs.action == 'deploy'
       env:
-        CE_ENVIRONMENT: ${{ steps.resolve.outputs.environment }}
+        CE_ENVIRONMENT: ${{ inputs.environment }}
         BRANCH: ${{ inputs.branch }}
         BUILDNUMBER: ${{ inputs.buildnumber }}
       run: ce --env "${CE_ENVIRONMENT}" blue-green deploy --branch "${BRANCH}" --skip-confirmation --no-notify "${BUILDNUMBER}"
     # shutdown and cleanup take neither a version nor --no-notify, so branch and
     # buildnumber are deliberately ignored for them.
-    - name: Blue-green ${{ steps.resolve.outputs.action }}
-      if: steps.resolve.outputs.action != 'deploy'
+    - name: Blue-green ${{ inputs.action }}
+      if: inputs.action != 'deploy'
       env:
-        CE_ENVIRONMENT: ${{ steps.resolve.outputs.environment }}
-        ACTION: ${{ steps.resolve.outputs.action }}
+        CE_ENVIRONMENT: ${{ inputs.environment }}
+        ACTION: ${{ inputs.action }}
       run: ce --env "${CE_ENVIRONMENT}" blue-green "${ACTION}" --skip-confirmation

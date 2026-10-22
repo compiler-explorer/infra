@@ -27,6 +27,7 @@ on:
         - d8
         - dotnet
         - edg
+        - glibc
         - go
         - heaptrack
         - ispc

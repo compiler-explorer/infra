@@ -380,7 +380,8 @@ data "aws_iam_policy_document" "CeSqsPushPop" {
     actions = [
       "sqs:SendMessage",
       "sqs:ReceiveMessage",
-      "sqs:DeleteMessage"
+      "sqs:DeleteMessage",
+      "sqs:ChangeMessageVisibility"
     ]
     resources = [
       aws_sqs_queue.prod-execqueue-aarch64-linux-cpu.arn,
@@ -393,6 +394,7 @@ data "aws_iam_policy_document" "CeSqsPushPop" {
       "sqs:SendMessage",
       "sqs:ReceiveMessage",
       "sqs:DeleteMessage",
+      "sqs:ChangeMessageVisibility",
       "sqs:GetQueueAttributes"
     ]
     resources = [

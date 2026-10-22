@@ -316,6 +316,7 @@ controls for the CE Router system:
 
 - **`ce ce-router restart`** - Restart the `ce-router` service on all instances
   - Note this briefly interrupts service on single-instance environments (beta, staging)
+  - The restart installs the latest GitHub release; the command waits for each router to report healthy, then shows the installed version and flags any router not on the latest release
 
 - **`ce ce-router exec_all REMOTE_CMD`** - Execute commands on all CE Router instances
   - Runs the specified command on all CE Router instances in the current environment

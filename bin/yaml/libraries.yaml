@@ -18,6 +18,8 @@ libraries:
       dir: androidx-annotation-{{name}}
       filename: annotation-jvm.jar
       targets:
+      - 1.11.0
+      - 1.10.0
       - 1.9.1
       - 1.9.0
       - 1.8.2
@@ -33,6 +35,7 @@ libraries:
       dir: kotlinx-coroutines-core-jvm-{{name}}
       filename: kotlinx-coroutines-core-jvm.jar
       targets:
+      - 1.11.0
       - 1.10.2
       - 1.9.0
       - 1.8.1
@@ -51,6 +54,18 @@ libraries:
         url: https://storage.googleapis.com/r8-releases/raw/latest-dev/keepanno-annotations.jar
       release:
         targets:
+        - 9.5.23
+        - 9.4.28
+        - 9.3.31
+        - 9.2.38
+        - 9.1.56
+        - 9.0.54
+        - 8.13.25
+        - 8.12.30
+        - 8.11.32
+        - 8.10.24
+        - 8.9.35
+        - 8.8.34
         - 8.7.18
         - 8.7.14
         - 8.6.27
@@ -75,6 +90,61 @@ libraries:
       targets:
       - 9.1.0
       type: github
+    glibc:
+      build_type: never
+      check_file: lib/libc.so.6
+      path_name: glibc/{{name}}/{{triple}}
+      s3_path_prefix: glibc-{{triple}}-{{name}}
+      type: s3tarballs
+      untar_dir: glibc-{{triple}}-{{name}}
+      aarch64-linux-gnu:
+        triple: aarch64-linux-gnu
+        targets:
+        - '2.38'
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
+      arm-linux-gnueabihf:
+        triple: arm-linux-gnueabihf
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
+      powerpc64le-linux-gnu:
+        triple: powerpc64le-linux-gnu
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
+      riscv64-linux-gnu:
+        triple: riscv64-linux-gnu
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
+      s390x-linux-gnu:
+        triple: s390x-linux-gnu
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
+      x86_64-linux-gnu:
+        triple: x86_64-linux-gnu
+        targets:
+        - '2.17'
+        - '2.28'
+        - '2.31'
+        - '2.35'
+        - '2.36'
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
   c++:
     abseil:
       build_type: cmake
@@ -3603,6 +3673,11 @@ libraries:
       build_type: cargo
       targets:
       - 0.6.3
+      type: cratesio
+    cortex-m:
+      build_type: cargo
+      targets:
+      - 0.7.9
       type: cratesio
     crossbeam-channel:
       build_type: cargo

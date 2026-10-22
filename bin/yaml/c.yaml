@@ -120,6 +120,28 @@ compilers:
         check_exe: bin/sdcc --version
         targets:
           - trunk
+      llvm-z80:
+        type: nightlytarballs
+        compression: xz
+        dir: llvm-z80-{{name}}
+        untar_dir: LLVM-Z80-nightly-Linux-X64
+        check_exe: bin/clang --version
+        url: https://github.com/llvm-z80/llvm-z80/releases/download/nightly/LLVM-Z80-nightly-Linux-X64.tar.xz
+        targets:
+          - trunk
+      llvm-z80-release:
+        type: restQueryTarballs
+        install_always: true
+        compression: xz
+        dir: llvm-z80-release
+        strip_components: 1
+        create_untar_dir: true
+        check_exe: bin/clang --version
+        url: https://api.github.com/repos/llvm-z80/llvm-z80/releases/latest
+        query: |
+          [a['browser_download_url'] for a in document['assets'] if a['name'].endswith('-Linux-X64.tar.xz')][0]
+        targets:
+          - latest
       movfuscator:
         type: nightly
         check_env:
