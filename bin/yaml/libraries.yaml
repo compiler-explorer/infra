@@ -3116,6 +3116,31 @@ libraries:
       targets:
       - '1.30'
       type: github
+    xad:
+      after_stage_script:
+      - echo "2.1.0" > VERSION
+      - sed -i 's/@XAD_VERSION_/@xad_VERSION_/g' src/XAD/Version.hpp.in
+      after_stage_script_pwsh:
+      - Set-Content -Path VERSION -Value "2.1.0"
+      - (Get-Content src/XAD/Version.hpp.in) -replace '@XAD_VERSION_', '@xad_VERSION_'
+        | Set-Content src/XAD/Version.hpp.in
+      build_type: cmake
+      check_file: CMakeLists.txt
+      extra_cmake_arg:
+      - -DXAD_ENABLE_TESTS=OFF
+      - -DXAD_WARNINGS_PARANOID=OFF
+      - -DXAD_SIMD_OPTION=NONE
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      lib_type: static
+      make_utility: ninja
+      package_install: true
+      repo: auto-differentiation/xad
+      staticliblink:
+      - xad_d
+      target_prefix: v
+      targets:
+      - 2.1.0
+      type: github
     xercesc:
       after_stage_script:
       - cp {{resource_dir}}/Xerces_autoconf_config.hpp src/xercesc/util/Xerces_autoconf_config.hpp
