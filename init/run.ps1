@@ -63,7 +63,7 @@ function Wait-ForDrive {
     }
 }
 
-if ($CeEnv -eq "winstaging") {
+if ($CeEnv -eq "winstaging" -or $CeEnv -eq "winprod") {
   MountY
   Start-Process "C:\tmp\cewinfilecache\CeWinFileCacheFS.exe" -WorkingDirectory "C:\tmp\cewinfilecache" -ArgumentList "--mount Z: --log-level debug --config compilers.production.json" -RedirectStandardOutput "C:\tmp\cewinfilecache\output.log" -RedirectStandardError "C:\tmp\cewinfilecache\error.log" -NoNewWindow
   Wait-ForDrive -DriveLetter 'Z' -CheckIntervalSeconds 1

@@ -1,14 +1,14 @@
 locals {
-  prod_image_id           = "ami-02edb9f478c7fa250"
-  staging_image_id        = "ami-02edb9f478c7fa250"
-  beta_image_id           = "ami-02edb9f478c7fa250"
-  gpu_image_id            = "ami-024b80a3337216424"
-  aarch64prod_image_id    = "ami-09b8aeeea7ab23beb"
-  aarch64staging_image_id = "ami-09b8aeeea7ab23beb"
-  winprod_image_id        = "ami-0d8ac1735cde9ba9f"
-  winstaging_image_id     = "ami-0d8ac1735cde9ba9f"
-  wintest_image_id        = "ami-0d8ac1735cde9ba9f"
-  ce_router_image_id      = "ami-0d57d7a6a221012c5"
+  prod_image_id           = "ami-03966c3e963cccc7c"
+  staging_image_id        = "ami-03966c3e963cccc7c"
+  beta_image_id           = "ami-03966c3e963cccc7c"
+  gpu_image_id            = "ami-0fb30458c8e4a5de2"
+  aarch64prod_image_id    = "ami-0d8fc05d6585335b6"
+  aarch64staging_image_id = "ami-0d8fc05d6585335b6"
+  winprod_image_id        = "ami-0865fbb85bf05cb17"
+  winstaging_image_id     = "ami-0865fbb85bf05cb17"
+  wintest_image_id        = "ami-0865fbb85bf05cb17"
+  ce_router_image_id      = "ami-077f2cc1c3b2f5e20"
 
   launch_templates = {
     prod = {
