@@ -1661,6 +1661,7 @@ compilers:
           - ilazaric-enclosing_cast
           - expr-reflect-trunk
           - p0917-trunk
+          - p4307-p4345-trunk
           # No longer built or installed, but still serving live compilers from an old
           # install. Listed so the S3 pruner counts their tarballs as owned;
           # 'daily-but-archived' is never passed to --enable, so they are never installed.
@@ -1709,6 +1710,7 @@ compilers:
           - p3776-trunk
           - p3822-trunk
           - p3951-trunk
+          - p4307-p4345-trunk
           - profiles-init-trunk
           - profiles-core-ub-trunk
           - barry-clang-trunk
