@@ -1693,7 +1693,6 @@ compilers:
           - variadic-friends-trunk
           - rocm-trunk
           - ce-trunk
-          - clangir-trunk
           - p2561-trunk
           - bb-p2996-trunk
           - expr-reflect-trunk
