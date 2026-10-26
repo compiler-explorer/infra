@@ -2071,6 +2071,14 @@ libraries:
         - trunk
         type: github
       install_always: true
+      jsonifier:
+        build_type: none
+        check_file: include/jsonifier
+        method: nightlyclone
+        repo: nihilai-collective/jsonifier
+        targets:
+        - trunk
+        type: github
       kiwaku:
         build_type: none
         check_file: README.md
