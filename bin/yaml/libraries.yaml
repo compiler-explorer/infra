@@ -2071,6 +2071,14 @@ libraries:
         - trunk
         type: github
       install_always: true
+      jsonifier:
+        build_type: none
+        check_file: include/jsonifier
+        method: nightlyclone
+        repo: nihilai-collective/jsonifier
+        targets:
+        - trunk
+        type: github
       kiwaku:
         build_type: none
         check_file: README.md
@@ -2769,6 +2777,7 @@ libraries:
       - v12.0.0
       - v12.1.0
       - v13.0.0
+      - v13.1.0
       type: github
     raberu:
       check_file: README.md
@@ -3106,6 +3115,31 @@ libraries:
       target_prefix: v
       targets:
       - '1.30'
+      type: github
+    xad:
+      after_stage_script:
+      - echo "2.1.0" > VERSION
+      - sed -i 's/@XAD_VERSION_/@xad_VERSION_/g' src/XAD/Version.hpp.in
+      after_stage_script_pwsh:
+      - Set-Content -Path VERSION -Value "2.1.0"
+      - (Get-Content src/XAD/Version.hpp.in) -replace '@XAD_VERSION_', '@xad_VERSION_'
+        | Set-Content src/XAD/Version.hpp.in
+      build_type: cmake
+      check_file: CMakeLists.txt
+      extra_cmake_arg:
+      - -DXAD_ENABLE_TESTS=OFF
+      - -DXAD_WARNINGS_PARANOID=OFF
+      - -DXAD_SIMD_OPTION=NONE
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      lib_type: static
+      make_utility: ninja
+      package_install: true
+      repo: auto-differentiation/xad
+      staticliblink:
+      - xad_d
+      target_prefix: v
+      targets:
+      - 2.1.0
       type: github
     xercesc:
       after_stage_script:
