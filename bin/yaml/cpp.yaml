@@ -1662,6 +1662,7 @@ compilers:
           - expr-reflect-trunk
           - p0917-trunk
           - p4307-p4345-trunk
+          - dascandy-subsets-trunk
           # No longer built or installed, but still serving live compilers from an old
           # install. Listed so the S3 pruner counts their tarballs as owned;
           # 'daily-but-archived' is never passed to --enable, so they are never installed.
