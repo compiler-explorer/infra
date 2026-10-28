@@ -33,6 +33,10 @@ on:
         description: 'Build number, or "latest" (deploy only; ignored otherwise)'
         default: 'latest'
         required: true
+      capacity:
+        description: 'Instance count for the new colour (deploy only; blank matches current)'
+        default: ''
+        required: false
 
 jobs:
   release:
@@ -47,6 +51,7 @@ jobs:
         ENVIRONMENT: ${{ inputs.environment }}
         ACTION: ${{ inputs.action }}
         BUILDNUMBER: ${{ inputs.buildnumber }}
+        CAPACITY: ${{ inputs.capacity }}
       run: |
         case "${ENVIRONMENT}/${ACTION}" in
           staging/*|beta/*|winstaging/*|wintest/*|aarch64staging/*) ;;
@@ -61,6 +66,10 @@ jobs:
           echo "::error::deploy needs a build number (or 'latest')"
           exit 1
         fi
+        if [[ -n "${CAPACITY}" && ! "${CAPACITY}" =~ ^[1-9][0-9]?$ ]]; then
+          echo "::error::capacity must be a whole number from 1 to 99, or blank"
+          exit 1
+        fi
     - name: Update infra
       run: cd /home/ubuntu/infra && git pull && make ce
     - name: Blue-green deploy
@@ -69,7 +78,8 @@ jobs:
         CE_ENVIRONMENT: ${{ inputs.environment }}
         BRANCH: ${{ inputs.branch }}
         BUILDNUMBER: ${{ inputs.buildnumber }}
-      run: ce --env "${CE_ENVIRONMENT}" blue-green deploy --branch "${BRANCH}" --skip-confirmation --no-notify "${BUILDNUMBER}"
+        CAPACITY: ${{ inputs.capacity }}
+      run: ce --env "${CE_ENVIRONMENT}" blue-green deploy --branch "${BRANCH}" --skip-confirmation --no-notify ${CAPACITY:+--capacity "${CAPACITY}"} "${BUILDNUMBER}"
     # shutdown and cleanup take neither a version nor --no-notify, so branch and
     # buildnumber are deliberately ignored for them.
     - name: Blue-green ${{ inputs.action }}
