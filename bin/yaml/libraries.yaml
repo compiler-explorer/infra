@@ -1723,8 +1723,6 @@ libraries:
         - Catch2WithMain
         method: nightlyclone
         repo: catchorg/Catch2
-        # Catch2 v3 needs C++14 and a hosted standard library, so these can never
-        # build it and only add noise to the nightly build log.
         skip_compilers:
         - g485
         - g510
@@ -2444,7 +2442,7 @@ libraries:
         - trunk
         type: github
       xvec:
-        description: "Intel's Extensible Vectorization Library (std::simd implementation)"
+        description: Intel's Extensible Vectorization Library (std::simd implementation)
         type: github
         method: nightlyclone
         repo: intel/xvec
@@ -3588,6 +3586,12 @@ libraries:
       module: github.com/google/uuid
       targets:
       - v1.6.0
+      type: gomod
+    zap:
+      build_type: gomod
+      module: github.com/uber-go/zap
+      targets:
+      - v1.27.0
       type: gomod
   rust:
     ahash:
