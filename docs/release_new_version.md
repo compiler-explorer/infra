@@ -18,8 +18,8 @@ _If it's not there, check for errors in CI, or ask around for help._
 ## Run compiler discovery
 
 Compiler discovery fires up CE on a dedicated runner instance, interrogates all the compilers,
-and saves the results to speed up subsequent startups. This is only needed for Linux x86 deploys
-(staging, prod, beta). Windows and GPU environments don't use discovery.
+and saves the results to speed up subsequent startups. This is needed for Linux x86 deploys
+(staging, prod, beta). Windows has its own discovery workflow (see below); GPU runs discovery after deploying.
 
 Run the "Compiler Discovery" workflow: https://github.com/compiler-explorer/infra/actions/workflows/compiler-discovery.yml
 
@@ -112,7 +112,13 @@ Windows needs a separate build from the same source.
 
 1. Wait for the Linux build `gh-xxxx` to complete
 2. Manually run the [CE Windows Build](https://github.com/compiler-explorer/compiler-explorer/actions/workflows/deploy-win.yml) workflow with the same `gh-xxxx`
-3. There is no compiler discovery for Windows
+3. Once that build has finished, run the [Windows compiler discovery](https://github.com/compiler-explorer/infra/actions/workflows/win-compiler-discovery.yml)
+   workflow with the same `gh-xxxx` and the environment you are deploying to. It is optional but speeds
+   up startup; see [windows_architecture.md](windows_architecture.md).
+
+   ```bash
+   gh workflow run -R compiler-explorer/infra win-compiler-discovery.yml -f environment=winstaging -f buildnumber=gh-xxxx
+   ```
 4. Deploy to staging and prod as usual:
 
 ```bash
