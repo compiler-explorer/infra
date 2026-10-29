@@ -40,7 +40,6 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
         instructions = Block(
             heading="Instructions",
             rows=[
-                [green("mov"), plain("copy r / m / imm")],
                 [green("movzx/movsx"), plain("widen 0/sign, movsxd")],
                 [green("lea"), plain("address calc / arith")],
                 [green("imul"), plain("multiply (u or s)")],
@@ -50,12 +49,12 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
                 [green("shl/shr/sar"), plain("L/R/arith-R (sal=shl)")],
                 [green("cmp / test"), plain("flags: dst-src, dst&src")],
                 [green("setcc/cmovcc"), plain("set byte / mov if cc")],
-                [green("endbr64"), plain("CET pad (fn entry)")],
+                [green("(u)comisd"), plain("float cmp: then b/a cc")],
                 [green("addss/sd"), plain("scalar float / double")],
                 [green("addps/pd"), plain("packed float / double")],
                 [green("vaddps"), plain("AVX: 3-op, ymm/zmm")],
             ],
-            notes=["+ add sub jmp jcc call ret push pop"],
+            notes=["+ mov add sub jmp call ret push pop"],
         )
 
         flags = Block(
@@ -72,10 +71,11 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
             heading="Idioms",
             rows=[
                 [green("xor eax,eax"), plain("zero rax (breaks deps)")],
+                [green("pxor/xorps"), plain("same, on xmm (0.0)")],
                 [green("test r,r"), plain("r==0? (then je/jne)")],
                 [green("(i)mul+shr"), plain("divide by constant")],
-                [green("endian"), plain("44 33 22 11 = 0x11223344")],
-                [green("opcodes"), plain("nop=90 int3=CC ret=C3")],
+                [green("cvtsi2sd"), plain("int → double")],
+                [green("cvttsd2si"), plain("double → int, truncs")],
             ],
         )
 

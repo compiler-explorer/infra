@@ -226,7 +226,7 @@ class CheatSheetRenderer:
         text_y = y + body_size
         return (
             f'  <text x="{x:.0f}" y="{text_y:.0f}" font-family="{self.font_family}" '
-            f'font-size="{body_size}" fill="{TEXT_COLOR}" opacity="0.7" '
+            f'font-size="{body_size}" fill="{TEXT_COLOR}" '
             f'font-style="italic">{_esc(note)}</text>\n'
         )
 
@@ -255,7 +255,7 @@ class CheatSheetRenderer:
             # Size label in the gutter.
             svg += (
                 f'  <text x="{x:.0f}" y="{label_y:.0f}" font-family="{self.font_family}" '
-                f'font-size="{body_size}" fill="{TEXT_COLOR}" opacity="0.7">{_esc(bar.bits)}</text>\n'
+                f'font-size="{body_size}" fill="{TEXT_COLOR}">{_esc(bar.bits)}</text>\n'
             )
             seg_w = bar_w / len(bar.segments)
             for i, seg in enumerate(bar.segments):
