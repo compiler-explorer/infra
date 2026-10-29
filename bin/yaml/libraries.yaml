@@ -91,50 +91,49 @@ libraries:
       - 9.1.0
       type: github
     glibc:
-      build_type: never
-      check_file: lib/libc.so.6
-      path_name: glibc/{{name}}/{{triple}}
-      s3_path_prefix: glibc-{{triple}}-{{name}}
-      type: s3tarballs
-      untar_dir: glibc-{{triple}}-{{name}}
       aarch64-linux-gnu:
-        triple: aarch64-linux-gnu
         targets:
         - '2.38'
         - '2.39'
         - '2.40'
         - '2.41'
         - '2.42'
+        triple: aarch64-linux-gnu
       arm-linux-gnueabihf:
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
         triple: arm-linux-gnueabihf
-        targets:
-        - '2.39'
-        - '2.40'
-        - '2.41'
-        - '2.42'
+      build_type: never
+      check_file: lib/libc.so.6
+      path_name: glibc/{{name}}/{{triple}}
       powerpc64le-linux-gnu:
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
         triple: powerpc64le-linux-gnu
-        targets:
-        - '2.39'
-        - '2.40'
-        - '2.41'
-        - '2.42'
       riscv64-linux-gnu:
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
         triple: riscv64-linux-gnu
-        targets:
-        - '2.39'
-        - '2.40'
-        - '2.41'
-        - '2.42'
       s390x-linux-gnu:
-        triple: s390x-linux-gnu
         targets:
         - '2.39'
         - '2.40'
         - '2.41'
         - '2.42'
+        triple: s390x-linux-gnu
+      s3_path_prefix: glibc-{{triple}}-{{name}}
+      type: s3tarballs
+      untar_dir: glibc-{{triple}}-{{name}}
       x86_64-linux-gnu:
-        triple: x86_64-linux-gnu
         targets:
         - '2.17'
         - '2.28'
@@ -145,6 +144,7 @@ libraries:
         - '2.40'
         - '2.41'
         - '2.42'
+        triple: x86_64-linux-gnu
   c++:
     abseil:
       build_type: cmake
@@ -1723,8 +1723,6 @@ libraries:
         - Catch2WithMain
         method: nightlyclone
         repo: catchorg/Catch2
-        # Catch2 v3 needs C++14 and a hosted standard library, so these can never
-        # build it and only add noise to the nightly build log.
         skip_compilers:
         - g485
         - g510
@@ -2444,14 +2442,14 @@ libraries:
         - trunk
         type: github
       xvec:
-        description: "Intel's Extensible Vectorization Library (std::simd implementation)"
-        type: github
+        build_type: none
+        check_file: README.md
+        description: Intel's Extensible Vectorization Library (std::simd implementation)
         method: nightlyclone
         repo: intel/xvec
-        check_file: README.md
-        build_type: none
         targets:
         - main
+        type: github
       yomm2:
         build_type: none
         check_file: include/yorel/yomm2.hpp
@@ -3183,6 +3181,7 @@ libraries:
       - 0.17.4
       - 0.18.2
       - 0.19.4
+      - 0.27.1
       type: github
     xtl:
       check_file: README.md
@@ -4367,6 +4366,15 @@ libraries:
       targets:
       - 0.7.32
       type: cratesio
+  solidity:
+    openzeppelin:
+      build_type: none
+      check_file: contracts/token/ERC20/ERC20.sol
+      repo: OpenZeppelin/openzeppelin-contracts
+      target_prefix: v
+      targets:
+      - 5.4.0
+      type: github
   sway:
     std:
       build_type: none
@@ -4378,15 +4386,6 @@ libraries:
       targets:
       - 0.66.7
       - 0.68.9
-      type: github
-  solidity:
-    openzeppelin:
-      build_type: none
-      check_file: contracts/token/ERC20/ERC20.sol
-      repo: OpenZeppelin/openzeppelin-contracts
-      target_prefix: v
-      targets:
-      - 5.4.0
       type: github
   zig:
     nightly:
