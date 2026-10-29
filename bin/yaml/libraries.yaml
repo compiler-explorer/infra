@@ -3561,6 +3561,16 @@ libraries:
       targets:
       - v0.9.1
       type: gomod
+    go_cmp:
+      build_type: gomod
+      import_path: github.com/google/go-cmp/cmp
+      module: github.com/google/go-cmp
+      targets:
+      - v0.5.8
+      - v0.5.9
+      - v0.6.0
+      - v0.7.0
+      type: gomod
     protobuf:
       build_type: gomod
       import_path: google.golang.org/protobuf/proto
@@ -3569,11 +3579,32 @@ libraries:
       - v1.34.1
       - v1.36.0
       type: gomod
+    sys:
+      build_type: gomod
+      import_path: golang.org/x/sys/unix
+      module: golang.org/x/sys
+      targets:
+      - v0.45.0
+      - v0.46.0
+      - v0.47.0
+      - v0.48.0
+      - v0.49.0
+      type: gomod
     uuid:
       build_type: gomod
       module: github.com/google/uuid
       targets:
       - v1.6.0
+      type: gomod
+    zap:
+      build_type: gomod
+      module: go.uber.org/zap
+      targets:
+      - v1.25.0
+      - v1.26.0
+      - v1.27.0
+      - v1.27.1
+      - v1.28.0
       type: gomod
   rust:
     ahash:
