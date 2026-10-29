@@ -20,7 +20,8 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
                 DiagramBar(bits="8", fraction=0.25, segments=["AH", "AL"]),
             ],
             notes=[
-                "+ RBX RCX RDX RSI RDI RBP RSP R8-R15",
+                "+ RBX RCX RDX RSI RDI RBP RSP",
+                "R8-R15: R8D R8W R8B",
                 "EAX write zero-extends; AX/AL don't",
             ],
         )
@@ -31,8 +32,8 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
                 [green("op dst, src"), plain("dest first")],
                 [green("[b+i*s+d]"), plain("base+index*scale+disp")],
                 [green("dword ptr"), plain("byte/word/dword/qword")],
-                [green("mov rax,42"), plain("bare immediate")],
-                [green("[rip+sym]"), plain("RIP-relative")],
+                [green("x[rip]"), plain("RIP-relative (gcc)")],
+                [green("OFFSET FLAT:x"), plain("address of x (gcc)")],
             ],
         )
 
@@ -40,40 +41,39 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
             heading="Instructions",
             rows=[
                 [green("mov"), plain("copy r / m / imm")],
-                [green("movzx/movsx"), plain("widen: zero / sign")],
+                [green("movzx/movsx"), plain("widen 0/sign, movsxd")],
                 [green("lea"), plain("address calc / arith")],
-                [green("add/sub"), plain("add / subtract")],
-                [green("imul"), plain("signed multiply")],
-                [green("idiv"), plain("signed div (RDX:RAX)")],
+                [green("imul"), plain("multiply (u or s)")],
+                [green("div/idiv"), plain("u/s divide RDX:RAX")],
                 [green("cdq/cqo"), plain("sign-extend for idiv")],
-                [green("and/or/xor"), plain("bitwise  (xor r,r=0)")],
+                [green("and/or/xor"), plain("bitwise")],
                 [green("shl/shr/sar"), plain("shift L / R / arith-R")],
                 [green("cmp / test"), plain("flags: a-b / a&b")],
-                [green("setcc"), plain("set byte on cond")],
-                [green("cmovcc"), plain("conditional move")],
-                [green("jmp / jcc"), plain("jump / conditional")],
-                [green("call / ret"), plain("call / return")],
-                [green("push / pop"), plain("stack push / pop")],
+                [green("setcc/cmovcc"), plain("set byte / mov if cc")],
                 [green("endbr64"), plain("CET pad (fn entry)")],
+                [green("_ss _sd"), plain("scalar float / double")],
+                [green("_ps _pd"), plain("packed float / double")],
+                [green("vaddps"), plain("AVX: 3-op, ymm/zmm")],
             ],
+            notes=["+ add sub jmp jcc call ret push pop"],
         )
 
         flags = Block(
-            heading="Flags & Jcc (after cmp a,b)",
+            heading="Flags & cc (after cmp a,b)",
             rows=[
-                [green("ZF"), plain("zero"), green("CF"), plain("carry")],
-                [green("SF"), plain("sign"), green("OF"), plain("overflow")],
-                [green("je/jz"), plain("a==b"), green("jne"), plain("a!=b")],
-                [green("jl jle"), plain("signed <"), green("jg jge"), plain("signed >")],
-                [green("jb jbe"), plain("unsigned <"), green("ja jae"), plain("unsigned >")],
+                [green("e/z"), plain("=="), green("ne/nz"), plain("!=")],
+                [green("l  g"), plain("< > signed"), green("b  a"), plain("< > unsigned")],
+                [green("le ge"), plain("<= >="), green("be ae"), plain("<= >=")],
             ],
+            notes=["ZF zero SF sign CF carry OF overflow"],
         )
 
         idioms = Block(
             heading="Idioms",
             rows=[
                 [green("xor eax,eax"), plain("zero rax (breaks deps)")],
-                [green("lea"), plain("multiply + add, no flags")],
+                [green("test r,r"), plain("r==0? (then je/jne)")],
+                [green("imul+shr"), plain("divide by constant")],
                 [green("endian"), plain("44 33 22 11 = 0x11223344")],
                 [green("opcodes"), plain("nop=90 int3=CC ret=C3")],
             ],

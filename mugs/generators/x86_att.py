@@ -30,9 +30,10 @@ class X86AttCheatSheetGenerator(CheatSheetGenerator):
             heading="Syntax",
             rows=[
                 [green("op src, dst"), plain("source FIRST")],
-                [green("%rax  $42"), plain("% reg, $ immediate")],
+                [green("%rax  $42"), plain("% reg, $ imm/address")],
                 [green("movb/w/l/q"), plain("suffix = 8/16/32/64")],
                 [green("d(b,i,s)"), plain("disp(base,index,scale)")],
+                [green("x(%rip)"), plain("RIP-relative")],
                 [green("jmp *%rax"), plain("* = indirect")],
             ],
         )
@@ -41,41 +42,40 @@ class X86AttCheatSheetGenerator(CheatSheetGenerator):
             heading="Instructions",
             rows=[
                 [green("mov"), plain("copy (+ size suffix)")],
-                [green("movz/movs"), plain("widen: zero / sign")],
+                [green("movz/movs"), plain("widen: movzbl movslq")],
                 [green("lea"), plain("address calc / arith")],
-                [green("add/sub"), plain("add / subtract")],
-                [green("imul"), plain("signed multiply")],
-                [green("idiv"), plain("signed div %rdx:%rax")],
+                [green("imul"), plain("multiply (u or s)")],
+                [green("div/idiv"), plain("u/s divide %rdx:%rax")],
                 [green("cltd/cqto"), plain("sign-extend for idiv")],
-                [green("and/or/xor"), plain("bitwise  (xor r,r=0)")],
+                [green("and/or/xor"), plain("bitwise")],
                 [green("shl/shr/sar"), plain("shift L / R / arith-R")],
                 [green("cmp / test"), plain("flags: a-b / a&b")],
-                [green("setcc"), plain("set byte on cond")],
-                [green("cmovcc"), plain("conditional move")],
-                [green("jmp / jcc"), plain("jump / conditional")],
-                [green("call / ret"), plain("call / return")],
-                [green("push / pop"), plain("stack (pushq/popq)")],
+                [green("setcc/cmovcc"), plain("set byte / mov if cc")],
                 [green("endbr64"), plain("CET pad (fn entry)")],
+                [green("_ss _sd"), plain("scalar float / double")],
+                [green("_ps _pd"), plain("packed float / double")],
+                [green("vaddps"), plain("AVX: 3-op, ymm/zmm")],
             ],
+            notes=["+ add sub jmp jcc call ret push pop"],
         )
 
         # In AT&T operand order, cmp b,a computes a-b, so jl below means a<b.
         flags = Block(
-            heading="Flags & Jcc (after cmp b,a)",
+            heading="Flags & cc (after cmp b,a)",
             rows=[
-                [green("ZF"), plain("zero"), green("CF"), plain("carry")],
-                [green("SF"), plain("sign"), green("OF"), plain("overflow")],
-                [green("je/jz"), plain("a==b"), green("jne"), plain("a!=b")],
-                [green("jl jle"), plain("signed <"), green("jg jge"), plain("signed >")],
-                [green("jb jbe"), plain("unsigned <"), green("ja jae"), plain("unsigned >")],
+                [green("e/z"), plain("=="), green("ne/nz"), plain("!=")],
+                [green("l  g"), plain("< > signed"), green("b  a"), plain("< > unsigned")],
+                [green("le ge"), plain("<= >="), green("be ae"), plain("<= >=")],
             ],
+            notes=["ZF zero SF sign CF carry OF overflow"],
         )
 
         idioms = Block(
             heading="Idioms",
             rows=[
                 [green("zero reg"), plain("xorl %eax,%eax")],
-                [green("lea"), plain("multiply + add, no flags")],
+                [green("is zero?"), plain("testl %eax,%eax")],
+                [green("divide"), plain("imul+shr by magic #")],
                 [green("endian"), plain("44 33 22 11 = 0x11223344")],
                 [green("opcodes"), plain("nop=90 int3=CC ret=C3")],
             ],
