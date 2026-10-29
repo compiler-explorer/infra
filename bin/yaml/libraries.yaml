@@ -643,13 +643,6 @@ libraries:
       - '2.0'
       - '1.0'
       type: github
-    cppp:
-      check_file: include/cppp/string.hpp
-      repo: marralesfios/cppp-release
-      method: clone_branch
-      targets:
-      - trunk
-      type: github
     cpptrace:
       build_type: cmake
       extra_cmake_arg:
@@ -1773,6 +1766,14 @@ libraries:
         check_file: README.md
         method: nightlyclone
         repo: ryanhaining/cppitertools
+        targets:
+        - trunk
+        type: github
+      cppp:
+        build_type: none
+        check_file: include/cppp/string.hpp
+        method: nightlyclone
+        repo: marralesfios/cppp-release
         targets:
         - trunk
         type: github
