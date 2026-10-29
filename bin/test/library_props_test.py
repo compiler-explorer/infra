@@ -1,6 +1,11 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
+from click.testing import CliRunner
+from lib.ce_install import cli
 from lib.library_props import (
     extract_library_id_from_github_url,
+    extract_repo_from_github_url,
     find_existing_library_by_github_url,
     generate_all_libraries_properties,
     generate_library_path,
@@ -11,6 +16,7 @@ from lib.library_props import (
     update_library_in_properties,
     version_to_id,
 )
+from ruamel.yaml.comments import CommentedMap
 
 
 def test_generate_library_path():
@@ -46,6 +52,28 @@ def test_extract_library_id_from_github_url():
     assert extract_library_id_from_github_url("https://github.com/someone/my-library") == "my_library"
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://github.com/Gag91/Help_Library.git",
+        "https://github.com/Gag91/Help_Library/",
+        "https://github.com/Gag91/Help_Library.git/",
+    ],
+)
+def test_github_url_git_suffix_and_trailing_slash_are_stripped(url):
+    assert extract_library_id_from_github_url(url) == "help_library"
+    assert extract_repo_from_github_url(url) == "Gag91/Help_Library"
+
+
+def test_extract_library_id_maps_invalid_property_characters():
+    assert extract_library_id_from_github_url("https://github.com/someone/foo.bar-baz") == "foo_bar_baz"
+    assert extract_library_id_from_github_url("https://github.com/someone/foo.bar.git") == "foo_bar"
+
+
+def test_extract_repo_keeps_case_and_inner_dots():
+    assert extract_repo_from_github_url("https://github.com/someone/Foo.Bar") == "someone/Foo.Bar"
+
+
 def test_extract_library_id_from_github_url_invalid():
     """Test error handling for invalid GitHub URLs."""
     with pytest.raises(ValueError, match="URL must be a GitHub URL"):
@@ -56,6 +84,9 @@ def test_extract_library_id_from_github_url_invalid():
 
     with pytest.raises(ValueError, match="Invalid GitHub URL format"):
         extract_library_id_from_github_url("https://github.com/user")
+
+    with pytest.raises(ValueError):
+        extract_library_id_from_github_url("https://github.com/user/.git")
 
 
 def test_parse_properties_file():
@@ -267,6 +298,9 @@ def test_find_existing_library_by_github_url():
     # Should return None for non-GitHub URLs
     assert find_existing_library_by_github_url(cpp_libraries, "https://gitlab.com/fmtlib/fmt") is None
 
+    # A clone URL with .git should match the same library
+    assert find_existing_library_by_github_url(cpp_libraries, "https://github.com/fmtlib/fmt.git") == "fmt"
+
 
 def test_generate_single_library_properties_with_target_prefix():
     """Test generating properties with target_prefix for version tags."""
@@ -379,3 +413,32 @@ libs.fmt.versions.1000.path=/opt/compiler-explorer/libs/fmt/10.0.0/include
     assert "libs.fmt.versions=1000:1021" in result
     assert "libs.fmt.versions.1021.version=10.2.1" in result
     assert "libs.fmt.versions.1021.path=/opt/compiler-explorer/libs/fmt/10.2.1/include" in result
+
+
+def _run_cpp_library_add(cpp_libraries, *args):
+    library_yaml = MagicMock()
+    load = patch(
+        "lib.cli.cpp_libraries.LibraryYaml.load_library_yaml_section", return_value=(library_yaml, cpp_libraries)
+    )
+    with load:
+        result = CliRunner().invoke(cli, ["cpp-library", "add", *args])
+    assert result.exit_code == 0, result.output
+    library_yaml.save.assert_called_once()
+    return result
+
+
+def test_cpp_library_add_strips_git_suffix():
+    cpp_libraries = CommentedMap()
+    _run_cpp_library_add(cpp_libraries, "https://github.com/Gag91/Help_Library.git", "1.0.0", "--target-prefix", "v")
+
+    assert list(cpp_libraries) == ["help_library"]
+    assert cpp_libraries["help_library"]["repo"] == "Gag91/Help_Library"
+    assert cpp_libraries["help_library"]["targets"] == ["1.0.0"]
+
+
+def test_cpp_library_add_git_url_adds_version_to_existing_library():
+    cpp_libraries = {"fmt": {"type": "github", "repo": "fmtlib/fmt", "targets": ["10.0.0"]}}
+    _run_cpp_library_add(cpp_libraries, "https://github.com/fmtlib/fmt.git", "11.0.0")
+
+    assert list(cpp_libraries) == ["fmt"]
+    assert cpp_libraries["fmt"]["targets"] == ["10.0.0", "11.0.0"]
