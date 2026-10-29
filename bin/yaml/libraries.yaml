@@ -3124,6 +3124,7 @@ libraries:
       after_stage_script_pwsh:
       - Set-Content -Path VERSION -Value "2.1.0"
       - (Get-Content src/XAD/Version.hpp.in) -replace '@XAD_VERSION_', '@xad_VERSION_' | Set-Content src/XAD/Version.hpp.in
+      - (Get-Content cmake/XADSetupCompiler.cmake -Raw).Replace('set(rls_name "${name}${archsuff}${comp}${rls_suffix}")', 'set(rls_name "${name}_d")') | Set-Content cmake/XADSetupCompiler.cmake
       build_type: cmake
       check_file: CMakeLists.txt
       extra_cmake_arg:
