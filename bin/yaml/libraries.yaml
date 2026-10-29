@@ -1039,12 +1039,6 @@ libraries:
       target_prefix: v
       targets:
       - 1.0.0
-      type: github
-    help_library.git:
-      check_file: README.md
-      repo: Gag91/Help_Library.git
-      target_prefix: v
-      targets:
       - 1.0.1
       type: github
     hfsm:
