@@ -1033,6 +1033,13 @@ libraries:
       targets:
       - '12'
       type: github
+    help_library:
+      check_file: README.md
+      repo: Gag91/Help_Library
+      target_prefix: v
+      targets:
+      - 1.0.0
+      type: github
     hfsm:
       check_file: README.md
       repo: andrew-gresyk/HFSM
