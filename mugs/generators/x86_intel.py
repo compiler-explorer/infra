@@ -21,7 +21,7 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
             ],
             notes=[
                 "+ RBX RCX RDX RSI RDI RBP RSP",
-                "R8-R15: R8D R8W R8B",
+                "R8-R15: R8D R8W R8B; SIL DIL",
                 "EAX write zero-extends; AX/AL don't",
             ],
         )
@@ -31,7 +31,7 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
             rows=[
                 [green("op dst, src"), plain("dest first")],
                 [green("[b+i*s+d]"), plain("base+index*scale+disp")],
-                [green("dword ptr"), plain("byte/word/dword/qword")],
+                [green("dword ptr"), plain("b/w/d/q = 8/16/32/64")],
                 [green("x[rip]"), plain("RIP-relative (gcc)")],
                 [green("OFFSET FLAT:x"), plain("address of x (gcc)")],
             ],
@@ -44,11 +44,11 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
                 [green("movzx/movsx"), plain("widen 0/sign, movsxd")],
                 [green("lea"), plain("address calc / arith")],
                 [green("imul"), plain("multiply (u or s)")],
-                [green("div/idiv"), plain("u/s divide RDX:RAX")],
+                [green("div/idiv"), plain("quot RAX, rem RDX")],
                 [green("cdq/cqo"), plain("sign-extend for idiv")],
                 [green("and/or/xor"), plain("bitwise")],
-                [green("shl/shr/sar"), plain("shift L / R / arith-R")],
-                [green("cmp / test"), plain("flags: a-b / a&b")],
+                [green("shl/shr/sar"), plain("L/R/arith-R (sal=shl)")],
+                [green("cmp / test"), plain("flags: dst-src, dst&src")],
                 [green("setcc/cmovcc"), plain("set byte / mov if cc")],
                 [green("endbr64"), plain("CET pad (fn entry)")],
                 [green("addss/sd"), plain("scalar float / double")],
@@ -73,7 +73,7 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
             rows=[
                 [green("xor eax,eax"), plain("zero rax (breaks deps)")],
                 [green("test r,r"), plain("r==0? (then je/jne)")],
-                [green("imul+shr"), plain("divide by constant")],
+                [green("(i)mul+shr"), plain("divide by constant")],
                 [green("endian"), plain("44 33 22 11 = 0x11223344")],
                 [green("opcodes"), plain("nop=90 int3=CC ret=C3")],
             ],
