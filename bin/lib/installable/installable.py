@@ -294,6 +294,7 @@ class Installable:
                 self.build_config,
                 popular_compilers_only,
                 platform,
+                install_path=self.install_path,
             )
             return cppbuilder.makebuild(buildfor)
         elif (
@@ -312,6 +313,7 @@ class Installable:
                 self.build_config,
                 popular_compilers_only,
                 platform,
+                install_path=self.install_path,
             )
             return cppbuilder.makebuild(buildfor)
         elif self.build_config.build_type == "fpm":

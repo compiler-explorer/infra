@@ -24,7 +24,11 @@ import requests
 from urllib3.exceptions import ProtocolError
 
 from lib.amazon import get_ssm_param
-from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
+from lib.amazon_properties import (
+    get_properties_compilers_and_libraries,
+    get_properties_libraries,
+    get_specific_library_version_details,
+)
 from lib.binary_info import BinaryInfo
 from lib.installation_context import FetchFailure, PostFailure
 from lib.library_build_config import LibraryBuildConfig
@@ -79,10 +83,14 @@ disable_compiler_ids = [
 ]
 
 _propsandlibs: dict[str, Any] = defaultdict(lambda: [])
+_linux_libraryprops: dict[str, dict[str, Any]] = {}
 _supports_x86: dict[str, Any] = defaultdict(lambda: [])
 _compiler_support_output: dict[str, Any] = defaultdict(lambda: [])
 
 GITCOMMITHASH_RE = re.compile(r"^(\w*)\s.*")
+
+LINUX_INSTALL_ROOT = "/opt/compiler-explorer"
+WINDOWS_HEADERONLY_COMPILER = "mingw64_ucrt_gcc_1220"
 
 
 def _quote(string: str) -> str:
@@ -409,6 +417,33 @@ def is_nvhpc_compiler(exe: str) -> bool:
     return os.path.basename(exe) in ("nvc", "nvc++", "nvc.exe", "nvc++.exe")
 
 
+def linux_include_subdirs(libraries: dict[str, dict[str, Any]], libid: str, install_path: str) -> list[str] | None:
+    """The subdirectories of install_path that Linux CE puts on the include path for libid.
+
+    Read from the `.path=` entries of the Linux properties, so a Windows package can serve the
+    same headers. "" stands for install_path itself. None when no Linux version of libid is
+    served from install_path.
+    """
+    if not install_path:
+        return None
+    lib_root = f"{LINUX_INSTALL_ROOT}/{install_path.strip('/')}"
+    for version_props in libraries.get(libid, {}).get("versionprops", {}).values():
+        subdirs = []
+        for path in version_props.get("path", []):
+            path = path.rstrip("/")
+            if path == lib_root:
+                subdirs.append("")
+            elif path.startswith(f"{lib_root}/"):
+                subdirs.append(path[len(lib_root) + 1 :])
+        if subdirs:
+            return list(dict.fromkeys(subdirs))
+    return None
+
+
+def _ps_quote(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
 def is_clang_variant(compiler_type: str) -> bool:
     """Clang under a compilerType of its own: the cuda, hip and mingw drivers are all clang."""
     return compiler_type in ("clang", "win32-mingw-clang") or compiler_type.startswith("clang-")
@@ -433,6 +468,7 @@ class LibraryBuilder:
         buildconfig: LibraryBuildConfig,
         popular_compilers_only: bool,
         platform: LibraryPlatform,
+        install_path: str = "",
     ):
         self.logger = logger
         self.language = language
@@ -440,6 +476,7 @@ class LibraryBuilder:
         self.buildconfig = buildconfig
         self.install_context = install_context
         self.sourcefolder = sourcefolder
+        self.install_path = install_path
         self.target_name = target_name
         self.forcebuild = False
         self.current_buildparameters_obj: dict[str, Any] = defaultdict(lambda: [])
@@ -748,18 +785,21 @@ class LibraryBuilder:
             escaped_var_value = var_value.replace('"', '`"')
             return f'$env:{var_name}="$env:{var_name};{escaped_var_value}"\n'
 
-    def script_run_logged(self, command: str, log_file: str, failure_message: str) -> str:
+    def script_run_logged(self, command: str, log_file: str, failure_message: str, fatal: bool = True) -> str:
         """Run a command, redirect its output to log_file, and surface the log tail on failure.
 
         Emitted in the right shell dialect per platform: bash for Linux (cebuild.sh) and
         PowerShell for Windows (cebuild.ps1). The bash `|| { ...; }` form is not valid
         PowerShell, so Windows gets an explicit $LASTEXITCODE check instead.
+
+        A non-fatal failure (Windows only) throws instead of exiting, for the caller to catch.
         """
         if self.platform == LibraryPlatform.Windows:
+            on_failure = "exit 1" if fatal else f"throw {_ps_quote(failure_message)}"
             return (
                 f"{command} > {log_file} 2>&1\n"
                 f"if ($LASTEXITCODE -ne 0) {{ Write-Host '{failure_message}'; "
-                f"Get-Content -Tail 200 {log_file}; exit 1 }}\n"
+                f"Get-Content -Tail 200 {log_file}; {on_failure} }}\n"
             )
         return f"{command} > {log_file} 2>&1 || {{ echo '{failure_message}' >&2; tail -200 {log_file} >&2; exit 1; }}\n"
 
@@ -1043,62 +1083,11 @@ class LibraryBuilder:
                     f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
                     f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'
                 )
-                cmakeline = self.script_run_logged(cmakecmd, "cecmakelog.txt", "cmake configure failed:")
-                self.logger.debug(cmakeline)
-                f.write(cmakeline)
-
-                par_args = []
-                if self.platform == LibraryPlatform.Linux:
-                    par_args = ["-j$NUMCPUS"]
-
-                extramakeargs = " ".join(
-                    par_args
-                    + [
-                        self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
-                        for arg in self.buildconfig.extra_make_arg
-                    ]
-                )
-
-                if len(self.buildconfig.make_targets) != 0:
-                    if len(self.buildconfig.make_targets) == 1 and self.buildconfig.make_targets[0] == "all":
-                        f.write(
-                            self.script_run_logged(
-                                f"cmake --build . {extramakeargs}", "cemakelog_.txt", "cmake --build failed:"
-                            )
-                        )
-                    else:
-                        for lognum, target in enumerate(self.buildconfig.make_targets):
-                            log_name = f"cemakelog_{lognum}.txt"
-                            f.write(
-                                self.script_run_logged(
-                                    f"cmake --build . {extramakeargs} --target={target}",
-                                    log_name,
-                                    f"cmake --build {target} failed:",
-                                )
-                            )
+                make_arg_context = (compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
+                if self.is_windows_headeronly():
+                    self.write_windows_headeronly_steps(f, cmakecmd, make_arg_context, sourcefolder, installfolder)
                 else:
-                    lognum = 0
-                    for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
-                        f.write(f"cmake --build . {extramakeargs} --target={lib} > cemakelog_{lognum}.txt 2>&1\n")
-                        lognum += 1
-
-                    if self.platform == LibraryPlatform.Linux:
-                        if len(self.buildconfig.staticliblink) != 0:
-                            f.write("libsfound=$(find . -iname 'lib*.a')\n")
-                        elif len(self.buildconfig.sharedliblink) != 0:
-                            f.write("libsfound=$(find . -iname 'lib*.so*')\n")
-
-                        f.write('if [ "$libsfound" = "" ]; then\n')
-                        f.write(f"  cmake --build . {extramakeargs} > cemakelog_{lognum}.txt 2>&1\n")
-                        f.write("fi\n")
-                    elif self.platform == LibraryPlatform.Windows:
-                        f.write("$libs = Get-Childitem -Path ./**.lib -Recurse -ErrorAction SilentlyContinue\n")
-                        f.write("if ($libs.count -eq 0) {\n")
-                        f.write(f"  cmake --build . {extramakeargs} > cemakelog_{lognum}.txt 2>&1\n")
-                        f.write("}\n")
-
-                if self.buildconfig.package_install:
-                    f.write(self.script_run_logged("cmake --install .", "ceinstall_0.txt", "cmake --install failed:"))
+                    self.write_cmake_steps(f, cmakecmd, make_arg_context, fatal=True)
             else:
                 if os.path.exists(os.path.join(sourcefolder, "Makefile")):
                     f.write("make clean > cemakeclean.txt 2>&1 || /bin/true\n")
@@ -1193,6 +1182,120 @@ class LibraryBuilder:
             self.setCurrentConanBuildParameters(
                 buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags
             )
+
+    def write_cmake_steps(self, f: TextIO, cmakecmd: str, make_arg_context: tuple, fatal: bool) -> None:
+        cmakeline = self.script_run_logged(cmakecmd, "cecmakelog.txt", "cmake configure failed:", fatal)
+        self.logger.debug(cmakeline)
+        f.write(cmakeline)
+
+        par_args = []
+        if self.platform == LibraryPlatform.Linux:
+            par_args = ["-j$NUMCPUS"]
+
+        extramakeargs = " ".join(
+            par_args + [self.expand_make_arg(arg, *make_arg_context) for arg in self.buildconfig.extra_make_arg]
+        )
+
+        if len(self.buildconfig.make_targets) != 0:
+            if len(self.buildconfig.make_targets) == 1 and self.buildconfig.make_targets[0] == "all":
+                f.write(
+                    self.script_run_logged(
+                        f"cmake --build . {extramakeargs}", "cemakelog_.txt", "cmake --build failed:", fatal
+                    )
+                )
+            else:
+                for lognum, target in enumerate(self.buildconfig.make_targets):
+                    log_name = f"cemakelog_{lognum}.txt"
+                    f.write(
+                        self.script_run_logged(
+                            f"cmake --build . {extramakeargs} --target={target}",
+                            log_name,
+                            f"cmake --build {target} failed:",
+                            fatal,
+                        )
+                    )
+        else:
+            lognum = 0
+            for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
+                f.write(f"cmake --build . {extramakeargs} --target={lib} > cemakelog_{lognum}.txt 2>&1\n")
+                lognum += 1
+
+            if self.platform == LibraryPlatform.Linux:
+                if len(self.buildconfig.staticliblink) != 0:
+                    f.write("libsfound=$(find . -iname 'lib*.a')\n")
+                elif len(self.buildconfig.sharedliblink) != 0:
+                    f.write("libsfound=$(find . -iname 'lib*.so*')\n")
+
+                f.write('if [ "$libsfound" = "" ]; then\n')
+                f.write(f"  cmake --build . {extramakeargs} > cemakelog_{lognum}.txt 2>&1\n")
+                f.write("fi\n")
+            elif self.platform == LibraryPlatform.Windows:
+                f.write("$libs = Get-Childitem -Path ./**.lib -Recurse -ErrorAction SilentlyContinue\n")
+                f.write("if ($libs.count -eq 0) {\n")
+                f.write(f"  cmake --build . {extramakeargs} > cemakelog_{lognum}.txt 2>&1\n")
+                f.write("}\n")
+
+        if self.buildconfig.package_install:
+            f.write(self.script_run_logged("cmake --install .", "ceinstall_0.txt", "cmake --install failed:", fatal))
+
+    def is_windows_headeronly(self) -> bool:
+        return self.platform == LibraryPlatform.Windows and self.buildconfig.lib_type == "headeronly"
+
+    def headeronly_include_subdirs(self) -> list[str]:
+        """The source subdirectories whose contents make up a header-only package's include/.
+
+        Mirrors what Linux CE serves via `.path=`. Without that information, falls back to the
+        conventional `include/` subdirectory if there is one, else the source root.
+        """
+        subdirs = None
+        if self.install_path:
+            if self.language not in _linux_libraryprops:
+                try:
+                    _linux_libraryprops[self.language] = get_properties_libraries(self.language, LibraryPlatform.Linux)
+                except (FetchFailure, requests.RequestException) as e:
+                    self.logger.warning(f"Could not read Linux library properties: {e}")
+            subdirs = linux_include_subdirs(_linux_libraryprops.get(self.language, {}), self.libid, self.install_path)
+        if subdirs is None:
+            subdirs = ["include"] if os.path.isdir(os.path.join(self.sourcefolder, "include")) else [""]
+            self.logger.warning(
+                f"No Linux include path found for {self.libid} in {self.install_path or self.sourcefolder}, "
+                f"guessing {subdirs}"
+            )
+        return subdirs
+
+    def write_windows_headeronly_steps(
+        self, f: TextIO, cmakecmd: str, make_arg_context: tuple, sourcefolder: str, installfolder: str
+    ) -> None:
+        """Package a header-only library's include/ on Windows.
+
+        A cmake install is preferred where it works, since it can produce configured headers.
+        Many header-only libraries have no CMakeLists.txt, or one without (working) install
+        rules, so when the install leaves no headers under include/, the source tree Linux
+        serves is copied there instead.
+        """
+        if os.path.exists(os.path.join(sourcefolder, "CMakeLists.txt")):
+            f.write("try {\n")
+            self.write_cmake_steps(f, cmakecmd, make_arg_context, fatal=False)
+            f.write('} catch { Write-Host "$_, falling back to copying headers" }\n')
+        else:
+            f.write("Write-Host 'No CMakeLists.txt, copying headers'\n")
+
+        include_dir = f"{installfolder}/include"
+        f.write(f"$ceIncludeDir = {_ps_quote(include_dir)}\n")
+        f.write(
+            "$ceHeaders = @(Get-ChildItem -LiteralPath $ceIncludeDir -Recurse -File -Include *.h,*.hpp "
+            "-ErrorAction SilentlyContinue)\n"
+        )
+        f.write("if ($ceHeaders.Count -eq 0) {\n")
+        f.write("  New-Item -ItemType Directory -Force -Path $ceIncludeDir | Out-Null\n")
+        for subdir in self.headeronly_include_subdirs():
+            copy_from = f"{sourcefolder}/{subdir}" if subdir else sourcefolder
+            f.write(f"  Write-Host {_ps_quote(f'Copying {copy_from} to {include_dir}')}\n")
+            f.write(
+                f"  Get-ChildItem -LiteralPath {_ps_quote(copy_from)} -Force | Where-Object {{ $_.Name -ne '.git' }} "
+                "| Copy-Item -Destination $ceIncludeDir -Recurse -Force\n"
+            )
+        f.write("}\n")
 
     def setCurrentConanBuildParameters(
         self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags
@@ -1859,7 +1962,7 @@ class LibraryBuilder:
                 )
         elif self.buildconfig.lib_type == "headeronly":
             if self.platform == LibraryPlatform.Windows:
-                checkcompiler = "mingw64_ucrt_gcc_1220"
+                checkcompiler = WINDOWS_HEADERONLY_COMPILER
                 self.logger.info(
                     f"Header-only library, but running on Windows, so attempting build with {checkcompiler}"
                 )

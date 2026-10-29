@@ -130,3 +130,4 @@ if ($Library -ne "all") {
 }
 
 pwsh .\ce_install.ps1 --staging-dir "C:/tmp/staging" --dest "C:/tmp/staging" --enable windows build --temp-install "$FORCECOMPILERPARAM" "$LIBRARYPARAM"
+exit $LASTEXITCODE

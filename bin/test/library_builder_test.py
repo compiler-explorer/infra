@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 import pytest
 import requests
+from lib.amazon_properties import parse_library_properties
 from lib.installation_context import FetchFailure, InstallationContext
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import (
@@ -22,6 +23,7 @@ from lib.library_builder import (
     fetch_failed_builds,
     is_clang_variant,
     is_nvhpc_compiler,
+    linux_include_subdirs,
     match_conan_settings,
     match_failed_build,
 )
@@ -1375,3 +1377,208 @@ def test_is_already_uploaded_returns_false_when_hash_missing_from_bulk(requests_
     requests_mock.get(SEARCH_URL, json={"hash1": {"settings": _matched_settings_dict()}})
     requests_mock.get(_ANNOTATIONS_BULK_URL, json=[])
     assert builder.is_already_uploaded("/tmp/buildfolder") is False
+
+
+# Windows header-only packaging: include/ must hold what Linux serves via `.path=`.
+
+_LINUX_HEADERONLY_PROPS = """libs.help_library.versions=100
+libs.help_library.versions.100.version=1.0.0
+libs.help_library.versions.100.path=/opt/compiler-explorer/libs/help_library/v1.0.0
+libs.hedley.versions=v12
+libs.hedley.versions.v12.version=12.0.0
+libs.hedley.versions.v12.path=/opt/compiler-explorer/libs/hedley/v12/
+libs.nlohmann_json.versions=3111:trunk
+libs.nlohmann_json.versions.3111.path=/opt/compiler-explorer/libs/nlohmann_json/v3.11.1/single_include
+libs.nlohmann_json.versions.trunk.path=/opt/compiler-explorer/libs/nlohmann_json/trunk/single_include
+libs.hfsm.versions=trunk
+libs.hfsm.versions.trunk.path=/opt/compiler-explorer/libs/hfsm/trunk:/opt/compiler-explorer/libs/hfsm/trunk/include
+libs.withdep.versions=1
+libs.withdep.versions.1.path=/opt/compiler-explorer/libs/other/v1/include:/opt/compiler-explorer/libs/withdep/v1/inc
+"""
+
+
+def _linux_libs():
+    return parse_library_properties(_LINUX_HEADERONLY_PROPS.splitlines())
+
+
+@pytest.mark.parametrize(
+    "libid, install_path, expected",
+    [
+        ("help_library", "libs/help_library/v1.0.0", [""]),
+        ("hedley", "libs/hedley/v12", [""]),
+        ("nlohmann_json", "libs/nlohmann_json/v3.11.1", ["single_include"]),
+        ("hfsm", "libs/hfsm/trunk", ["", "include"]),
+        ("withdep", "libs/withdep/v1", ["inc"]),
+        ("hedley", "libs/hedley/v13", None),
+        ("unknown", "libs/unknown/v1", None),
+        ("hedley", "", None),
+    ],
+)
+def test_linux_include_subdirs(libid, install_path, expected):
+    assert linux_include_subdirs(_linux_libs(), libid, install_path) == expected
+
+
+def test_linux_include_subdirs_does_not_match_a_sibling_prefix():
+    libs = _linux_libs()
+    assert linux_include_subdirs(libs, "hedley", "libs/hedley/v1") is None
+
+
+def _windows_headeronly_builder(requests_mock, sourcefolder, libname="help_library", install_path=None, linux=None):
+    requests_mock.get(f"{BASE}c%2B%2B.amazonwin.properties", text="libs.dummy.name=dummy\n")
+    requests_mock.get(f"{BASE}c%2B%2B.amazon.properties", text=_LINUX_HEADERONLY_PROPS if linux is None else linux)
+    build_config = create_test_build_config()
+    build_config.lib_type = "headeronly"
+    build_config.staticliblink = []
+    builder = LibraryBuilder(
+        mock.Mock(spec_set=Logger),
+        "c++",
+        libname,
+        "1.0.0",
+        str(sourcefolder),
+        mock.Mock(spec_set=InstallationContext),
+        build_config,
+        False,
+        LibraryPlatform.Windows,
+        install_path=f"libs/{libname}/v1.0.0" if install_path is None else install_path,
+    )
+    builder.completeBuildConfig()
+    return builder
+
+
+def _write_windows_headeronly_script(tmp_path, builder):
+    buildfolder = tmp_path / "build"
+    buildfolder.mkdir()
+    builder.writebuildscript(
+        str(buildfolder),
+        "C:/tmp/staging/install",
+        builder.sourcefolder,
+        "mingw64_ucrt_gcc_1220",
+        "",
+        "Z:/compilers/mingw/bin/g++.exe",
+        "",
+        "Z:/compilers/mingw",
+        "Windows",
+        "Debug",
+        "",
+        "",
+        "",
+        [""],
+        "",
+        {},
+    )
+    return (buildfolder / "cebuild.ps1").read_text(encoding="utf-8")
+
+
+@pytest.fixture
+def fresh_linux_props():
+    with patch.dict("lib.library_builder._linux_libraryprops", clear=True):
+        yield
+
+
+def test_windows_headeronly_without_cmakelists_copies_linux_include_root(tmp_path, requests_mock, fresh_linux_props):
+    source = tmp_path / "src"
+    (source / "hp").mkdir(parents=True)
+    builder = _windows_headeronly_builder(requests_mock, source)
+    assert builder.buildconfig.package_install
+    script = _write_windows_headeronly_script(tmp_path, builder)
+    assert "cmake" not in script
+    assert "$ceIncludeDir = 'C:/tmp/staging/install/include'" in script
+    assert "if ($ceHeaders.Count -eq 0) {" in script
+    assert f"Get-ChildItem -LiteralPath '{source}' -Force" in script
+    assert "Where-Object { $_.Name -ne '.git' }" in script
+    assert "Copy-Item -Destination $ceIncludeDir -Recurse -Force" in script
+
+
+def test_windows_headeronly_copies_the_linux_include_subdir(tmp_path, requests_mock, fresh_linux_props):
+    source = tmp_path / "src"
+    source.mkdir()
+    builder = _windows_headeronly_builder(
+        requests_mock, source, libname="nlohmann_json", install_path="libs/nlohmann_json/v3.11.1"
+    )
+    script = _write_windows_headeronly_script(tmp_path, builder)
+    assert f"Get-ChildItem -LiteralPath '{source}/single_include' -Force" in script
+    assert f"Get-ChildItem -LiteralPath '{source}' -Force" not in script
+
+
+def test_windows_headeronly_with_cmakelists_tries_cmake_install_first(tmp_path, requests_mock, fresh_linux_props):
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "CMakeLists.txt").write_text("project(x)\n")
+    builder = _windows_headeronly_builder(requests_mock, source)
+    script = _write_windows_headeronly_script(tmp_path, builder)
+    try_at = script.index("try {\n")
+    configure_at = script.index("cmake --install-prefix")
+    install_at = script.index("cmake --install . > ceinstall_0.txt")
+    catch_at = script.index("} catch {")
+    fallback_at = script.index("if ($ceHeaders.Count -eq 0) {")
+    assert try_at < configure_at < install_at < catch_at < fallback_at
+    # A failing cmake step must reach the copy fallback rather than abort the script.
+    cmake_part = script[try_at:catch_at]
+    assert "exit 1" not in cmake_part
+    assert "throw 'cmake configure failed:'" in cmake_part
+    assert "throw 'cmake --install failed:'" in cmake_part
+
+
+def test_windows_headeronly_guesses_include_dir_without_linux_path(tmp_path, requests_mock, fresh_linux_props):
+    source = tmp_path / "src"
+    (source / "include").mkdir(parents=True)
+    builder = _windows_headeronly_builder(requests_mock, source, linux="")
+    script = _write_windows_headeronly_script(tmp_path, builder)
+    assert f"Get-ChildItem -LiteralPath '{source}/include' -Force" in script
+
+
+def test_windows_headeronly_guesses_root_without_linux_path_or_include_dir(tmp_path, requests_mock, fresh_linux_props):
+    source = tmp_path / "src"
+    source.mkdir()
+    builder = _windows_headeronly_builder(requests_mock, source)
+    requests_mock.get(f"{BASE}c%2B%2B.amazon.properties", status_code=404)
+    script = _write_windows_headeronly_script(tmp_path, builder)
+    assert f"Get-ChildItem -LiteralPath '{source}' -Force" in script
+
+
+def test_windows_headeronly_quotes_paths_for_powershell(tmp_path, requests_mock, fresh_linux_props):
+    source = tmp_path / "it's"
+    source.mkdir()
+    builder = _windows_headeronly_builder(requests_mock, source)
+    script = _write_windows_headeronly_script(tmp_path, builder)
+    assert "it''s" in script
+
+
+def test_windows_headeronly_conanfile_packages_the_install_tree(requests_mock, fresh_linux_props, tmp_path):
+    builder = _windows_headeronly_builder(requests_mock, tmp_path)
+    tio = io.StringIO()
+    builder.write_conan_file_to(tio)
+    conan_file = tio.getvalue()
+    assert_valid_python(conan_file)
+    assert 'self.copy("*", src="../install", dst=".", keep_path=True)' in conan_file
+    assert "self.cpp_info.libs = []" in conan_file
+
+
+def test_windows_compiled_library_keeps_fatal_cmake_steps(tmp_path, requests_mock):
+    _, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="mingw64_ucrt_gcc_1220",
+        exe="Z:/compilers/mingw/bin/g++.exe",
+        compiler_type="",
+        toolchain="Z:/compilers/mingw",
+        platform=LibraryPlatform.Windows,
+    )
+    assert "try {" not in script
+    assert "throw" not in script
+    assert "$ceHeaders" not in script
+    assert "exit 1 }" in script
+
+
+def test_linux_cmake_script_unchanged_by_headeronly_fallback(tmp_path, requests_mock):
+    _, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="g141",
+        exe="/opt/compiler-explorer/gcc-14.1.0/bin/g++",
+        compiler_type="",
+        toolchain="/opt/compiler-explorer/gcc-14.1.0",
+    )
+    assert "try {" not in script
+    assert "$ceHeaders" not in script
+    assert "cmake --build . -j$NUMCPUS > cemakelog_.txt 2>&1 || " in script

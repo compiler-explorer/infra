@@ -27,3 +27,4 @@ if (! (Test-Path -Path .venv)) {
 }
 
 & $uvBin run python -c "import sys; sys.path.append(r'$cwd/bin'); from lib.ce_install import main; main()" $args
+exit $LASTEXITCODE

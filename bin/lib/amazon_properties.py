@@ -22,23 +22,83 @@ def get_specific_library_version_details(libraries, libid, library_version):
     return False
 
 
+def parse_library_properties(lines: list[str]) -> dict[str, dict[str, Any]]:
+    _libraries: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    for line in lines:
+        if not line.startswith("libs."):
+            continue
+        keyval = line.split("=", 1)
+        key = keyval[0].split(".")
+        val = keyval[1]
+        libid = key[1]
+
+        _libraries[libid]["id"] = libid
+
+        if key[2] == "description":
+            _libraries[libid]["description"] = val
+        elif key[2] == "name":
+            _libraries[libid]["name"] = val
+        elif key[2] == "url":
+            _libraries[libid]["url"] = val
+        elif key[2] == "liblink":
+            _libraries[libid]["liblink"] = val.split(":")
+        elif key[2] == "staticliblink":
+            _libraries[libid]["staticliblink"] = val.split(":")
+        elif key[2] == "lookupname":
+            _libraries[libid]["lookupname"] = val
+        elif key[2] == "versions":
+            if len(key) > 3:
+                versionid = key[3]
+                if "versionprops" not in _libraries[libid]:
+                    _libraries[libid]["versionprops"] = {}
+                if versionid not in _libraries[libid]["versionprops"]:
+                    _libraries[libid]["versionprops"][versionid] = defaultdict(lambda: [])
+                if len(key) > 4:
+                    if key[4] == "version":
+                        _libraries[libid]["versionprops"][versionid][key[4]] = val
+                    if key[4] == "lookupversion":
+                        _libraries[libid]["versionprops"][versionid][key[4]] = val
+                    if key[4] == "path":
+                        _libraries[libid]["versionprops"][versionid][key[4]] = val.split(":")
+                    if key[4] == "libpath":
+                        _libraries[libid]["versionprops"][versionid][key[4]] = val.split(":")
+                    if key[4] == "staticliblink":
+                        _libraries[libid]["versionprops"][versionid][key[4]] = val.split(":")
+                    if key[4] == "liblink":
+                        _libraries[libid]["versionprops"][versionid][key[4]] = val.split(":")
+                    if key[4] == "lookupname":
+                        _libraries[libid]["versionprops"][versionid][key[4]] = val
+            else:
+                _libraries[libid]["versions"] = val
+
+    return _libraries
+
+
+def amazon_properties_url(language: str, platform: LibraryPlatform) -> str:
+    encoded_language = urllib.parse.quote(language)
+    base = "https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config"
+    if platform == LibraryPlatform.Linux:
+        return f"{base}/{encoded_language}.amazon.properties"
+    if platform == LibraryPlatform.Windows:
+        return f"{base}/{encoded_language}.amazonwin.properties"
+    raise RuntimeError("Unsupported platform")
+
+
+def get_properties_libraries(language: str, platform: LibraryPlatform) -> dict[str, dict[str, Any]]:
+    url = amazon_properties_url(language, platform)
+    request = requests.get(url, timeout=30)
+    if not request.ok:
+        raise FetchFailure(f"Fetch failure for {url}: {request}")
+    return parse_library_properties(request.text.splitlines(keepends=False))
+
+
 COMPILEROPT_RE = re.compile(r"(\w*)\.(.*)\.(\w*)")
 
 
 def get_properties_compilers_and_libraries(language, logger, platform: LibraryPlatform, filter_binary_support: bool):
     _compilers: dict[str, dict[str, Any]] = defaultdict(lambda: {})
-    _libraries: dict[str, dict[str, Any]] = defaultdict(lambda: {})
 
-    encoded_language = urllib.parse.quote(language)
-    branch = "main"
-
-    if platform == LibraryPlatform.Linux:
-        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/{branch}/etc/config/{encoded_language}.amazon.properties"
-    elif platform == LibraryPlatform.Windows:
-        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/{branch}/etc/config/{encoded_language}.amazonwin.properties"
-    else:
-        raise RuntimeError("Unsupported platform")
-
+    url = amazon_properties_url(language, platform)
     request = requests.get(url, timeout=30)
     if not request.ok:
         raise FetchFailure(f"Fetch failure for {url}: {request}")
@@ -48,10 +108,7 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
     if platform == LibraryPlatform.Windows and not has_library_properties:
         # Windows properties file is missing the libs section, so we need to fetch the Linux one to kickstart Windows libraries
         #  but technically it's better to always supply enough information in the yaml file, so this is a workaround
-        request = requests.get(
-            f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/{branch}/etc/config/{encoded_language}.amazon.properties",
-            timeout=30,
-        )
+        request = requests.get(amazon_properties_url(language, LibraryPlatform.Linux), timeout=30)
         if not request.ok:
             raise FetchFailure(f"Fetch failure for {url}: {request}")
         lines += [line for line in request.text.splitlines(keepends=False) if line.startswith("libs.")]
@@ -83,50 +140,7 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
                 groups[group]["goarch"] = val
             elif key[2] == "goos":
                 groups[group]["goos"] = val
-        elif line.startswith("libs."):
-            keyval = line.split("=", 1)
-            key = keyval[0].split(".")
-            val = keyval[1]
-            libid = key[1]
-
-            _libraries[libid]["id"] = libid
-
-            if key[2] == "description":
-                _libraries[libid]["description"] = val
-            elif key[2] == "name":
-                _libraries[libid]["name"] = val
-            elif key[2] == "url":
-                _libraries[libid]["url"] = val
-            elif key[2] == "liblink":
-                _libraries[libid]["liblink"] = val.split(":")
-            elif key[2] == "staticliblink":
-                _libraries[libid]["staticliblink"] = val.split(":")
-            elif key[2] == "lookupname":
-                _libraries[libid]["lookupname"] = val
-            elif key[2] == "versions":
-                if len(key) > 3:
-                    versionid = key[3]
-                    if "versionprops" not in _libraries[libid]:
-                        _libraries[libid]["versionprops"] = {}
-                    if versionid not in _libraries[libid]["versionprops"]:
-                        _libraries[libid]["versionprops"][versionid] = defaultdict(lambda: [])
-                    if len(key) > 4:
-                        if key[4] == "version":
-                            _libraries[libid]["versionprops"][versionid][key[4]] = val
-                        if key[4] == "lookupversion":
-                            _libraries[libid]["versionprops"][versionid][key[4]] = val
-                        if key[4] == "path":
-                            _libraries[libid]["versionprops"][versionid][key[4]] = val.split(":")
-                        if key[4] == "libpath":
-                            _libraries[libid]["versionprops"][versionid][key[4]] = val.split(":")
-                        if key[4] == "staticliblink":
-                            _libraries[libid]["versionprops"][versionid][key[4]] = val.split(":")
-                        if key[4] == "liblink":
-                            _libraries[libid]["versionprops"][versionid][key[4]] = val.split(":")
-                        if key[4] == "lookupname":
-                            _libraries[libid]["versionprops"][versionid][key[4]] = val
-                else:
-                    _libraries[libid]["versions"] = val
+    _libraries = parse_library_properties(lines)
 
     logger.debug("Setting default values for compilers")
     for group, group_data in groups.items():
