@@ -253,6 +253,19 @@ resource "aws_s3_bucket_lifecycle_configuration" "storage-godbolt-org" {
       prefix = "cache/"
     }
   }
+  rule {
+    id     = "Remove Windows cached items"
+    status = "Enabled"
+    expiration {
+      days = 1
+    }
+    noncurrent_version_expiration {
+      noncurrent_days = 1
+    }
+    filter {
+      prefix = "wincache/"
+    }
+  }
 }
 
 resource "aws_s3_bucket" "ce-cdn-net" {
