@@ -24,6 +24,7 @@ dependencies = [
     "matplotlib>=3.10.5",
     "pillow>=11.3.0",
     "PyJWT[crypto]>=2.8.0",
+    "ruamel-yaml>=0.18",
 ]
 
 [dependency-groups]
