@@ -91,50 +91,49 @@ libraries:
       - 9.1.0
       type: github
     glibc:
-      build_type: never
-      check_file: lib/libc.so.6
-      path_name: glibc/{{name}}/{{triple}}
-      s3_path_prefix: glibc-{{triple}}-{{name}}
-      type: s3tarballs
-      untar_dir: glibc-{{triple}}-{{name}}
       aarch64-linux-gnu:
-        triple: aarch64-linux-gnu
         targets:
         - '2.38'
         - '2.39'
         - '2.40'
         - '2.41'
         - '2.42'
+        triple: aarch64-linux-gnu
       arm-linux-gnueabihf:
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
         triple: arm-linux-gnueabihf
-        targets:
-        - '2.39'
-        - '2.40'
-        - '2.41'
-        - '2.42'
+      build_type: never
+      check_file: lib/libc.so.6
+      path_name: glibc/{{name}}/{{triple}}
       powerpc64le-linux-gnu:
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
         triple: powerpc64le-linux-gnu
-        targets:
-        - '2.39'
-        - '2.40'
-        - '2.41'
-        - '2.42'
       riscv64-linux-gnu:
+        targets:
+        - '2.39'
+        - '2.40'
+        - '2.41'
+        - '2.42'
         triple: riscv64-linux-gnu
-        targets:
-        - '2.39'
-        - '2.40'
-        - '2.41'
-        - '2.42'
       s390x-linux-gnu:
-        triple: s390x-linux-gnu
         targets:
         - '2.39'
         - '2.40'
         - '2.41'
         - '2.42'
+        triple: s390x-linux-gnu
+      s3_path_prefix: glibc-{{triple}}-{{name}}
+      type: s3tarballs
+      untar_dir: glibc-{{triple}}-{{name}}
       x86_64-linux-gnu:
-        triple: x86_64-linux-gnu
         targets:
         - '2.17'
         - '2.28'
@@ -145,6 +144,7 @@ libraries:
         - '2.40'
         - '2.41'
         - '2.42'
+        triple: x86_64-linux-gnu
   c++:
     abseil:
       build_type: cmake
@@ -275,8 +275,7 @@ libraries:
       - sed -i 's/add_subdirectory(standalones)//g' CMakeLists.txt
       after_stage_script_pwsh:
       - Get-ChildItem -Recurse -Filter "*.t.*" | Remove-Item -Force
-      - (Get-Content CMakeLists.txt) -replace 'add_subdirectory\(standalones\)', ''
-        | Set-Content CMakeLists.txt
+      - (Get-Content CMakeLists.txt) -replace 'add_subdirectory\(standalones\)', '' | Set-Content CMakeLists.txt
       build_type: cmake
       check_file: Readme.md
       extra_cmake_arg:
@@ -296,8 +295,7 @@ libraries:
       - curl -o bde-tools.zip -L https://github.com/bloomberg/bde-tools/archive/refs/heads/main.zip
       - unzip -q bde-tools.zip
       prebuild_script_pwsh:
-      - Invoke-WebRequest -Uri "https://github.com/bloomberg/bde-tools/archive/refs/heads/main.zip"
-        -OutFile "bde-tools.zip"
+      - Invoke-WebRequest -Uri "https://github.com/bloomberg/bde-tools/archive/refs/heads/main.zip" -OutFile "bde-tools.zip"
       - Expand-Archive -Path "bde-tools.zip" -DestinationPath "." -Force
       repo: bloomberg/bde
       staticliblink:
@@ -475,10 +473,8 @@ libraries:
       - sed -i 's/-Werror/-Wno-error/g' "$i"
       - done
       after_stage_script_pwsh:
-      - Get-ChildItem -Recurse -Filter "CMakeLists.txt, *.cmake" | ForEach-Object
-        {{ "{" }}
-      - (Get-Content $_.FullName) -replace '-Werror', '-Wno-error' | Set-Content $_.FullName
-        {{ "}" }}
+      - Get-ChildItem -Recurse -Filter "CMakeLists.txt, *.cmake" | ForEach-Object {{ "{" }}
+      - (Get-Content $_.FullName) -replace '-Werror', '-Wno-error' | Set-Content $_.FullName {{ "}" }}
       build_type: cmake
       check_file: CMakeLists.txt
       compression: xz
@@ -715,8 +711,7 @@ libraries:
       after_stage_script:
       - mkdir build
       - cd build
-      - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake
-        -DCMAKE_INSTALL_PREFIX="." ..
+      - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake -DCMAKE_INSTALL_PREFIX="." ..
       - /opt/compiler-explorer/cmake/bin/cmake --install .
       - cp -Rf include ..
       - cd ..
@@ -1014,10 +1009,7 @@ libraries:
       after_stage_script:
       - mkdir build
       - cd build
-      - CC=/opt/compiler-explorer/gcc-10.2.0/bin/gcc CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++
-        /opt/compiler-explorer/cmake/bin/cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
-        -DCMAKE_INSTALL_PREFIX="." -DBUILD_TESTING=OFF -DHDF5_BUILD_EXAMPLES=OFF -DHDF5_BUILD_TOOLS=OFF
-        -DHDF5_BUILD_UTILS=OFF
+      - CC=/opt/compiler-explorer/gcc-10.2.0/bin/gcc CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="." -DBUILD_TESTING=OFF -DHDF5_BUILD_EXAMPLES=OFF -DHDF5_BUILD_TOOLS=OFF -DHDF5_BUILD_UTILS=OFF
       - /opt/compiler-explorer/cmake/bin/cmake --build .
       - /opt/compiler-explorer/cmake/bin/cmake --install .
       - cp -Rf include ..
@@ -1040,6 +1032,14 @@ libraries:
       target_prefix: v
       targets:
       - '12'
+      type: github
+    help_library:
+      check_file: README.md
+      repo: Gag91/Help_Library
+      target_prefix: v
+      targets:
+      - 1.0.0
+      - 1.0.1
       type: github
     hfsm:
       check_file: README.md
@@ -1152,9 +1152,7 @@ libraries:
       build_type: cmake
       check_file: README.md
       extra_cmake_arg:
-      - -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_OBJECT_LIBS=OFF -DBUILD_TESTING=OFF
-        -DJSONCPP_WITH_TESTS=OFF -DJSONCPP_WITH_POST_BUILD_UNITTEST=OFF -DJSONCPP_WITH_CMAKE_PACKAGE=OFF
-        -DJSONCPP_WITH_STRICT_ISO=OFF -DJSONCPP_WITH_PKGCONFIG_SUPPORT=OFF
+      - -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_OBJECT_LIBS=OFF -DBUILD_TESTING=OFF -DJSONCPP_WITH_TESTS=OFF -DJSONCPP_WITH_POST_BUILD_UNITTEST=OFF -DJSONCPP_WITH_CMAKE_PACKAGE=OFF -DJSONCPP_WITH_STRICT_ISO=OFF -DJSONCPP_WITH_PKGCONFIG_SUPPORT=OFF
       lib_type: static
       repo: open-source-parsers/jsoncpp
       targets:
@@ -1231,8 +1229,7 @@ libraries:
       - echo "cmake_minimum_required(VERSION 3.16)" > CMakeLists.txt
       - echo "project(SerenityOS CXX)" >> CMakeLists.txt
       - echo "add_subdirectory(Meta/Lagom)" >> CMakeLists.txt
-      - sed -i 's/if(NOT "..CMAKE_BUILD_TYPE." STREQUAL "")/set(CMAKE_BUILD_TYPE "")\nif(FALSE)/'
-        Meta/Lagom/CMakeLists.txt
+      - sed -i 's/if(NOT "..CMAKE_BUILD_TYPE." STREQUAL "")/set(CMAKE_BUILD_TYPE "")\nif(FALSE)/' Meta/Lagom/CMakeLists.txt
       - sed 's/cmakedefine01 \(\w\+\)/define \1 0/' AK/Debug.h.in > AK/Debug.h
       build_type: manual
       check_file: CMakeLists.txt
@@ -1723,8 +1720,6 @@ libraries:
         - Catch2WithMain
         method: nightlyclone
         repo: catchorg/Catch2
-        # Catch2 v3 needs C++14 and a hosted standard library, so these can never
-        # build it and only add noise to the nightly build log.
         skip_compilers:
         - g485
         - g510
@@ -1768,6 +1763,14 @@ libraries:
         check_file: README.md
         method: nightlyclone
         repo: ryanhaining/cppitertools
+        targets:
+        - trunk
+        type: github
+      cppp:
+        build_type: none
+        check_file: include/cppp/string.hpp
+        method: nightlyclone
+        repo: marralesfios/cppp-release
         targets:
         - trunk
         type: github
@@ -1836,8 +1839,7 @@ libraries:
         after_stage_script:
         - mkdir -p build
         - cd build
-        - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake
-          -DCMAKE_INSTALL_PREFIX="." ..
+        - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake -DCMAKE_INSTALL_PREFIX="." ..
         - /opt/compiler-explorer/cmake/bin/cmake --install .
         - cp -Rf include ..
         - cd ..
@@ -2444,14 +2446,14 @@ libraries:
         - trunk
         type: github
       xvec:
-        description: "Intel's Extensible Vectorization Library (std::simd implementation)"
-        type: github
+        build_type: none
+        check_file: README.md
+        description: Intel's Extensible Vectorization Library (std::simd implementation)
         method: nightlyclone
         repo: intel/xvec
-        check_file: README.md
-        build_type: none
         targets:
         - main
+        type: github
       yomm2:
         build_type: none
         check_file: include/yorel/yomm2.hpp
@@ -2827,8 +2829,7 @@ libraries:
       - echo "postbuild not using abseil"
       prebuild_script:
       - mkdir -p /tmp/abseil-cpp
-      - curl -fsL https://conan.compiler-explorer.com/downloadpkg/abseil/20250127.0/%compiler%/%arch%/%libcxx%
-        -o abseil-cpp-20250127.0.tar.gz
+      - curl -fsL https://conan.compiler-explorer.com/downloadpkg/abseil/20250127.0/%compiler%/%arch%/%libcxx% -o abseil-cpp-20250127.0.tar.gz
       - tar xzf abseil-cpp-20250127.0.tar.gz -C /tmp/abseil-cpp
       prebuild_script_pwsh:
       - echo "prebuild not using abseil"
@@ -3122,8 +3123,8 @@ libraries:
       - sed -i 's/@XAD_VERSION_/@xad_VERSION_/g' src/XAD/Version.hpp.in
       after_stage_script_pwsh:
       - Set-Content -Path VERSION -Value "2.1.0"
-      - (Get-Content src/XAD/Version.hpp.in) -replace '@XAD_VERSION_', '@xad_VERSION_'
-        | Set-Content src/XAD/Version.hpp.in
+      - (Get-Content src/XAD/Version.hpp.in) -replace '@XAD_VERSION_', '@xad_VERSION_' | Set-Content src/XAD/Version.hpp.in
+      - (Get-Content cmake/XADSetupCompiler.cmake -Raw).Replace('set(rls_name "${name}${archsuff}${comp}${rls_suffix}")', 'set(rls_name "${name}_d")') | Set-Content cmake/XADSetupCompiler.cmake
       build_type: cmake
       check_file: CMakeLists.txt
       extra_cmake_arg:
@@ -3175,6 +3176,12 @@ libraries:
       - 8.1.0
       - 9.0.0
       - 9.0.1
+      - 10.0.0
+      - 11.0.0
+      - 11.2.0
+      - 12.1.1
+      - 13.2.0
+      - 14.2.0
       type: github
     xtensor:
       check_file: README.md
@@ -3183,6 +3190,10 @@ libraries:
       - 0.17.4
       - 0.18.2
       - 0.19.4
+      - 0.24.0
+      - 0.25.0
+      - 0.26.0
+      - 0.27.1
       type: github
     xtl:
       check_file: README.md
@@ -3190,6 +3201,9 @@ libraries:
       targets:
       - 0.4.16
       - 0.5.3
+      - 0.7.0
+      - 0.7.7
+      - 0.8.0
       type: github
     yaml_cpp:
       build_type: cmake
@@ -3575,6 +3589,16 @@ libraries:
       targets:
       - v0.9.1
       type: gomod
+    go_cmp:
+      build_type: gomod
+      import_path: github.com/google/go-cmp/cmp
+      module: github.com/google/go-cmp
+      targets:
+      - v0.5.8
+      - v0.5.9
+      - v0.6.0
+      - v0.7.0
+      type: gomod
     protobuf:
       build_type: gomod
       import_path: google.golang.org/protobuf/proto
@@ -3583,11 +3607,32 @@ libraries:
       - v1.34.1
       - v1.36.0
       type: gomod
+    sys:
+      build_type: gomod
+      import_path: golang.org/x/sys/unix
+      module: golang.org/x/sys
+      targets:
+      - v0.45.0
+      - v0.46.0
+      - v0.47.0
+      - v0.48.0
+      - v0.49.0
+      type: gomod
     uuid:
       build_type: gomod
       module: github.com/google/uuid
       targets:
       - v1.6.0
+      type: gomod
+    zap:
+      build_type: gomod
+      module: go.uber.org/zap
+      targets:
+      - v1.25.0
+      - v1.26.0
+      - v1.27.0
+      - v1.27.1
+      - v1.28.0
       type: gomod
   rust:
     ahash:
@@ -4367,6 +4412,15 @@ libraries:
       targets:
       - 0.7.32
       type: cratesio
+  solidity:
+    openzeppelin:
+      build_type: none
+      check_file: contracts/token/ERC20/ERC20.sol
+      repo: OpenZeppelin/openzeppelin-contracts
+      target_prefix: v
+      targets:
+      - 5.4.0
+      type: github
   sway:
     std:
       build_type: none
@@ -4378,15 +4432,6 @@ libraries:
       targets:
       - 0.66.7
       - 0.68.9
-      type: github
-  solidity:
-    openzeppelin:
-      build_type: none
-      check_file: contracts/token/ERC20/ERC20.sol
-      repo: OpenZeppelin/openzeppelin-contracts
-      target_prefix: v
-      targets:
-      - 5.4.0
       type: github
   zig:
     nightly:

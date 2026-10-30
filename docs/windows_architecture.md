@@ -29,13 +29,21 @@ the runner commands use.
 
 ## Updating CMake and Ninja
 
-CMake and Ninja are not `ce_install` installables on Windows. They are baked into the images as
-`C:\BuildTools\CMake` and `C:\BuildTools\Ninja`, one copy per image:
+The CMake the site runs is a `ce_install` installable on the compiler share: `tools/cmake` in
+`bin/yaml/windows.yaml`, installed as `Z:\compilers\cmake-v*`. CE's
+`compiler-explorer.amazonwin.properties` names it as `cmake=Z:/compilers/cmake-v4.1.2/bin/cmake.exe`. It
+has to live on `Z:`: CMake's Ninja generator runs MSVC links through `cmd.exe`, and inside cewrapper's
+AppContainer `cmd.exe` can't resolve paths on `C:` because the `C:\` root has no ACE for application
+packages. To change it, add the new version to the YAML, install it on the share, then update the
+properties. Keep the old version installed until the properties change is live. The version list
+mirrors `tools/cmake` in `bin/yaml/tools.yaml`, so add new versions to both.
+
+Everything else is baked into the images as `C:\BuildTools\CMake` and `C:\BuildTools\Ninja`, one copy
+per image:
 
 * `packer/InstallTools.ps1` for the node image. The site runs its Ninja, which CE's
-  `compiler-explorer.amazonwin.properties` names as `ninjaPath=C:/BuildTools/Ninja`. Its CMake is no
-  longer what the site runs: that file names `cmake=Z:/compilers/cmake-v4.1.2/bin/cmake.exe`, a CMake on
-  the compiler share, so changing the site's CMake is a CE properties change rather than a new image.
+  `compiler-explorer.amazonwin.properties` names as `ninjaPath=C:/BuildTools/Ninja`. CMake starts Ninja
+  directly rather than through `cmd.exe`, so `C:` works for it. The image's CMake is not used by the site.
 * `packer/InstallBuilderTools.ps1` for the library builder image. `init/start-builder.ps1` puts it on
   PATH and `library_builder.py` invokes bare `cmake`, so this one decides what library builds get.
 
@@ -64,9 +72,8 @@ ce-ci scaler hands it.
 `init/start-builder.ps1` behaves differently again. `win-lib-build.yaml` downloads it from main at job
 time, so changes to it land on the next build with no image rebuild at all.
 
-The compiler share used to carry `cmake-v*` and `ninja-v*` installables as well. Nothing ever read
-them -- both images use their own `C:\BuildTools` copy -- so they were dropped from
-`bin/yaml/windows.yaml`. Don't add them back without a consumer.
+The compiler share used to carry `ninja-v*` installables as well. Nothing read them, so they were
+dropped from `bin/yaml/windows.yaml`. Don't add them back without a consumer.
 
 ## User code execution restrictions
 

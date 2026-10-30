@@ -100,6 +100,10 @@ compilers:
           build: 595.45.04
         - name: 13.3.0
           build: 610.43.02
+        - name: 13.4.2
+          fetch:
+            - https://developer.download.nvidia.com/compute/cuda/{{name}}/local_installers/cuda_{{name}}_linux.run combined.sh
+            - https://raw.githubusercontent.com/cliffburdick/jitify/refs/heads/patch-3/nvrtc_cli.cpp nvrtc_cli.cpp
     scale:
       type: tarballs
       compression: xz

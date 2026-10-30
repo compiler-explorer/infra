@@ -20,7 +20,7 @@ from lib.library_props import (
     validate_library_version_args,
     version_to_id,
 )
-from lib.library_yaml import LibraryYaml
+from lib.library_yaml import LibraryYaml, insert_sorted
 
 from ..ce_install import cli
 
@@ -92,7 +92,7 @@ def add_fortran_library(github_url, version, target_prefix, check_file):
         if target_prefix:
             library_entry["target_prefix"] = target_prefix
 
-        fortran_libraries[lib_id] = library_entry
+        insert_sorted(fortran_libraries, lib_id, library_entry)
         click.echo(f"Added new Fortran library {lib_id} with version {version}")
 
     # Save the updated YAML

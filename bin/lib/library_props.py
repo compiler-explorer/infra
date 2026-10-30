@@ -8,6 +8,7 @@ across different parts of the system.
 
 from __future__ import annotations
 
+import re
 from urllib.parse import urlparse
 
 
@@ -38,8 +39,8 @@ def generate_version_property_suffix(version_id, property_name):
     return f"versions.{version_id}.{property_name}"
 
 
-def extract_library_id_from_github_url(github_url):
-    """Extract library ID from GitHub URL."""
+def parse_github_url(github_url):
+    """Split a GitHub URL into (owner, repo), dropping a trailing slash and `.git` suffix from the repo."""
     parsed = urlparse(github_url)
     if parsed.netloc != "github.com":
         raise ValueError(f"URL must be a GitHub URL, got: {github_url}")
@@ -48,8 +49,18 @@ def extract_library_id_from_github_url(github_url):
     if len(path_parts) < 2:
         raise ValueError(f"Invalid GitHub URL format: {github_url}")
 
-    repo_name = path_parts[1]
-    return repo_name.lower().replace("-", "_")
+    owner = path_parts[0]
+    repo = path_parts[1].removesuffix(".git")
+    if not owner or not repo:
+        raise ValueError(f"Invalid GitHub URL format: {github_url}")
+    return owner, repo
+
+
+def extract_library_id_from_github_url(github_url):
+    """Extract a CE library ID from a GitHub URL: the lowercased repo name, with characters that are not valid in
+    a property id (anything other than letters, digits and `_`, such as `-` or `.`) mapped to `_`."""
+    _, repo = parse_github_url(github_url)
+    return re.sub(r"[^a-z0-9_]", "_", repo.lower())
 
 
 def parse_properties_file(content):
@@ -546,15 +557,8 @@ def should_skip_library_for_windows(lib_id, lib_info):
 
 def extract_repo_from_github_url(github_url):
     """Extract owner/repo from GitHub URL."""
-    parsed = urlparse(github_url)
-    if parsed.netloc != "github.com":
-        raise ValueError(f"URL must be a GitHub URL, got: {github_url}")
-
-    path_parts = parsed.path.strip("/").split("/")
-    if len(path_parts) < 2:
-        raise ValueError(f"Invalid GitHub URL format: {github_url}")
-
-    return f"{path_parts[0]}/{path_parts[1]}"
+    owner, repo = parse_github_url(github_url)
+    return f"{owner}/{repo}"
 
 
 def find_existing_library_by_github_url(cpp_libraries, github_url):

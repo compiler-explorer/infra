@@ -756,12 +756,27 @@ class LibraryBuilder:
         PowerShell, so Windows gets an explicit $LASTEXITCODE check instead.
         """
         if self.platform == LibraryPlatform.Windows:
+            # Header-only packages fall back to copying the source headers, so a failing cmake step must not abort.
+            exit_on_failure = "" if self.buildconfig.lib_type == "headeronly" else "; exit 1"
             return (
                 f"{command} > {log_file} 2>&1\n"
                 f"if ($LASTEXITCODE -ne 0) {{ Write-Host '{failure_message}'; "
-                f"Get-Content -Tail 200 {log_file}; exit 1 }}\n"
+                f"Get-Content -Tail 200 {log_file}{exit_on_failure} }}\n"
             )
         return f"{command} > {log_file} 2>&1 || {{ echo '{failure_message}' >&2; tail -200 {log_file} >&2; exit 1; }}\n"
+
+    def headeronly_copy_fallback(self, installfolder, sourcefolder) -> str:
+        """PowerShell that copies the source headers into install/include when cmake installed none."""
+        include_dir = os.path.join(sourcefolder, "include")
+        copy_from = include_dir if os.path.isdir(include_dir) else sourcefolder
+        return (
+            f'$ceinclude = "{installfolder}/include"\n'
+            "if (-not (Get-ChildItem -Path $ceinclude -Recurse -File -Include *.h,*.hpp -ErrorAction SilentlyContinue)) {\n"
+            "  New-Item -ItemType Directory -Force -Path $ceinclude | Out-Null\n"
+            f'  Get-ChildItem -Path "{copy_from}" -Force | Where-Object Name -ne ".git" | '
+            "Copy-Item -Destination $ceinclude -Recurse -Force\n"
+            "}\n"
+        )
 
     def writebuildscript(
         self,
@@ -1045,6 +1060,11 @@ class LibraryBuilder:
                 )
                 cmakeline = self.script_run_logged(cmakecmd, "cecmakelog.txt", "cmake configure failed:")
                 self.logger.debug(cmakeline)
+                windows_headeronly = (
+                    self.platform == LibraryPlatform.Windows and self.buildconfig.lib_type == "headeronly"
+                )
+                if windows_headeronly:
+                    f.write(f'if (Test-Path "{sourcefolder}/CMakeLists.txt") {{\n')
                 f.write(cmakeline)
 
                 par_args = []
@@ -1099,6 +1119,10 @@ class LibraryBuilder:
 
                 if self.buildconfig.package_install:
                     f.write(self.script_run_logged("cmake --install .", "ceinstall_0.txt", "cmake --install failed:"))
+
+                if windows_headeronly:
+                    f.write("}\n")
+                    f.write(self.headeronly_copy_fallback(installfolder, sourcefolder))
             else:
                 if os.path.exists(os.path.join(sourcefolder, "Makefile")):
                     f.write("make clean > cemakeclean.txt 2>&1 || /bin/true\n")
