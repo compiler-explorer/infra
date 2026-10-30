@@ -24,6 +24,7 @@ on:
         - clang-18.04
         - clang-16.04
         - cobol
+        - compcert
         - d8
         - dotnet
         - edg
