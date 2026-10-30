@@ -1,0 +1,95 @@
+<svg width="1400" height="1000" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="1000" fill="transparent"/>
+  <text x="700" y="108" font-family="DejaVu Sans Mono" font-size="64" font-weight="bold" fill="#67c52a" text-anchor="middle">x86-64  Intel syntax</text>
+  <text x="44" y="167" font-family="DejaVu Sans Mono" font-size="31" font-weight="bold" fill="#67c52a">Instructions</text>
+  <rect x="44" y="173" width="224" height="3" fill="#67c52a"/>
+  <text x="44" y="210" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">movzx/movsx</text>
+  <text x="271" y="210" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">widen 0/sign, movsxd</text>
+  <text x="44" y="244" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">lea</text>
+  <text x="271" y="244" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">address calc / arith</text>
+  <text x="44" y="278" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">imul</text>
+  <text x="271" y="278" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">multiply (u or s)</text>
+  <text x="44" y="313" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">div/idiv</text>
+  <text x="271" y="313" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">quot RAX, rem RDX</text>
+  <text x="44" y="347" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">cdq/cqo</text>
+  <text x="271" y="347" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">sign-extend for idiv</text>
+  <text x="44" y="381" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">and/or/xor</text>
+  <text x="271" y="381" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">bitwise</text>
+  <text x="44" y="415" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">shl/shr/sar</text>
+  <text x="271" y="415" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">L/R/arith-R (sal=shl)</text>
+  <text x="44" y="449" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">cmp / test</text>
+  <text x="271" y="449" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">flags: dst-src, dst&amp;src</text>
+  <text x="44" y="484" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">setcc/cmovcc</text>
+  <text x="271" y="484" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">set byte / mov if cc</text>
+  <text x="44" y="518" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">(u)comisd</text>
+  <text x="271" y="518" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">float cmp: then b/a cc</text>
+  <text x="44" y="552" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">addss/sd</text>
+  <text x="271" y="552" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">scalar float / double</text>
+  <text x="44" y="586" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">addps/pd</text>
+  <text x="271" y="586" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">packed float / double</text>
+  <text x="44" y="621" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">vaddps</text>
+  <text x="271" y="621" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">AVX: 3-op, ymm/zmm</text>
+  <text x="44" y="655" font-family="DejaVu Sans Mono" font-size="29" fill="#000000" font-style="italic">+ mov add sub jmp call ret push pop</text>
+  <text x="44" y="711" font-family="DejaVu Sans Mono" font-size="31" font-weight="bold" fill="#67c52a">Idioms</text>
+  <rect x="44" y="717" width="112" height="3" fill="#67c52a"/>
+  <text x="44" y="754" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">xor eax,eax</text>
+  <text x="254" y="754" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">zero rax (breaks deps)</text>
+  <text x="44" y="788" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">pxor/xorps</text>
+  <text x="254" y="788" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">same, on xmm (0.0)</text>
+  <text x="44" y="822" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">test r,r</text>
+  <text x="254" y="822" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">r==0? (then je/jne)</text>
+  <text x="44" y="857" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">(i)mul+shr</text>
+  <text x="254" y="857" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">divide by constant</text>
+  <text x="44" y="891" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">cvtsi2sd</text>
+  <text x="254" y="891" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">int → double</text>
+  <text x="44" y="925" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">cvttsd2si</text>
+  <text x="254" y="925" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">double → int, truncs</text>
+  <text x="724" y="167" font-family="DejaVu Sans Mono" font-size="31" font-weight="bold" fill="#67c52a">Registers</text>
+  <rect x="724" y="173" width="168" height="3" fill="#67c52a"/>
+  <text x="724" y="212" font-family="DejaVu Sans Mono" font-size="29" fill="#000000">64</text>
+  <rect x="773" y="181" width="583" height="44" fill="none" stroke="#333333" stroke-width="2"/>
+  <text x="1064" y="212" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a" text-anchor="middle">RAX</text>
+  <text x="724" y="264" font-family="DejaVu Sans Mono" font-size="29" fill="#000000">32</text>
+  <rect x="1064" y="232" width="292" height="44" fill="none" stroke="#333333" stroke-width="2"/>
+  <text x="1210" y="264" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a" text-anchor="middle">EAX</text>
+  <text x="724" y="315" font-family="DejaVu Sans Mono" font-size="29" fill="#000000">16</text>
+  <rect x="1210" y="284" width="146" height="44" fill="none" stroke="#333333" stroke-width="2"/>
+  <text x="1283" y="315" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a" text-anchor="middle">AX</text>
+  <text x="724" y="367" font-family="DejaVu Sans Mono" font-size="29" fill="#000000">8</text>
+  <rect x="1210" y="335" width="73" height="44" fill="none" stroke="#333333" stroke-width="2"/>
+  <text x="1247" y="367" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a" text-anchor="middle">AH</text>
+  <rect x="1283" y="335" width="73" height="44" fill="none" stroke="#333333" stroke-width="2"/>
+  <text x="1320" y="367" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a" text-anchor="middle">AL</text>
+  <text x="724" y="416" font-family="DejaVu Sans Mono" font-size="29" fill="#000000" font-style="italic">+ RBX RCX RDX RSI RDI RBP RSP</text>
+  <text x="724" y="450" font-family="DejaVu Sans Mono" font-size="29" fill="#000000" font-style="italic">R8-R15: R8D R8W R8B; SIL DIL</text>
+  <text x="724" y="484" font-family="DejaVu Sans Mono" font-size="29" fill="#000000" font-style="italic">EAX write zero-extends; AX/AL don't</text>
+  <text x="724" y="541" font-family="DejaVu Sans Mono" font-size="31" font-weight="bold" fill="#67c52a">Syntax</text>
+  <rect x="724" y="546" width="112" height="3" fill="#67c52a"/>
+  <text x="724" y="584" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">op dst, src</text>
+  <text x="969" y="584" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">dest first</text>
+  <text x="724" y="618" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">[b+i*s+d]</text>
+  <text x="969" y="618" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">base+index*scale+disp</text>
+  <text x="724" y="652" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">dword ptr</text>
+  <text x="969" y="652" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">b/w/d/q = 8/16/32/64</text>
+  <text x="724" y="686" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">x[rip]</text>
+  <text x="969" y="686" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">RIP-relative (gcc)</text>
+  <text x="724" y="720" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">OFFSET FLAT:x</text>
+  <text x="969" y="720" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">address of x (gcc)</text>
+  <text x="724" y="777" font-family="DejaVu Sans Mono" font-size="31" font-weight="bold" fill="#67c52a">Flags &amp; cc (after cmp a,b)</text>
+  <rect x="724" y="782" width="485" height="3" fill="#67c52a"/>
+  <text x="724" y="820" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">e/z</text>
+  <text x="829" y="820" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">==</text>
+  <text x="1022" y="820" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">ne/nz</text>
+  <text x="1127" y="820" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">!=</text>
+  <text x="724" y="854" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">l  g</text>
+  <text x="829" y="854" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">&lt; &gt; signed</text>
+  <text x="1022" y="854" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">b  a</text>
+  <text x="1127" y="854" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">&lt; &gt; unsigned</text>
+  <text x="724" y="888" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">le ge</text>
+  <text x="829" y="888" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">&lt;= &gt;=</text>
+  <text x="1022" y="888" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">be ae</text>
+  <text x="1127" y="888" font-family="DejaVu Sans Mono" font-size="29" font-weight="normal" fill="#000000">&lt;= &gt;=</text>
+  <text x="724" y="922" font-family="DejaVu Sans Mono" font-size="29" fill="#000000" font-style="italic">ZF zero SF sign CF carry OF overflow</text>
+  <rect x="700" y="136" width="3" height="794" fill="#bbbbbb"/>
+  <text x="700" y="982" font-family="DejaVu Sans Mono" font-size="26" fill="#000000" opacity="0.6" font-style="italic" text-anchor="middle">Compiler Explorer</text>
+</svg>
