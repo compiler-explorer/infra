@@ -217,6 +217,16 @@ function Disable-WindowsDefenderPermanent {
     Set-ItemProperty -Path $defenderKey -Name "DisableAntiSpyware" -Value 1
 }
 
+function Disable-VisualStudioTelemetry {
+    Write-Host "Opting out of Visual Studio telemetry..."
+
+    $sqmKey = "HKLM:\SOFTWARE\Policies\Microsoft\VisualStudio\SQM"
+    if (-not (Test-Path $sqmKey)) {
+        New-Item -Path $sqmKey -Force | Out-Null
+    }
+    Set-ItemProperty -Path $sqmKey -Name "OptIn" -Value 0 -Type DWord
+}
+
 function InstallWinFsp {
     Invoke-WebRequest -Uri "https://github.com/winfsp/winfsp/releases/download/v2.0/winfsp-2.0.23075.msi" -OutFile "C:\tmp\winfsp.msi"
     Start-Process "msiexec" -argumentlist "/i winfsp.msi /quiet ALLUSERS=1" -wait
@@ -254,6 +264,7 @@ InstallWinFsp
 
 Disable-WindowsUpdatePermanent
 Disable-WindowsDefenderPermanent
+Disable-VisualStudioTelemetry
 
 InstallOpenSSH
 InstallAwsTools
