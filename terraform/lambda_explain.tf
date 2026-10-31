@@ -13,7 +13,7 @@ resource "aws_ecr_repository" "explain" {
 
 data "aws_ecr_image" "explain" {
   repository_name = aws_ecr_repository.explain.name
-  image_tag       = "gh-168"
+  image_tag       = "gh-177"
 }
 
 resource "aws_lambda_function" "explain" {
@@ -141,3 +141,45 @@ resource "aws_lambda_permission" "explain_api" {
 }
 
 # TODO lambda.compiler-explorer.com vs api.
+
+locals {
+  explain_metric_dimensions = {
+    LogGroup    = aws_lambda_function.explain.function_name
+    ServiceName = aws_lambda_function.explain.function_name
+    ServiceType = "AWS::Lambda::Function"
+  }
+}
+
+# Any request refused because the Anthropic workspace spend limit is spent
+resource "aws_cloudwatch_metric_alarm" "explain_usage_limit" {
+  alarm_name          = "ExplainUsageLimit"
+  alarm_description   = "Claude Explain hit the Anthropic workspace usage limit; raise it in the Anthropic Console"
+  namespace           = "CompilerExplorer"
+  metric_name         = "ClaudeExplainUsageLimit"
+  dimensions          = local.explain_metric_dimensions
+  statistic           = "Sum"
+  period              = 60 * 60
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+  ok_actions          = [data.aws_sns_topic.alert.arn]
+}
+
+# Unhandled Anthropic API errors, which reach users as a 500
+resource "aws_cloudwatch_metric_alarm" "explain_api_errors" {
+  alarm_name          = "ExplainApiErrors"
+  alarm_description   = "Claude Explain is returning 500s for unhandled Anthropic API errors; see /aws/lambda/explain"
+  namespace           = "CompilerExplorer"
+  metric_name         = "ClaudeExplainApiError"
+  dimensions          = local.explain_metric_dimensions
+  statistic           = "Sum"
+  period              = 60 * 60
+  evaluation_periods  = 1
+  threshold           = 3
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+  ok_actions          = [data.aws_sns_topic.alert.arn]
+}
