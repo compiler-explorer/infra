@@ -77,3 +77,5 @@ compilers:
       - 5.5.0-flambda
       - 5.5.1
       - 5.5.1-flambda
+      - 5.5.2
+      - 5.5.2-flambda
