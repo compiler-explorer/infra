@@ -1394,6 +1394,29 @@ compilers:
         - 14.0.0
         - 14.0.5
         - 16.0.0
+    ecpps:
+      type: script
+      dir: ecpps-{{name}}
+      check_exe: bin/ecpps /version
+      fetch:
+        - https://github.com/ECPPS/ECPPS/archive/refs/heads/development.tar.gz source.tar.gz
+      script: |
+        set -eux
+
+        mkdir -p source
+        tar -xzf source.tar.gz --strip-components=1 -C source
+
+        cd source
+        cmake --preset Linux-GCC
+        cmake --build --preset Linux-GCC-Release
+
+        cd ..
+        mkdir -p "$CE_STAGING_DIR/ecpps-{{name}}/bin"
+
+        install -m 755 source/build/compiler/ecpps/ecpps \
+          "$CE_STAGING_DIR/ecpps-{{name}}/bin/ecpps"
+      targets:
+        - development
     tinycc:
       type: s3tarballs
       dir: "tinycc-{{name}}"
