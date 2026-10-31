@@ -15,6 +15,35 @@ function InstallAwsTools {
     Remove-Item -Force "awscli.msi"
 }
 
+function InstallVCRedist {
+    param(
+        [string] $Arch,
+        [string] $Url,
+        [string] $Sha256
+    )
+
+    $installer = "C:\tmp\VC_redist.$Arch.exe"
+    Write-Host "Downloading VC++ redistributable ($Arch)"
+    Invoke-WebRequest -Uri $Url -OutFile $installer
+    $hash = (Get-FileHash -Path $installer -Algorithm SHA256).Hash
+    if ($hash -ne $Sha256) { throw "VC_redist.$Arch.exe hash mismatch: $hash" }
+    Write-Host "Installing VC++ redistributable ($Arch)"
+    $process = Start-Process $installer -ArgumentList "/install /quiet /norestart" -Wait -PassThru
+    # 3010: installed, reboot required; 1638: same or newer version already present
+    if ($process.ExitCode -notin 0, 3010, 1638) { throw "VC_redist.$Arch.exe failed with exit code $($process.ExitCode)" }
+    Remove-Item -Force $installer
+}
+
+function InstallVCRedists {
+    $base = "https://download.visualstudio.microsoft.com/download/pr/73aabf2e-9532-4f68-99f7-3247081a619c"
+    InstallVCRedist -Arch "x64" `
+        -Url "$base/CC0FF0EB1DC3F5188AE6300FAEF32BF5BEEBA4BDD6E8E445A9184072096B713B/VC_redist.x64.exe" `
+        -Sha256 "CC0FF0EB1DC3F5188AE6300FAEF32BF5BEEBA4BDD6E8E445A9184072096B713B"
+    InstallVCRedist -Arch "x86" `
+        -Url "$base/0C09F2611660441084CE0DF425C51C11E147E6447963C3690F97E0B25C55ED64/VC_redist.x86.exe" `
+        -Sha256 "0C09F2611660441084CE0DF425C51C11E147E6447963C3690F97E0B25C55ED64"
+}
+
 function InstallGIT {
     Write-Host "Downloading GIT"
     Invoke-WebRequest -Uri "https://github.com/git-for-windows/git/releases/download/v2.28.0.windows.1/Git-2.28.0-64-bit.exe" -OutFile "C:\tmp\Git-2.28.0-64-bit.exe"
@@ -228,6 +257,7 @@ Disable-WindowsDefenderPermanent
 
 InstallOpenSSH
 InstallAwsTools
+InstallVCRedists
 InstallGIT
 InstallBuildTools
 InstallNodeJS
