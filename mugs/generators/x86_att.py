@@ -41,19 +41,19 @@ class X86AttCheatSheetGenerator(CheatSheetGenerator):
         instructions = Block(
             heading="Instructions",
             rows=[
-                [green("movz/movs"), plain("widen: movzbl movslq")],
+                [green("movz/movs"), plain("movzbl = byte→long")],
                 [green("lea"), plain("address calc / arith")],
-                [green("imul"), plain("multiply (u or s)")],
+                [green("imul/mul"), plain("multiply; mul = wide u")],
                 [green("div/idiv"), plain("quot %rax, rem %rdx")],
                 [green("cltd/cqto"), plain("sign-extend for idiv")],
                 [green("and/or/xor"), plain("bitwise")],
                 [green("shl/shr/sar"), plain("L/R/arith-R (sal=shl)")],
                 [green("cmp / test"), plain("flags: dst-src, dst&src")],
                 [green("setcc/cmovcc"), plain("set byte / mov if cc")],
-                [green("(u)comisd"), plain("float cmp: then b/a cc")],
+                [green("(u)comisd"), plain("float cmp: a nb, p=NaN")],
                 [green("addss/sd"), plain("scalar float / double")],
                 [green("addps/pd"), plain("packed float / double")],
-                [green("vaddps"), plain("AVX: 3-op, ymm/zmm")],
+                [green("jmp fn"), plain("tail call, no ret back")],
             ],
             notes=["+ mov add sub jmp call ret push pop"],
         )
@@ -64,9 +64,9 @@ class X86AttCheatSheetGenerator(CheatSheetGenerator):
             rows=[
                 [green("e/z"), plain("=="), green("ne/nz"), plain("!=")],
                 [green("l  g"), plain("< > signed"), green("b  a"), plain("< > unsigned")],
-                [green("le ge"), plain("<= >="), green("be ae"), plain("<= >=")],
+                [green("le ge"), plain("<= >="), green("be nb"), plain("<= >= nb=ae")],
             ],
-            notes=["ZF zero SF sign CF carry OF overflow"],
+            notes=["ZF 0 SF neg CF carry OF ovf PF NaN"],
         )
 
         idioms = Block(
@@ -74,10 +74,10 @@ class X86AttCheatSheetGenerator(CheatSheetGenerator):
             rows=[
                 [green("zero reg"), plain("xorl %eax,%eax")],
                 [green("zero xmm"), plain("pxor %xmm0,%xmm0")],
-                [green("is zero?"), plain("testl %eax,%eax")],
+                [green("zero/neg?"), plain("testl %eax,%eax")],
                 [green("divide"), plain("(i)mul+shr by magic #")],
-                [green("int→dbl"), plain("cvtsi2sd(l)")],
-                [green("dbl→int"), plain("cvttsd2si(l) truncs")],
+                [green("int→dbl"), plain("cvtsi2sd(l/q)")],
+                [green("dbl→int"), plain("cvttsd2si(l/q) truncs")],
             ],
         )
 

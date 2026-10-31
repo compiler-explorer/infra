@@ -30,8 +30,8 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
             heading="Syntax",
             rows=[
                 [green("op dst, src"), plain("dest first")],
-                [green("[b+i*s+d]"), plain("base+index*scale+disp")],
-                [green("dword ptr"), plain("b/w/d/q = 8/16/32/64")],
+                [green("[b+d+i*s]"), plain("base+disp+index*scale")],
+                [green("DWORD PTR"), plain("b/w/d/q = 8/16/32/64")],
                 [green("x[rip]"), plain("RIP-relative (gcc)")],
                 [green("OFFSET FLAT:x"), plain("address of x (gcc)")],
             ],
@@ -40,19 +40,19 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
         instructions = Block(
             heading="Instructions",
             rows=[
-                [green("movzx/movsx"), plain("widen 0/sign, movsxd")],
+                [green("movzx/movsx"), plain("zero/sign; clang movsxd")],
                 [green("lea"), plain("address calc / arith")],
-                [green("imul"), plain("multiply (u or s)")],
+                [green("imul/mul"), plain("multiply; mul = wide u")],
                 [green("div/idiv"), plain("quot RAX, rem RDX")],
                 [green("cdq/cqo"), plain("sign-extend for idiv")],
                 [green("and/or/xor"), plain("bitwise")],
                 [green("shl/shr/sar"), plain("L/R/arith-R (sal=shl)")],
                 [green("cmp / test"), plain("flags: dst-src, dst&src")],
                 [green("setcc/cmovcc"), plain("set byte / mov if cc")],
-                [green("(u)comisd"), plain("float cmp: then b/a cc")],
+                [green("(u)comisd"), plain("float cmp: a nb, p=NaN")],
                 [green("addss/sd"), plain("scalar float / double")],
                 [green("addps/pd"), plain("packed float / double")],
-                [green("vaddps"), plain("AVX: 3-op, ymm/zmm")],
+                [green("jmp fn"), plain("tail call, no ret back")],
             ],
             notes=["+ mov add sub jmp call ret push pop"],
         )
@@ -62,9 +62,9 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
             rows=[
                 [green("e/z"), plain("=="), green("ne/nz"), plain("!=")],
                 [green("l  g"), plain("< > signed"), green("b  a"), plain("< > unsigned")],
-                [green("le ge"), plain("<= >="), green("be ae"), plain("<= >=")],
+                [green("le ge"), plain("<= >="), green("be nb"), plain("<= >= nb=ae")],
             ],
-            notes=["ZF zero SF sign CF carry OF overflow"],
+            notes=["ZF 0 SF neg CF carry OF ovf PF NaN"],
         )
 
         idioms = Block(
@@ -72,7 +72,7 @@ class X86IntelCheatSheetGenerator(CheatSheetGenerator):
             rows=[
                 [green("xor eax,eax"), plain("zero rax (breaks deps)")],
                 [green("pxor/xorps"), plain("same, on xmm (0.0)")],
-                [green("test r,r"), plain("r==0? (then je/jne)")],
+                [green("test r,r"), plain("r==0? r<0? (je/js)")],
                 [green("(i)mul+shr"), plain("divide by constant")],
                 [green("cvtsi2sd"), plain("int → double")],
                 [green("cvttsd2si"), plain("double → int, truncs")],

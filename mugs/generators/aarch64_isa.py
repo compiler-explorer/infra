@@ -18,9 +18,9 @@ class AArch64CheatSheetGenerator(CheatSheetGenerator):
                 DiagramBar(bits="32", fraction=0.5, segments=["W0"]),
             ],
             notes=[
-                "X0-X30; XZR/WZR read as 0",
+                "X0-7 args, X0 ret; X19-28 saved",
                 "W write zeroes the top 32 bits",
-                "X29 frame ptr, X30 link (ret)",
+                "X29 fp, X30 lr, SP; XZR reads 0",
                 "V0-31 as Q128 D64 S32 H16 B8",
             ],
         )
@@ -29,7 +29,7 @@ class AArch64CheatSheetGenerator(CheatSheetGenerator):
             heading="Syntax",
             rows=[
                 [green("op d, a, b"), plain("dest first")],
-                [green("#42"), plain("imm (gcc omits #)")],
+                [green("#42"), plain("imm (gcc mostly no #)")],
                 [green("[x0, 8]"), plain("x0 + 8")],
                 [green("[x0, 8]!"), plain("pre: x0 += 8 first")],
                 [green("[x0], 8"), plain("post: x0 += 8 after")],
@@ -40,22 +40,22 @@ class AArch64CheatSheetGenerator(CheatSheetGenerator):
         instructions = Block(
             heading="Instructions",
             rows=[
-                [green("mov/movk"), plain("16 bits; k keeps rest")],
+                [green("mov/movk"), plain("k: set 16b, keep rest")],
                 [green("ldr/str"), plain("load / store")],
-                [green("ldrsb/ldrh"), plain("size b/h/w, s = sign")],
+                [green("ldrsb/ldrh"), plain("s=sign-ext, else zero")],
                 [green("ldp/stp"), plain("load / store a pair")],
                 [green("cmp/tst"), plain("subs/ands to xzr")],
                 [green("madd/msub"), plain("c + a*b / c - a*b")],
                 [green("sdiv/udiv"), plain("divide, no remainder")],
                 [green("lsl/lsr/asr"), plain("shift L / R / arith-R")],
                 [green("orr/eor/bic"), plain("or / xor / and-not")],
-                [green("sxtw/uxtw"), plain("sign / zero extend")],
+                [green("sxtw/uxtw"), plain("sign/zero ext; mov w,w")],
                 [green("csel/cset"), plain("pick / bool if cc")],
-                [green("cbz/cbnz"), plain("branch if (non)zero")],
-                [green("fmadd"), plain("fused a*b+c")],
+                [green("cb(n)z tb(n)z"), plain("if 0 / if bit n is 0")],
+                [green("fmadd"), plain("fused c + a*b")],
                 [green("scvtf/fcvtzs"), plain("int → fp / fp → int")],
             ],
-            notes=["+ add sub mul and b bl br ret"],
+            notes=["+ add sub mul and b bl blr ret"],
         )
 
         flags = Block(
@@ -65,17 +65,17 @@ class AArch64CheatSheetGenerator(CheatSheetGenerator):
                 [green("lt gt"), plain("< > signed"), green("lo hi"), plain("< > unsigned")],
                 [green("le ge"), plain("<= >="), green("ls hs"), plain("<= >=")],
             ],
-            notes=["adds/subs set flags; lo=cc hs=cs", "float < is mi; gcc blt = b.lt"],
+            notes=["gcc: blt=b.lt bcc=b.lo bcs=b.hs", "fcmp(e): < is mi, <= is ls"],
         )
 
         idioms = Block(
             heading="Idioms",
             rows=[
                 [green("adrp+:lo12:"), plain("address of a global")],
-                [green("stp x29,x30"), plain("frame push (! = pre)")],
+                [green("stp x29,x30"), plain("frame push; ldp pops")],
                 [green("sdiv+msub"), plain("a % b")],
-                [green("umull+lsr"), plain("divide by constant")],
-                [green("stp xzr,xzr"), plain("zero 16 bytes")],
+                [green("umul(l/h)+lsr"), plain("divide by constant")],
+                [green("b fn"), plain("tail call, no ret back")],
             ],
         )
 

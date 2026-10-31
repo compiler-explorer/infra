@@ -19,18 +19,18 @@ class RiscVCheatSheetGenerator(CheatSheetGenerator):
                 [green("a0-a7"), plain("args; a0 = result")],
                 [green("t0-t6"), plain("temporaries")],
                 [green("s0-s11"), plain("saved; s0 = fp")],
-                [green("fa0 ft fs"), plain("float, same roles")],
+                [green("fa ft fs"), plain("float, same roles")],
             ],
-            notes=["32-bit values stay sign-extended"],
+            notes=["32-bit values sign-ext, even u32"],
         )
 
         syntax = Block(
             heading="Syntax",
             rows=[
-                [green("op rd, a, b"), plain("dest first")],
+                [green("op rd, a, b"), plain("dest first (not st/br)")],
                 [green("8(sp)"), plain("offset(base) only")],
-                [green("%hi %lo"), plain("address halves (gcc)")],
-                [green("%pcrel_hi"), plain("pc-relative (clang)")],
+                [green("%hi %lo"), plain("hi20/lo12 (non-PIE)")],
+                [green("%pcrel_hi"), plain("PC-rel (PIE, clang)")],
                 [green("fadd.d .s"), plain("double / single")],
                 [green("fcvt.w.d"), plain("to.from; rtz = trunc")],
             ],
@@ -40,14 +40,14 @@ class RiscVCheatSheetGenerator(CheatSheetGenerator):
             heading="Instructions",
             rows=[
                 [green("li / mv"), plain("load imm / copy")],
-                [green("lui/auipc"), plain("upper 20 bits (+pc)")],
+                [green("lui/auipc"), plain("imm<<12 (+pc)")],
                 [green("addi"), plain("add imm (no subi)")],
-                [green("addw/sext.w"), plain("32-bit, sign-extends")],
+                [green("*w, sext.w"), plain("32-bit op, sign-ext")],
                 [green("ld/lw/lh/lb"), plain("load 64/32/16/8")],
                 [green("lwu lhu lbu"), plain("u = zero-extend")],
                 [green("sd/sw/sh/sb"), plain("store")],
-                [green("slli/srli"), plain("shift L / R (i = imm)")],
-                [green("srai"), plain("arith shift R")],
+                [green("sll srl sra"), plain("shift; i = imm")],
+                [green("j / jr ra"), plain("jump / return (gcc)")],
                 [green("mulh(u)"), plain("high half of a*b")],
                 [green("div/rem(u)"), plain("divide / remainder")],
                 [green("slt(u)"), plain("bool: a < b")],
@@ -64,19 +64,19 @@ class RiscVCheatSheetGenerator(CheatSheetGenerator):
                 [green("beq bne"), plain("== !=")],
                 [green("blt bge"), plain("< >= signed")],
                 [green("bltu bgeu"), plain("< >= unsigned")],
-                [green("beqz blez"), plain("vs zero")],
+                [green("b..z"), plain("beqz bnez blez..")],
             ],
-            notes=["bgt ble: swapped blt bge"],
+            notes=["bgt ble(u): swapped blt bge"],
         )
 
         idioms = Block(
             heading="Idioms",
             rows=[
-                [green("beq a,zero"), plain("= beqz (gcc spells)")],
+                [green("bne a,zero"), plain("gcc spells b..z out")],
                 [green("slli+srli 32"), plain("zero-extend u32")],
-                [green("andi 255"), plain("zero-extend u8")],
-                [green("mulhu+srli"), plain("divide by constant")],
-                [green("addi sp,sp,-N"), plain("frame; sd ra saves")],
+                [green("andi 0xff"), plain("zero-extend u8")],
+                [green("mul(hu)+srli"), plain("divide by constant")],
+                [green("addi sp,sp,-N"), plain("frame; sd ra,N(sp)")],
             ],
         )
 
