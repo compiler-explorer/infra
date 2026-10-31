@@ -13,7 +13,7 @@ resource "aws_ecr_repository" "explain" {
 
 data "aws_ecr_image" "explain" {
   repository_name = aws_ecr_repository.explain.name
-  image_tag       = "gh-168"
+  image_tag       = "gh-177"
 }
 
 resource "aws_lambda_function" "explain" {
