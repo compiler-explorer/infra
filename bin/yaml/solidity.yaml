@@ -67,6 +67,7 @@ compilers:
     url: https://github.com/paritytech/revive/releases/download/v{{name}}/resolc-x86_64-unknown-linux-musl
     filename: resolc
     check_exe: resolc --version
+    # Use the last supported solc version per target.
     targets:
       - name: 0.4.0
         depends:
