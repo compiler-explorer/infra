@@ -204,6 +204,8 @@ class TarballInstallable(Installable):
         self.sha256 = parse_sha256(self.config.get("sha256"))
         self.is_zip = self.config_get("compression") == "zip"
         if self.is_zip:
+            if is_windows():
+                raise RuntimeError(f"{self.name}: zip compression is not supported on Windows, use type: ziparchive")
             if self.config_get("strip_components", 0) or self.config_get("extract_only", ""):
                 raise RuntimeError(f"{self.name}: strip_components and extract_only are not supported for zip")
             decompress_flag = None
@@ -270,11 +272,7 @@ class TarballInstallable(Installable):
         with zip_path.open("wb") as fd:
             self.install_context.fetch_to(f"{self.url}", fd, sha256=self.sha256)
         self.install_context.stage_subdir(staging, self.untar_to)
-        if is_windows():
-            unzip_cmd = ["tar", "-xf", str(zip_path), "-C", self.untar_to]
-        else:
-            unzip_cmd = ["unzip", "-q", str(zip_path), "-d", self.untar_to]
-        self.install_context.stage_command(staging, unzip_cmd)
+        self.install_context.stage_command(staging, ["unzip", "-q", str(zip_path), "-d", self.untar_to])
         zip_path.unlink()
 
     def verify(self) -> bool:

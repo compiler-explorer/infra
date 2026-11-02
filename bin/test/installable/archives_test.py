@@ -247,3 +247,9 @@ def test_rest_query_with_zip_compression_unzips_the_resolved_url(tmp_path):
 
     assert context.fetch_to.call_args.args[0] == "https://x/t.zip"
     assert (tmp_path / "example-trunk" / "bin" / "thing").read_text() == "binary"
+
+
+def test_tarball_with_zip_compression_is_rejected_on_windows(fake_context):
+    with patch("lib.installable.archives.is_windows", return_value=True):
+        with pytest.raises(RuntimeError, match="use type: ziparchive"):
+            TarballInstallable(fake_context, tarball_config(compression="zip"))
