@@ -372,17 +372,16 @@ def analyze_git_diff(yaml_dir: Path, base_ref: str = "origin/main") -> AnalysisR
         except subprocess.CalledProcessError:
             base_targets = set()
 
-        new_target_keys = set(current_targets.keys()) - base_targets
-
-        for ctx_tuple, target in new_target_keys:
-            result.requires_build.append(
-                Addition(
-                    yaml_file=yaml_file,
-                    context=list(ctx_tuple),
-                    target=target,
-                    installer_type=current_targets[(ctx_tuple, target)],
-                )
+        result.requires_build.extend(
+            Addition(
+                yaml_file=yaml_file,
+                context=list(ctx_tuple),
+                target=target,
+                installer_type=installer_type,
             )
+            for (ctx_tuple, target), installer_type in current_targets.items()
+            if (ctx_tuple, target) not in base_targets
+        )
 
     return result
 
