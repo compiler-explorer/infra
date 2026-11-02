@@ -109,7 +109,7 @@ The following properties are commonly used by installation targets:
 | `if` | Conditional flag to control if the target is included |
 | `s3_path_prefix` | Custom path in S3 storage for S3 installer types |
 | `install_always` | Whether to always install (used for nightlies). Without this, installation tries to be idempotent: the `check_file` or `check_exe` is used to determine if this target is already installed, and if so it is skipped |
-| `compression` | Compression format for archive types (e.g., `gz`, `bz2`, `xz`) |
+| `compression` | Compression format for archive types: `gz`, `bz2`, `xz`, `zstd`, `tar`, or `zip` (`zip` is downloaded then unpacked, so it does not support `strip_components` or `extract_only`) |
 | `untar_dir` | Directory name when extracting archives |
 | `create_untar_dir` | Whether to create the untar directory if it doesn't exist |
 | `strip_components` | Number of leading path components to strip when extracting |

@@ -202,7 +202,14 @@ class TarballInstallable(Installable):
             self.untar_to = "."
         self.url = self.config_get("url")
         self.sha256 = parse_sha256(self.config.get("sha256"))
-        if self.config_get("compression") == "xz":
+        self.is_zip = self.config_get("compression") == "zip"
+        if self.is_zip:
+            if is_windows():
+                raise RuntimeError(f"{self.name}: zip compression is not supported on Windows, use type: ziparchive")
+            if self.config_get("strip_components", 0) or self.config_get("extract_only", ""):
+                raise RuntimeError(f"{self.name}: strip_components and extract_only are not supported for zip")
+            decompress_flag = None
+        elif self.config_get("compression") == "xz":
             decompress_flag = "J"
         elif self.config_get("compression") == "gz":
             decompress_flag = "z"
@@ -215,7 +222,9 @@ class TarballInstallable(Installable):
         else:
             raise RuntimeError(f"Unknown compression {self.config_get('compression')}")
         self.configure_command = command_config(self.config_get("configure_command", []))
-        if is_windows() and decompress_flag == "J":
+        if decompress_flag is None:
+            self.tar_cmd = []
+        elif is_windows() and decompress_flag == "J":
             self.tar_cmd = ["7z", "x"]
         elif is_windows() and decompress_flag == "j":
             self.tar_cmd = ["7z", "x"]
@@ -243,9 +252,12 @@ class TarballInstallable(Installable):
         self.num_to_keep = self.config_get("num_to_keep", 5)
 
     def stage(self, staging: StagingDir) -> None:
-        self.install_context.fetch_url_and_pipe_to(
-            staging, f"{self.url}", self.tar_cmd, self.untar_to, sha256=self.sha256
-        )
+        if self.is_zip:
+            self._fetch_and_unzip(staging)
+        else:
+            self.install_context.fetch_url_and_pipe_to(
+                staging, f"{self.url}", self.tar_cmd, self.untar_to, sha256=self.sha256
+            )
         if self.configure_command:
             self.install_context.stage_command(staging, self.configure_command)
         if self.strip:
@@ -253,6 +265,15 @@ class TarballInstallable(Installable):
         if not (staging.path / self.untar_path).is_dir():
             raise RuntimeError(f"After unpacking, {self.untar_path} was not a directory")
         self.install_context.run_script(staging, staging.path / self.untar_to, self.after_stage_script)
+
+    def _fetch_and_unzip(self, staging: StagingDir) -> None:
+        # unzip can't read from a pipe, so download to a file first.
+        zip_path = staging.path / "distribution.zip"
+        with zip_path.open("wb") as fd:
+            self.install_context.fetch_to(f"{self.url}", fd, sha256=self.sha256)
+        self.install_context.stage_subdir(staging, self.untar_to)
+        self.install_context.stage_command(staging, ["unzip", "-q", str(zip_path), "-d", self.untar_to])
+        zip_path.unlink()
 
     def verify(self) -> bool:
         if not super().verify():
