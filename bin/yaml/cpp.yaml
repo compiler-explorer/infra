@@ -1394,6 +1394,19 @@ compilers:
         - 14.0.0
         - 14.0.5
         - 16.0.0
+    ecpps:
+      if: nightly
+      type: restQueryTarballs
+      install_always: true
+      compression: zip
+      dir: ecpps-{{name}}
+      create_untar_dir: true
+      check_exe: bin/ecpps /version
+      url: https://api.github.com/repos/ECPPS/ECPPS/releases
+      query: |
+        [a['browser_download_url'] for r in document if r['tag_name'].startswith('nightly-') for a in r['assets'] if a['name'] == 'ecpps-linux-x64-clang-ubuntu24.zip'][0]
+      targets:
+        - trunk
     tinycc:
       type: s3tarballs
       dir: "tinycc-{{name}}"
