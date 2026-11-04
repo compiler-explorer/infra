@@ -1695,6 +1695,14 @@ libraries:
         targets:
         - trunk
         type: gitlab
+      boost_prometheus:
+        build_type: none
+        check_file: include/boost/prometheus/counter.hpp
+        method: nightlyclone
+        repo: vsoulgard/boost-prometheus
+        targets:
+        - trunk
+        type: github
       brigand:
         build_type: none
         check_file: README.md
