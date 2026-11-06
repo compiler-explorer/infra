@@ -95,3 +95,16 @@ compilers:
       - name: 27.0.0
         url: https://download.java.net/java/GA/jdk27/55ce5470a6294008af0057ff4626d0e5/35/GPL/openjdk-27_linux-x64_bin.tar.gz
         untar_dir: jdk-27
+  tornadovm:
+    type: tarballs
+    compression: gz
+    dir: tornadovm-{{name}}
+    untar_dir: tornadovm-{{name}}-full
+    url: https://github.com/beehive-lab/TornadoVM/releases/download/v{{name}}/tornadovm-{{name}}-jdk22plus-full-linux-amd64.tar.gz
+    depends:
+      - compilers/java 25.0.2
+    check_env:
+      - JAVA_HOME=%DEP0%
+    check_exe: bin/tc --version
+    targets:
+      - 8.1.0
