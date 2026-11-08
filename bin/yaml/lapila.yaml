@@ -1,0 +1,11 @@
+compilers:
+  lapila:
+    type: tarballs
+    compression: gz
+    url: https://github.com/dj-lumiere/Lapila/releases/download/v{{name}}/lapila-{{name}}-linux-x64.tar.gz
+    create_untar_dir: true
+    strip_components: 1
+    dir: lapila-{{name}}
+    check_exe: lapila version
+    targets:
+      - 0.5.0
