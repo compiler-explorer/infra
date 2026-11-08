@@ -315,6 +315,21 @@ libraries:
         - name: 1.0.0
           target_prefix: ''
         - 1.1.0
+      beman_big_int:
+        build_type: cmake
+        extra_cmake_arg:
+        - -DBEMAN_BIG_INT_BUILD_TESTS=OFF
+        - -DBEMAN_BIG_INT_BUILD_EXAMPLES=OFF
+        - -DBEMAN_BIG_INT_BUILD_BENCHMARKS=OFF
+        - -DBEMAN_BIG_INT_BUILD_MODULE=OFF
+        lib_type: static
+        package_install: true
+        staticliblink:
+        - beman.big_int
+        target_prefix: v
+        targets:
+        - 0.1.0
+        - 0.1.1
       beman_cache_latest:
         targets:
         - 0.1.0
@@ -1546,6 +1561,19 @@ libraries:
         beman_any_view:
           targets:
           - main
+      beman_big_int:
+        build_type: cmake
+        extra_cmake_arg:
+        - -DBEMAN_BIG_INT_BUILD_TESTS=OFF
+        - -DBEMAN_BIG_INT_BUILD_EXAMPLES=OFF
+        - -DBEMAN_BIG_INT_BUILD_BENCHMARKS=OFF
+        - -DBEMAN_BIG_INT_BUILD_MODULE=OFF
+        lib_type: static
+        package_install: true
+        staticliblink:
+        - beman.big_int
+        targets:
+        - main
         beman_at_most:
           targets:
           - main
