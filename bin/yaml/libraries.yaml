@@ -3662,6 +3662,11 @@ libraries:
       targets:
       - 0.7.2
       type: cratesio
+    arrow:
+      build_type: cargo
+      targets:
+      - 57.3.2
+      type: cratesio
     atty:
       build_type: cargo
       targets:
