@@ -2850,6 +2850,16 @@ libraries:
         method: nightlybranch
         name: v2
       type: github
+    rjk_duck:
+      build_type: cmake
+      check_file: include/rjk/duck.hpp
+      lib_type: headeronly
+      package_install: true
+      repo: RyanJK5/rjk-duck
+      target_prefix: v
+      targets:
+      - 0.2.3
+      type: github
     rsl:
       build_type: none
       check_file: README.md
