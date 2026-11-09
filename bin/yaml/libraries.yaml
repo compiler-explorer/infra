@@ -4101,6 +4101,11 @@ libraries:
       - 1.0.39
       - 1.0.95
       type: cratesio
+    pulp:
+      build_type: cargo
+      targets:
+      - 0.22.3
+      type: cratesio
     quote:
       build_type: cargo
       targets:
