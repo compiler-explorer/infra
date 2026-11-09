@@ -4168,6 +4168,11 @@ libraries:
       - 1.0.10
       - 1.0.20
       type: cratesio
+    safe_arch:
+      build_type: cargo
+      targets:
+      - 0.9.3
+      type: cratesio
     scopeguard:
       build_type: cargo
       targets:
