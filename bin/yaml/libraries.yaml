@@ -3839,6 +3839,11 @@ libraries:
       targets:
       - 0.6.8
       type: cratesio
+    faer:
+      build_type: cargo
+      targets:
+      - 0.24.4
+      type: cratesio
     fastrand:
       build_type: cargo
       targets:
