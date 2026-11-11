@@ -3896,6 +3896,11 @@ libraries:
       - 0.2.6
       - 0.3.3
       type: cratesio
+    glam:
+      build_type: cargo
+      targets:
+      - 0.34.3
+      type: cratesio
     h2:
       build_type: cargo
       targets:
