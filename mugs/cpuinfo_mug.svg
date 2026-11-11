@@ -1,0 +1,129 @@
+<svg width="1400" height="1000" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="1000" fill="transparent"/>
+  <text x="700" y="108" font-family="DejaVu Sans Mono" font-size="64" font-weight="bold" fill="#67c52a" text-anchor="middle">$ cat /proc/cpuinfo</text>
+  <text x="44" y="165" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">Decode</text>
+  <rect x="44" y="170" width="105" height="3" fill="#67c52a"/>
+  <text x="44" y="205" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">1 vendor_id</text>
+  <text x="257" y="205" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">GenuineIntel/AuthenticAMD</text>
+  <text x="44" y="237" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">2 cpu family</text>
+  <text x="257" y="237" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Intel 6 (new: 18, 19)</text>
+  <text x="44" y="269" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">3 flags</text>
+  <text x="257" y="269" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">avx2 v3, avx512bw v4</text>
+  <text x="44" y="301" font-family="DejaVu Sans Mono" font-size="27" fill="#000000" font-style="italic">model name lies; VMs may fake all</text>
+  <text x="44" y="354" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">Intel family 6 · model (dec)</text>
+  <rect x="44" y="360" width="489" height="3" fill="#67c52a"/>
+  <text x="44" y="395" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">60 63 69 70</text>
+  <text x="241" y="395" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Haswell</text>
+  <text x="438" y="395" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">client, EP</text>
+  <text x="44" y="426" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">61 71 79 86</text>
+  <text x="241" y="426" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Broadwell</text>
+  <text x="438" y="426" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">client, EP</text>
+  <text x="44" y="458" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">78 94</text>
+  <text x="241" y="458" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Skylake</text>
+  <text x="438" y="458" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">client</text>
+  <text x="44" y="490" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">85</text>
+  <text x="241" y="490" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Skylake</text>
+  <text x="438" y="490" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Xeon, Core-X</text>
+  <text x="44" y="522" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">85 +vnni</text>
+  <text x="241" y="522" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Skylake</text>
+  <text x="438" y="522" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Cascade/Cooper</text>
+  <text x="44" y="554" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">106 108</text>
+  <text x="241" y="554" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Sunny Cove</text>
+  <text x="438" y="554" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Ice Lake-SP/D</text>
+  <text x="44" y="586" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">122</text>
+  <text x="241" y="586" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Goldmont+</text>
+  <text x="438" y="586" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Gemini Lake</text>
+  <text x="44" y="618" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">125 126</text>
+  <text x="241" y="618" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Sunny Cove</text>
+  <text x="438" y="618" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Ice Lake</text>
+  <text x="44" y="649" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">140 141</text>
+  <text x="241" y="649" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Willow Cove</text>
+  <text x="438" y="649" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Tiger Lake</text>
+  <text x="44" y="681" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">142</text>
+  <text x="241" y="681" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Skylake</text>
+  <text x="438" y="681" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Kaby…Comet-U</text>
+  <text x="44" y="735" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">ARM64 · impl 0x41 · part</text>
+  <rect x="44" y="740" width="419" height="3" fill="#67c52a"/>
+  <text x="44" y="775" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">0xd08</text>
+  <text x="143" y="775" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Cortex-A72</text>
+  <text x="340" y="775" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Pi 4, Graviton1</text>
+  <text x="44" y="807" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">0xd0b</text>
+  <text x="143" y="807" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Cortex-A76</text>
+  <text x="340" y="807" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Pi 5</text>
+  <text x="44" y="839" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">0xd0c</text>
+  <text x="143" y="839" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Neoverse N1</text>
+  <text x="340" y="839" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Graviton2, Altra</text>
+  <text x="44" y="871" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">0xd40</text>
+  <text x="143" y="871" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Neoverse V1</text>
+  <text x="340" y="871" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Graviton3</text>
+  <text x="44" y="903" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">0xd4f</text>
+  <text x="143" y="903" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Neoverse V2</text>
+  <text x="340" y="903" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Graviton4, Grace</text>
+  <text x="724" y="165" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">Intel family 6, cont.</text>
+  <rect x="724" y="170" width="367" height="3" fill="#67c52a"/>
+  <text x="724" y="205" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">143</text>
+  <text x="856" y="205" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Golden Cove</text>
+  <text x="1069" y="205" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Sapphire R.</text>
+  <text x="724" y="237" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">151 154</text>
+  <text x="856" y="237" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Golden Cove</text>
+  <text x="1069" y="237" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Alder Lake*</text>
+  <text x="724" y="269" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">156</text>
+  <text x="856" y="269" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Tremont</text>
+  <text x="1069" y="269" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Jasper Lake</text>
+  <text x="724" y="301" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">158</text>
+  <text x="856" y="301" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Skylake</text>
+  <text x="1069" y="301" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Coffee Lake</text>
+  <text x="724" y="332" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">165 166</text>
+  <text x="856" y="332" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Skylake</text>
+  <text x="1069" y="332" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Comet Lake</text>
+  <text x="724" y="364" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">167</text>
+  <text x="856" y="364" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Cypress Cove</text>
+  <text x="1069" y="364" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Rocket Lake</text>
+  <text x="724" y="396" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">170 172</text>
+  <text x="856" y="396" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Redwood Cove</text>
+  <text x="1069" y="396" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Meteor Lake*</text>
+  <text x="724" y="428" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">173 174</text>
+  <text x="856" y="428" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Redwood Cove</text>
+  <text x="1069" y="428" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Granite R.</text>
+  <text x="724" y="460" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">183 186</text>
+  <text x="856" y="460" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Raptor Cove</text>
+  <text x="1069" y="460" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Raptor Lake*</text>
+  <text x="724" y="492" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">189</text>
+  <text x="856" y="492" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Lion Cove</text>
+  <text x="1069" y="492" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Lunar Lake*</text>
+  <text x="724" y="524" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">190</text>
+  <text x="856" y="524" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Gracemont</text>
+  <text x="1069" y="524" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Alder Lake-N</text>
+  <text x="724" y="556" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">191</text>
+  <text x="856" y="556" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Raptor Cove</text>
+  <text x="1069" y="556" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Raptor Lake*</text>
+  <text x="724" y="587" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">197 198</text>
+  <text x="856" y="587" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Lion Cove</text>
+  <text x="1069" y="587" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Arrow Lake*</text>
+  <text x="724" y="619" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">204</text>
+  <text x="856" y="619" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Cougar Cove</text>
+  <text x="1069" y="619" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Panther Lake*</text>
+  <text x="724" y="651" font-family="DejaVu Sans Mono" font-size="27" fill="#000000" font-style="italic">* hybrid die (some P-only)</text>
+  <text x="724" y="705" font-family="DejaVu Sans Mono" font-size="29" font-weight="bold" fill="#67c52a">AMD family · model</text>
+  <rect x="724" y="710" width="314" height="3" fill="#67c52a"/>
+  <text x="724" y="745" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">23 · &lt;48 80-95</text>
+  <text x="1035" y="745" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Zen, Zen+</text>
+  <text x="1199" y="745" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Naples 1</text>
+  <text x="724" y="777" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">23 · else</text>
+  <text x="1035" y="777" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Zen 2</text>
+  <text x="1199" y="777" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Rome 49</text>
+  <text x="724" y="809" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">25 · &lt;16 32-95</text>
+  <text x="1035" y="809" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Zen 3</text>
+  <text x="1199" y="809" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Milan 1</text>
+  <text x="724" y="841" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">25 · else</text>
+  <text x="1035" y="841" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Zen 4</text>
+  <text x="1199" y="841" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Genoa 17</text>
+  <text x="724" y="872" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">26 · 80-95 128-207</text>
+  <text x="1035" y="872" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Zen 6</text>
+  <text x="1199" y="872" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Venice</text>
+  <text x="724" y="904" font-family="DejaVu Sans Mono" font-size="27" font-weight="bold" fill="#67c52a">26 · else</text>
+  <text x="1035" y="904" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Zen 5</text>
+  <text x="1199" y="904" font-family="DejaVu Sans Mono" font-size="27" font-weight="normal" fill="#000000">Turin 2</text>
+  <rect x="700" y="136" width="3" height="773" fill="#bbbbbb"/>
+  <text x="700" y="982" font-family="DejaVu Sans Mono" font-size="26" fill="#000000" opacity="0.6" font-style="italic" text-anchor="middle">Compiler Explorer</text>
+</svg>
