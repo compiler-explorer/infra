@@ -2254,6 +2254,14 @@ libraries:
         targets:
         - trunk
         type: github
+      polyfloat:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: jfalcou/polyfloat
+        targets:
+        - trunk
+        type: github
       proxy:
         build_type: cmake
         check_file: README.md
