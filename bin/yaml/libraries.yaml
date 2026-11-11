@@ -249,6 +249,13 @@ libraries:
       - '20250127.0'
       - '20260107.1'
       type: github
+    aerobus:
+      check_file: README.md
+      repo: aerobus-open-source/aerobus
+      target_prefix: v
+      targets:
+      - 2.0.0
+      type: github
     anyxx:
       check_file: bit_factory/anyxx.hpp
       repo: bitfactory-software/anyxx
