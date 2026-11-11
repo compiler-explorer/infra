@@ -1047,6 +1047,7 @@ libraries:
       targets:
       - 1.0.0
       - 1.0.1
+      - 2.0.0
       type: github
     hfsm:
       check_file: README.md
