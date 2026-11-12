@@ -249,6 +249,13 @@ libraries:
       - '20250127.0'
       - '20260107.1'
       type: github
+    aerobus:
+      check_file: README.md
+      repo: aerobus-open-source/aerobus
+      target_prefix: v
+      targets:
+      - 2.0.0
+      type: github
     anyxx:
       check_file: bit_factory/anyxx.hpp
       repo: bitfactory-software/anyxx
@@ -1696,6 +1703,14 @@ libraries:
         targets:
         - trunk
         type: gitlab
+      boost_prometheus:
+        build_type: none
+        check_file: include/boost/prometheus/counter.hpp
+        method: nightlyclone
+        repo: vsoulgard/boost-prometheus
+        targets:
+        - trunk
+        type: github
       brigand:
         build_type: none
         check_file: README.md
@@ -2252,6 +2267,14 @@ libraries:
         method: nightlyclone
         path_name: libs/pipes
         repo: joboccara/pipes
+        targets:
+        - trunk
+        type: github
+      polyfloat:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: jfalcou/polyfloat
         targets:
         - trunk
         type: github
@@ -3663,6 +3686,14 @@ libraries:
       targets:
       - 0.7.2
       type: cratesio
+    arrow:
+      build_type: cargo
+      targets:
+      - 57.3.2
+      - 58.4.1
+      - 59.3.2
+      - 60.1.0
+      type: cratesio
     atty:
       build_type: cargo
       targets:
@@ -3812,6 +3843,11 @@ libraries:
       targets:
       - 0.6.8
       type: cratesio
+    faer:
+      build_type: cargo
+      targets:
+      - 0.24.4
+      type: cratesio
     fastrand:
       build_type: cargo
       targets:
@@ -3873,6 +3909,15 @@ libraries:
       targets:
       - 0.2.6
       - 0.3.3
+      type: cratesio
+    glam:
+      build_type: cargo
+      targets:
+      - 0.30.10
+      - 0.31.1
+      - 0.32.1
+      - 0.33.12
+      - 0.34.3
       type: cratesio
     h2:
       build_type: cargo
@@ -4102,6 +4147,12 @@ libraries:
       - 1.0.39
       - 1.0.95
       type: cratesio
+    pulp:
+      build_type: cargo
+      targets:
+      - 0.21.5
+      - 0.22.3
+      type: cratesio
     quote:
       build_type: cargo
       targets:
@@ -4168,6 +4219,12 @@ libraries:
       targets:
       - 1.0.10
       - 1.0.20
+      type: cratesio
+    safe_arch:
+      build_type: cargo
+      targets:
+      - 0.9.3
+      - 1.2.0
       type: cratesio
     scopeguard:
       build_type: cargo
