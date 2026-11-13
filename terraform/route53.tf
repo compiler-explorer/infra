@@ -335,22 +335,3 @@ module "godbo-lt" {
   cloudfront_distribution = aws_cloudfront_distribution.godbo-lt
   certificate             = aws_acm_certificate.godbolt-org-et-al
 }
-
-
-////////////////////////////////////////////////////
-
-# Route 53 hosted zone for godbolt.net (not active yet, just transferred)
-resource "aws_route53_zone" "godbolt-net" {
-  name    = "godbolt.net"
-  comment = "godbolt.net domain"
-}
-
-# godbolt.net is not part of Compiler Explorer: the registration moved to a personal AWS account and is managed
-# there. Forget it here without touching the domain.
-removed {
-  from = aws_route53domains_registered_domain.godbolt-net
-
-  lifecycle {
-    destroy = false
-  }
-}
