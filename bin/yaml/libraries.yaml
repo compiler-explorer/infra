@@ -2321,7 +2321,7 @@ libraries:
         build_type: none
         check_file: include/rl_option.hpp
         method: nightlyclone
-        repo: valkyrieAttr/rl-option
+        repo: valkyrieAttr/RLOption
         targets:
         - trunk
         type: github
