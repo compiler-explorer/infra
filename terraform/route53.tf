@@ -345,13 +345,12 @@ resource "aws_route53_zone" "godbolt-net" {
   comment = "godbolt.net domain"
 }
 
-resource "aws_route53domains_registered_domain" "godbolt-net" {
-  domain_name = "godbolt.net"
+# godbolt.net is not part of Compiler Explorer: the registration moved to a personal AWS account and is managed
+# there. Forget it here without touching the domain.
+removed {
+  from = aws_route53domains_registered_domain.godbolt-net
 
-  dynamic "name_server" {
-    for_each = toset(aws_route53_zone.godbolt-net.name_servers)
-    content {
-      name = name_server.value
-    }
+  lifecycle {
+    destroy = false
   }
 }
