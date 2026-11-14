@@ -1249,6 +1249,9 @@ compilers:
           - name: 5.2.0
             major: 5
             minor: 2
+          - name: 6.0.0
+            major: 6
+            minor: 0
     plugins:
       clad:
         path_name: clang-plugins/clad-{{name}}
