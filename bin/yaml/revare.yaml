@@ -1,0 +1,11 @@
+compilers:
+  revare:
+    type: tarballs
+    compression: gz
+    url: https://github.com/dj-lumiere/Revare/releases/download/v{{name}}/revare-v{{name}}-linux-x64.tar.gz
+    create_untar_dir: true
+    strip_components: 1
+    dir: revare-{{name}}
+    check_exe: Revare version
+    targets:
+      - 0.5.0
