@@ -2319,6 +2319,14 @@ libraries:
         targets:
         - trunk
         type: github
+      rl_option:
+        build_type: none
+        check_file: include/rl_option.hpp
+        method: nightlyclone
+        repo: valkyrieAttr/RLOption
+        targets:
+        - trunk
+        type: github
       seastar:
         build_type: none
         check_file: README.md
