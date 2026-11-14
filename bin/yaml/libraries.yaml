@@ -2328,10 +2328,52 @@ libraries:
         - trunk
         type: github
       seastar:
-        build_type: none
+        # Seastar's dependencies aren't on the builder or CE's hosts, so build-deps.sh
+        # builds them statically into the install prefix and they ship in the package.
+        build_fixed_arch: x86_64
+        build_type: cmake
         check_file: README.md
+        extra_cmake_arg:
+        - -DCMAKE_BUILD_TYPE=Release
+        - -DCMAKE_PREFIX_PATH="$SEASTAR_PREFIX"
+        - -DCMAKE_CXX_STANDARD=23
+        - -DBUILD_SHARED_LIBS=OFF
+        - -DSeastar_APPS=OFF
+        - -DSeastar_DEMOS=OFF
+        - -DSeastar_DOCS=OFF
+        - -DSeastar_TESTING=OFF
+        - -DSeastar_DPDK=OFF
+        - -DSeastar_HWLOC=OFF
+        - -DSeastar_IO_URING=OFF
+        - -DSeastar_LTTNG=OFF
+        # seastar_testing is always built when installing; it expects a shared Boost.Test.
+        - '"-DSeastar_CXX_FLAGS=-Wno-error;-DBOOST_TEST_ALTERNATIVE_INIT_API"'
+        lib_type: static
+        make_targets:
+        - all
         method: nightlyclone
+        package_install: true
+        postbuild_script:
+        - rm -rf ../install/bin ../install/tools ../install/share ../install/include/boost
+        - rm -f ../install/lib/libprotoc.a ../install/lib/libboost_*test*.a ../install/lib/libboost_prg_exec_monitor.a ../install/lib/libseastar_*testing.a
+        prebuild_script:
+        - SEASTAR_PREFIX="$(cd .. && pwd)/install"
+        - rm -rf "$SEASTAR_PREFIX"
+        - CXXFLAGS="%cxxflags%" CFLAGS="%cflags%" bash {{yaml_dir}}/seastar/build-deps.sh "$SEASTAR_PREFIX" > cedepslog.txt 2>&1 || { echo 'seastar build-deps.sh failed:' >&2; tail -100 cedepslog.txt >&2; exit 1; }
+        - export PATH="$SEASTAR_PREFIX/tools/bin:$PATH" PKG_CONFIG_PATH="$SEASTAR_PREFIX/lib/pkgconfig"
+        - export CXXFLAGS="%cxxflags% -isystem $SEASTAR_PREFIX/tools/include" CFLAGS="%cflags%"
         repo: scylladb/seastar
+        staticliblink:
+        - seastar
+        - boost_program_options
+        - cares
+        - fmt
+        - lz4
+        - yaml-cpp
+        - protobuf
+        - sctp
+        - ssl
+        - crypto
         targets:
         - trunk
         type: github

@@ -785,6 +785,50 @@ def test_expand_make_arg(requests_mock):
     assert result == "-DARCH=x86_64 -DBUILD=Debug -DSTD=c++17"
 
 
+def test_expand_build_script_line_cxxflags_and_cflags(requests_mock):
+    requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_test_build_config()
+    builder = LibraryBuilder(
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+    )
+
+    line = 'CXXFLAGS="%cxxflags%" CFLAGS="%cflags%" ./build-deps.sh %compiler%'
+    result = builder.expand_build_script_line(
+        line,
+        "Linux",
+        "Debug",
+        "clang",
+        "clang2110",
+        "/opt/compiler-explorer/clang-21.1.0/bin/clang++",
+        "libc++",
+        "x86_64",
+        "",
+        "",
+        " --gcc-toolchain=/opt/gcc   -stdlib=libc++ ",
+        "--gcc-toolchain=/opt/gcc  ",
+    )
+    assert result == (
+        'CXXFLAGS="--gcc-toolchain=/opt/gcc   -stdlib=libc++" CFLAGS="--gcc-toolchain=/opt/gcc" ./build-deps.sh clang2110'
+    )
+
+
+def test_expand_build_script_line_flags_default_to_empty(requests_mock):
+    requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
+    logger = mock.Mock(spec_set=Logger)
+    install_context = mock.Mock(spec_set=InstallationContext)
+    build_config = create_test_build_config()
+    builder = LibraryBuilder(
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+    )
+
+    result = builder.expand_build_script_line(
+        'echo "%cxxflags%"', "Linux", "Debug", "gcc", "g153", "/opt/g++", "libstdc++", "x86_64", "", ""
+    )
+    assert result == 'echo ""'
+
+
 SEARCH_URL = "https://conan.compiler-explorer.com/v1/conans/testlib/1.0.0/testlib/1.0.0/search"
 
 
