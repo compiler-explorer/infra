@@ -718,7 +718,19 @@ class LibraryBuilder:
         return expanded
 
     def expand_build_script_line(
-        self, line: str, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags
+        self,
+        line: str,
+        buildos,
+        buildtype,
+        compilerTypeOrGcc,
+        compiler,
+        compilerexe,
+        libcxx,
+        arch,
+        stdver,
+        extraflags,
+        cxxflags="",
+        cflags="",
     ):
         expanded = line
 
@@ -731,6 +743,8 @@ class LibraryBuilder:
         expanded = self.replace_optional_arg(expanded, "arch", arch)
         expanded = self.replace_optional_arg(expanded, "stdver", stdver)
         expanded = self.replace_optional_arg(expanded, "extraflags", extraflags)
+        expanded = self.replace_optional_arg(expanded, "cxxflags", cxxflags.strip())
+        expanded = self.replace_optional_arg(expanded, "cflags", cflags.strip())
 
         return expanded
 
@@ -1036,6 +1050,8 @@ class LibraryBuilder:
                         arch,
                         stdver,
                         extraflags,
+                        cxx_flags,
+                        c_flags,
                     )
                     f.write(f"{expanded_line}\n")
 
@@ -1201,7 +1217,18 @@ class LibraryBuilder:
 
             for line in self.buildconfig.postbuild_script:
                 expanded_line = self.expand_build_script_line(
-                    line, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags
+                    line,
+                    buildos,
+                    buildtype,
+                    compilerTypeOrGcc,
+                    compiler,
+                    compilerexe,
+                    libcxx,
+                    arch,
+                    stdver,
+                    extraflags,
+                    cxx_flags,
+                    c_flags,
                 )
                 f.write(f"{expanded_line}\n")
 

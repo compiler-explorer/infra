@@ -283,6 +283,8 @@ Build-time variable expansion is available in `prebuild_script` and
 | `%buildos%` | Build OS (`Linux` or `Windows`) |
 | `%buildtype%` | Build configuration (Release/Debug) |
 | `%extraflags%` | Extra flags collection for this build |
+| `%cxxflags%` | Full C++ flags the builder passes to CMake for this build (compiler options such as `--gcc-toolchain`, arch, std and stdlib flags) |
+| `%cflags%` | The C equivalent of `%cxxflags%` |
 
 Writing a variable as `%name?%` makes the whole line conditional: if the value is
 empty, the line is dropped from the generated build script instead of expanding
