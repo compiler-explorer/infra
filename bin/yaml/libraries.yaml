@@ -2853,7 +2853,7 @@ libraries:
     rjk_duck:
       build_type: cmake
       check_file: include/rjk/duck.hpp
-      lib_type: headeronly
+      lib_type: cmake_built_headeronly
       package_install: true
       repo: RyanJK5/rjk-duck
       target_prefix: v
