@@ -114,7 +114,8 @@ compilers:
       - name: 3.5.1
         url: https://github.com/scala/scala3/releases/download/3.5.1/scala3-3.5.1.tar.gz
         dir: scala3-{{name}}
-        depends: compilers/java 21.0.0
+        depends: 
+         - compilers/java 21.0.0
       - name: 3.5.2
         url: https://github.com/scala/scala3/releases/download/3.5.2/scala3-3.5.2.tar.gz
         dir: scala3-{{name}}
