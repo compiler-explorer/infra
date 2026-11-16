@@ -75,6 +75,9 @@ compilers:
       - name: 3.6.2
         url: https://github.com/lampepfl/dotty/releases/download/3.6.2/scala3-3.6.2.tar.gz
         dir: scala3-{{name}}
+      - name: 3.6.3
+        url: https://github.com/scala/scala3/releases/download/3.6.3/scala3-3.6.3.tar.gz
+        dir: scala3-{{name}}
       - name: 3.6.4
         url: https://github.com/lampepfl/dotty/releases/download/3.6.4/scala3-3.6.4.tar.gz
         dir: scala3-{{name}}
