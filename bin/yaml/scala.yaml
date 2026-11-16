@@ -12,23 +12,23 @@ compilers:
     targets:
       - name: 2.12.14
         url: https://github.com/scala/scala/releases/download/v2.12.14/scala-2.12.14.tgz
-        depends: 
+        depends:
          - compilers/java 16.0.1
       - name: 2.12.20
         url: https://github.com/scala/scala/releases/download/v2.12.20/scala-2.12.20.tgz
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 2.13.6
         url: https://github.com/scala/scala/releases/download/v2.13.6/scala-2.13.6.tgz
-        depends: 
+        depends:
          - compilers/java 16.0.1
       - name: 2.13.15
         url: https://github.com/scala/scala/releases/download/v2.13.15/scala-2.13.15.tgz
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 2.13.16
         url: https://github.com/scala/scala/releases/download/v2.13.16/scala-2.13.16.tgz
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 2.13.17
         url: https://github.com/scala/scala/releases/download/v2.13.17/scala-2.13.17.tgz
@@ -37,42 +37,42 @@ compilers:
       - name: 3.0.0
         url: https://github.com/scala/scala3/releases/download/3.0.0/scala3-3.0.0.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 16.0.1
       - name: 3.1.0
         url: https://github.com/lampepfl/dotty/releases/download/3.1.0/scala3-3.1.0.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.2.0
         url: https://github.com/lampepfl/dotty/releases/download/3.2.0/scala3-3.2.0.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.3.0
         url: https://github.com/lampepfl/dotty/releases/download/3.3.0/scala3-3.3.0.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.3.1
         url: https://github.com/scala/scala3/releases/download/3.3.1/scala3-3.3.1.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.3.3
         url: https://github.com/scala/scala3/releases/download/3.3.3/scala3-3.3.3.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.3.4
         url: https://github.com/lampepfl/dotty/releases/download/3.3.4/scala3-3.3.4.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.3.5
         url: https://github.com/scala/scala3/releases/download/3.3.5/scala3-3.3.5.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.3.6
         url: https://github.com/lampepfl/dotty/releases/download/3.3.6/scala3-3.3.6.tar.gz
@@ -89,52 +89,52 @@ compilers:
       - name: 3.4.0
         url: https://github.com/lampepfl/dotty/releases/download/3.4.0/scala3-3.4.0.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.4.1
         url: https://github.com/scala/scala3/releases/download/3.4.1/scala3-3.4.1.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.4.2
         url: https://github.com/scala/scala3/releases/download/3.4.2/scala3-3.4.2.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.4.3
         url: https://github.com/scala/scala3/releases/download/3.4.3/scala3-3.4.3.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.5.0
         url: https://github.com/lampepfl/dotty/releases/download/3.5.0/scala3-3.5.0.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.5.1
         url: https://github.com/scala/scala3/releases/download/3.5.1/scala3-3.5.1.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.5.2
         url: https://github.com/scala/scala3/releases/download/3.5.2/scala3-3.5.2.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.6.2
         url: https://github.com/lampepfl/dotty/releases/download/3.6.2/scala3-3.6.2.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.6.3
         url: https://github.com/scala/scala3/releases/download/3.6.3/scala3-3.6.3.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.6.4
         url: https://github.com/lampepfl/dotty/releases/download/3.6.4/scala3-3.6.4.tar.gz
         dir: scala3-{{name}}
-        depends: 
+        depends:
          - compilers/java 21.0.2
       - name: 3.7.1
         url: https://github.com/lampepfl/dotty/releases/download/3.7.1/scala3-3.7.1.tar.gz
