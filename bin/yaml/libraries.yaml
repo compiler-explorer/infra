@@ -336,7 +336,6 @@ libraries:
         - beman.big_int
         target_prefix: v
         targets:
-        - 0.1.0
         - 0.1.1
       beman_cache_latest:
         targets:
