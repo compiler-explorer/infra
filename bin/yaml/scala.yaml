@@ -11,23 +11,23 @@ compilers:
       - JAVA_HOME=%DEP0%
     targets:
       - name: 2.12.14
-        url: https://downloads.lightbend.com/scala/2.12.14/scala-2.12.14.tgz
+        url: https://github.com/scala/scala/releases/download/v2.12.14/scala-2.12.14.tgz
         depends: 
          - compilers/java 16.0.1
       - name: 2.12.20
-        url: https://downloads.lightbend.com/scala/2.12.20/scala-2.12.20.tgz
+        url: https://github.com/scala/scala/releases/download/v2.12.20/scala-2.12.20.tgz
         depends: 
          - compilers/java 21.0.2
       - name: 2.13.6
-        url: https://downloads.lightbend.com/scala/2.13.6/scala-2.13.6.tgz
+        url: https://github.com/scala/scala/releases/download/v2.13.6/scala-2.13.6.tgz
         depends: 
          - compilers/java 16.0.1
       - name: 2.13.15
-        url: https://downloads.lightbend.com/scala/2.13.15/scala-2.13.15.tgz
+        url: https://github.com/scala/scala/releases/download/v2.13.15/scala-2.13.15.tgz
         depends: 
          - compilers/java 21.0.2
       - name: 2.13.16
-        url: https://downloads.lightbend.com/scala/2.13.16/scala-2.13.16.tgz
+        url: https://github.com/scala/scala/releases/download/v2.13.16/scala-2.13.16.tgz
         depends: 
          - compilers/java 21.0.2
       - name: 2.13.17
