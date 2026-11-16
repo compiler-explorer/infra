@@ -36,8 +36,17 @@ compilers:
       - name: 3.3.0
         url: https://github.com/lampepfl/dotty/releases/download/3.3.0/scala3-3.3.0.tar.gz
         dir: scala3-{{name}}
+      - name: 3.3.1
+        url: https://github.com/scala/scala3/releases/download/3.3.1/scala3-3.3.1.tar.gz
+        dir: scala3-{{name}}
+      - name: 3.3.3
+        url: https://github.com/scala/scala3/releases/download/3.3.3/scala3-3.3.3.tar.gz
+        dir: scala3-{{name}}
       - name: 3.3.4
         url: https://github.com/lampepfl/dotty/releases/download/3.3.4/scala3-3.3.4.tar.gz
+        dir: scala3-{{name}}
+      - name: 3.3.5
+        url: https://github.com/scala/scala3/releases/download/3.3.5/scala3-3.3.5.tar.gz
         dir: scala3-{{name}}
       - name: 3.3.6
         url: https://github.com/lampepfl/dotty/releases/download/3.3.6/scala3-3.3.6.tar.gz
