@@ -5,11 +5,13 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+import yaml
 from lib.build_check import (
     BUILD_REQUIRED_TYPES,
     Addition,
     AnalysisResult,
     extract_build_required_targets,
+    extract_build_required_targets_with_config,
     extract_targets_with_context,
     format_result_for_pr_comment,
     get_all_targets_from_yaml,
@@ -562,3 +564,145 @@ class TestHyphenatedPrefixMatch:
         assert params is not None
         assert params.image == "gcc-cross"
         assert params.version == "arm-11.5.0"
+
+
+# Mirrors the shape of compilers/c++/cross/gcc in cpp.yaml: the s3_path_prefix
+# template lives on the gcc group, and nested groups (mips/mips64, avr/newer,
+# arm/arm-unknown) are YAML organisation that doesn't spell out the architecture.
+CROSS_GCC_YAML = """
+compilers:
+  c++:
+    cross:
+      type: s3tarballs
+      gcc:
+        s3_path_prefix: "{{subdir}}-gcc-{{name}}"
+        path_name: "{{subdir}}/gcc-{{name}}"
+        untar_dir: "gcc-{{name}}"
+        subdir: arm
+        arm-wince:
+          subdir: arm-wince
+          s3_path_prefix: "gcc-ce-{{name}}"
+          targets:
+            - 8.2.0
+        arm:
+          - arch_prefix: arm-unknown-linux-gnueabi
+            targets:
+              - 14.4.0
+            arm-unknown:
+              - path_name: "{{subdir}}/gcc-arm-unknown-{{name}}"
+                s3_path_prefix: "arm-unknown-gcc-{{name}}"
+                targets:
+                  - 14.4.0
+        arm64:
+          subdir: arm64
+          targets:
+            - 14.4.0
+        avr:
+          subdir: avr
+          newer:
+            targets:
+              - 14.4.0
+        mips:
+          mips64:
+            subdir: mips64
+            targets:
+              - 14.4.0
+        powerpc:
+          powerpc64le:
+            subdir: powerpc64le
+            targets:
+              - 14.4.0
+              - name: 15.3.0
+"""
+
+
+def _cross_gcc_versions(yaml_text: str) -> dict[str, str]:
+    """Map "<context> <target>" to the generated bespoke-build version for each target."""
+    data = yaml.safe_load(yaml_text)
+    versions = {}
+    for ctx, target, config in extract_build_required_targets_with_config(data):
+        addition = Addition(
+            yaml_file="cpp.yaml", context=ctx, target=target, installer_type=config["type"], config=config
+        )
+        params = addition.get_build_params({"gcc", "gcc-cross", "clang"})
+        assert params is not None
+        assert params.image == "gcc-cross"
+        versions[addition.name] = params.version
+    return versions
+
+
+class TestGccCrossArchitecture:
+    """gcc-cross-builder needs "<ARCHITECTURE> <VERSION>", where ARCHITECTURE is what
+    it names the tarball after, i.e. the expanded s3_path_prefix minus "-gcc-<name>"."""
+
+    def test_nested_groups_use_expanded_architecture(self):
+        versions = _cross_gcc_versions(CROSS_GCC_YAML)
+        assert versions["compilers/c++/cross/gcc/arm 14.4.0"] == "arm 14.4.0"
+        assert versions["compilers/c++/cross/gcc/arm/arm-unknown 14.4.0"] == "arm-unknown 14.4.0"
+        assert versions["compilers/c++/cross/gcc/arm64 14.4.0"] == "arm64 14.4.0"
+        assert versions["compilers/c++/cross/gcc/avr/newer 14.4.0"] == "avr 14.4.0"
+        assert versions["compilers/c++/cross/gcc/mips/mips64 14.4.0"] == "mips64 14.4.0"
+        assert versions["compilers/c++/cross/gcc/powerpc/powerpc64le 14.4.0"] == "powerpc64le 14.4.0"
+        assert versions["compilers/c++/cross/gcc/powerpc/powerpc64le 15.3.0"] == "powerpc64le 15.3.0"
+
+    def test_unrecognised_prefix_falls_back_to_context(self):
+        # arm-wince's artifact isn't named "<arch>-gcc-<name>", so keep the context-derived guess
+        versions = _cross_gcc_versions(CROSS_GCC_YAML)
+        assert versions["compilers/c++/cross/gcc/arm-wince 8.2.0"] == "arm-wince 8.2.0"
+
+    def test_build_command_for_nested_cross(self):
+        addition = Addition(
+            yaml_file="cpp.yaml",
+            context=["compilers", "c++", "cross", "gcc", "mips", "mips64"],
+            target="14.4.0",
+            installer_type="s3tarballs",
+            config={
+                "type": "s3tarballs",
+                "subdir": "mips64",
+                "s3_path_prefix": "{{subdir}}-gcc-{{name}}",
+                "name": "14.4.0",
+            },
+        )
+        cmd = addition.get_build_command({"gcc", "gcc-cross"})
+        assert cmd == (
+            "gh workflow run bespoke-build.yaml -f image=gcc-cross -f 'version=mips64 14.4.0' -f command=build.sh"
+        )
+
+    def test_unexpandable_config_falls_back_to_context(self):
+        addition = Addition(
+            yaml_file="cpp.yaml",
+            context=["compilers", "c++", "cross", "gcc", "msp430"],
+            target="14.4.0",
+            installer_type="s3tarballs",
+            config={"type": "s3tarballs", "s3_path_prefix": "{{missing_key}}-gcc-{{name}}", "name": "14.4.0"},
+        )
+        params = addition.get_build_params({"gcc-cross"})
+        assert params is not None
+        assert params.version == "msp430 14.4.0"
+
+    def test_other_images_ignore_s3_path_prefix(self):
+        addition = Addition(
+            yaml_file="cpp.yaml",
+            context=["compilers", "c++", "plugins", "clad"],
+            target="2.1-clang-21.1.0",
+            installer_type="s3tarballs",
+            config={"type": "s3tarballs", "s3_path_prefix": "clad-gcc-{{name}}", "name": "2.1-clang-21.1.0"},
+        )
+        params = addition.get_build_params({"clad", "gcc-cross"})
+        assert params is not None
+        assert params.image == "clad"
+        assert params.version == "2.1-clang-21.1.0"
+
+    def test_walk_cascades_fields_like_ce_install(self):
+        data = {
+            "cross": {
+                "type": "s3tarballs",
+                "subdir": "arm",
+                "gcc": {"mips64": {"subdir": "mips64", "targets": ["14.4.0", {"name": "15.3.0", "subdir": "x"}]}},
+            }
+        }
+        configs = {target: config for _, target, config in extract_build_required_targets_with_config(data)}
+        assert configs["14.4.0"]["subdir"] == "mips64"
+        assert configs["14.4.0"]["name"] == "14.4.0"
+        assert configs["14.4.0"]["underscore_name"] == "14_4_0"
+        assert configs["15.3.0"]["subdir"] == "x"
