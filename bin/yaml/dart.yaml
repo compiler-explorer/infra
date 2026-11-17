@@ -9,6 +9,8 @@ compilers:
       - find -executable -print0 | xargs -0 chmod og+x
     url: https://storage.googleapis.com/dart-archive/channels/stable/release/{{name}}/sdk/dartsdk-linux-x64-release.zip
     targets:
+      - 3.14.0
+      - 3.13.7
       - 3.13.6
       - 3.13.5
       - 3.13.4
