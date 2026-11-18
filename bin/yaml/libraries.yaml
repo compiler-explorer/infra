@@ -2394,6 +2394,14 @@ libraries:
         targets:
         - trunk
         type: github
+      stb:
+        build_type: none
+        check_file: stb_image.h
+        method: nightlyclone
+        repo: nothings/stb
+        targets:
+        - trunk
+        type: github
       stdexec:
         check_file: include/stdexec/execution.hpp
         method: nightlyclone
