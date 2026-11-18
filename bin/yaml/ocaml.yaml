@@ -57,6 +57,8 @@ compilers:
       - 4.14.3-flambda
       - 4.14.4
       - 4.14.4-flambda
+      - 4.14.5
+      - 4.14.5-flambda
       - 5.0.0
       - 5.0.0-flambda
       - 5.1.0
