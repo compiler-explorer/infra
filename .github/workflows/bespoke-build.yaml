@@ -33,7 +33,6 @@ on:
         - heaptrack
         - ispc
         - iwyu
-        - jakt
         - lfortran
         - lua
         - mads
