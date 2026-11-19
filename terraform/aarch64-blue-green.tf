@@ -23,7 +23,11 @@ module "aarch64prod_blue_green" {
   spot_allocation_strategy                 = "price-capacity-optimized"
 
   mixed_instances_overrides = [
-    { instance_type = "r7g.medium" }
+    { instance_type = "r7g.medium" },
+    { instance_type = "r6g.medium" },
+    { instance_type = "r8g.medium" },
+    { instance_type = "r6gd.medium" },
+    { instance_type = "r7gd.medium" }
   ]
 
   # Custom auto-scaling policy matching existing setup - will be added separately
@@ -52,7 +56,11 @@ module "aarch64staging_blue_green" {
   spot_allocation_strategy                 = "price-capacity-optimized"
 
   mixed_instances_overrides = [
-    { instance_type = "r7g.medium" }
+    { instance_type = "r7g.medium" },
+    { instance_type = "r6g.medium" },
+    { instance_type = "r8g.medium" },
+    { instance_type = "r6gd.medium" },
+    { instance_type = "r7gd.medium" }
   ]
 
   # Custom auto-scaling policy matching existing setup - will be added separately
