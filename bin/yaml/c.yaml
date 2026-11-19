@@ -21,10 +21,13 @@ compilers:
     ppci:
       type: tarballs
       compression: gz
+      # ppci 0.5.5 imports cgitb, which was removed in Python 3.13, so pin a CE-installed 3.12
+      depends:
+        - compilers/python 3.12.1
       check_exe:
         - /bin/bash
         - -c
-        - "/usr/bin/env PYTHONPATH=$(pwd)/ppci-{{name}} $(command -v python3) -B -mppci --version"
+        - "/usr/bin/env PYTHONPATH=$(pwd)/ppci-{{name}} %DEP0%/bin/python3 -B -mppci --version"
       dir: ppci-{{name}}
       untar_dir: ppci-{{name}}
       url: https://pypi.io/packages/source/p/ppci/ppci-{{name}}.tar.gz
