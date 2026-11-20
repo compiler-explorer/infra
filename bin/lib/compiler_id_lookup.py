@@ -82,6 +82,7 @@ COMPILER_LANGUAGES = [
     "racket",
     "raku",
     "razorforge",
+    "roc",
     "ruby",
     "rust",
     "sail",
