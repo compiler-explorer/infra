@@ -13,8 +13,7 @@ compilers:
       # 0.20.x changed its release: tag suffix is "-binary" (not "-linux-binary") and the
       # asset is sail-Linux-x86_64.tar.gz (not sail.tar.gz), so override the URL for it.
       - name: "0.20.3"
-        url: &linux-binary 
-         - https://github.com/rems-project/sail/releases/download/{{name}}-binary/sail-Linux-x86_64.tar.gz
+        url: &linux-binary https://github.com/rems-project/sail/releases/download/{{name}}-binary/sail-Linux-x86_64.tar.gz
       - name: "0.20.2"
         url: *linux-binary 
       - name: "0.20.1"
