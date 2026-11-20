@@ -1,0 +1,11 @@
+compilers:
+  mielia:
+    type: tarballs
+    compression: gz
+    url: https://github.com/dj-lumiere/Mielia/releases/download/v{{name}}/mielia-v{{name}}-linux-x64.tar.gz
+    create_untar_dir: true
+    strip_components: 1
+    dir: mielia-{{name}}
+    check_exe: Mielia version
+    targets:
+      - 0.5.0
