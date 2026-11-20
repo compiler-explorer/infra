@@ -19,7 +19,8 @@ compilers:
         url: *linux-binary 
       - name: "0.20.1"
         url: https://github.com/rems-project/sail/releases/download/{{name}}/sail-Linux-x86_64.tar.gz
-      - "0.20"
+      - name: "0.20"
+        url: https://github.com/rems-project/sail/releases/download/{{name}}-linux-binary/sail-Linux-x86_64.tar.gz
       - "0.19.1"
       - "0.19"
       - "0.18"
