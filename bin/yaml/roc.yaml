@@ -1,0 +1,15 @@
+compilers:
+  roc:
+    if: nightly
+    type: restQueryTarballs
+    install_always: true
+    compression: gz
+    dir: roc-{{name}}
+    strip_components: 1
+    create_untar_dir: true
+    check_exe: roc version
+    url: https://api.github.com/repos/roc-lang/nightlies/releases/latest
+    query: |
+      [a['browser_download_url'] for a in document['assets'] if a['name'].startswith('roc_nightly-linux_x86_64-') and a['name'].endswith('.tar.gz') and not a['name'].endswith('-safe.tar.gz')][0]
+    targets:
+      - nightly
