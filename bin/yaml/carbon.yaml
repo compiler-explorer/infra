@@ -9,7 +9,7 @@ compilers:
       create_untar_dir: true
       url: https://api.github.com/repos/carbon-language/carbon-lang/releases
       query: |
-        [item for item in document if item["{{version}}"]][0]['assets'][0]['browser_download_url']
+        [asset['browser_download_url'] for item in document if item["{{version}}"] for asset in item['assets'] if asset['name'].startswith('carbon_toolchain-')][0]
       targets:
         - name: trunk
           if: nightly
