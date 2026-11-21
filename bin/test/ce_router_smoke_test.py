@@ -10,9 +10,11 @@ from lib.ce_router_smoke import (  # noqa: I001
     Findings,
     asm_text,
     base_url,
+    check_bypass_cache_recompiles,
     classify_compilation,
     compile_body,
     in_service_worker_count,
+    judge_bypass_cache,
     source_emitting_at_least,
     source_printing_at_least,
 )
@@ -134,3 +136,78 @@ class TestInServiceWorkerCount:
         # Returning 0 here would abort the run over an AWS blip rather than a real state.
         mock_get_asg_info.side_effect = ClientError({"Error": {"Code": "AccessDenied"}}, "DescribeAutoScalingGroups")
         assert in_service_worker_count("beta") is None
+
+
+def _result(from_cache: bool) -> dict:
+    return {"code": 0, "asm": [{"text": "square(int):"}], "retreivedFromCache": from_cache}
+
+
+class TestJudgeBypassCache:
+    def test_recompiled_and_cache_intact_passes(self):
+        ok, _ = judge_bypass_cache(warmed=True, bypassed_from_cache=False, after_from_cache=True)
+        assert ok
+
+    def test_bypass_served_from_cache_fails(self):
+        ok, detail = judge_bypass_cache(warmed=True, bypassed_from_cache=True, after_from_cache=True)
+        assert not ok
+        assert "did nothing" in detail
+
+    def test_cache_never_warmed_fails(self):
+        ok, detail = judge_bypass_cache(warmed=False, bypassed_from_cache=False, after_from_cache=False)
+        assert not ok
+        assert "nothing for bypassCache to skip" in detail
+
+    def test_cached_copy_lost_after_bypass_fails(self):
+        ok, detail = judge_bypass_cache(warmed=True, bypassed_from_cache=False, after_from_cache=False)
+        assert not ok
+        assert "gone afterwards" in detail
+
+
+class TestCheckBypassCacheRecompiles:
+    @patch("lib.ce_router_smoke.time.sleep")
+    @patch("lib.ce_router_smoke.post_compile")
+    def test_passes_when_router_honours_the_flag(self, mock_post, _sleep):
+        mock_post.side_effect = [
+            (200, _result(False), 0.5),
+            (200, _result(True), 0.2),
+            (200, _result(False), 0.5),
+            (200, _result(True), 0.2),
+        ]
+        findings = Findings()
+        check_bypass_cache_recompiles("https://example", "g132", findings)
+        assert findings.results[0].ok, findings.results[0].detail
+        sent = [call.args[1] for call in mock_post.call_args_list]
+        assert [body.get("bypassCache") for body in sent] == [None, None, 1, 0]
+        assert len({body["source"] for body in sent}) == 1
+
+    @patch("lib.ce_router_smoke.time.sleep")
+    @patch("lib.ce_router_smoke.post_compile")
+    def test_fails_when_bypass_is_answered_from_cache(self, mock_post, _sleep):
+        mock_post.side_effect = [
+            (200, _result(False), 0.5),
+            (200, _result(True), 0.2),
+            (200, _result(True), 0.2),
+            (200, _result(True), 0.2),
+        ]
+        findings = Findings()
+        check_bypass_cache_recompiles("https://example", "g132", findings)
+        assert not findings.results[0].ok
+
+    @patch("lib.ce_router_smoke.time.sleep")
+    @patch("lib.ce_router_smoke.post_compile")
+    def test_reports_a_failed_compile_while_warming(self, mock_post, _sleep):
+        mock_post.return_value = (500, "boom", 0.1)
+        findings = Findings()
+        check_bypass_cache_recompiles("https://example", "g132", findings)
+        assert not findings.results[0].ok
+        assert "warming the cache" in findings.results[0].detail
+        assert mock_post.call_count == 1
+
+    @patch("lib.ce_router_smoke.time.sleep")
+    @patch("lib.ce_router_smoke.post_compile")
+    def test_gives_up_warming_after_the_attempts(self, mock_post, _sleep):
+        mock_post.return_value = (200, _result(False), 0.5)
+        findings = Findings()
+        check_bypass_cache_recompiles("https://example", "g132", findings, warm_attempts=3)
+        assert not findings.results[0].ok
+        assert "nothing for bypassCache to skip" in findings.results[0].detail

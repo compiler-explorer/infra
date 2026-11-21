@@ -487,6 +487,61 @@ def check_large_result_bypass_cache(base: str, compiler_id: str, findings: Findi
     findings.add("large result + bypassCache", ok, detail, secs)
 
 
+def judge_bypass_cache(warmed: bool, bypassed_from_cache: bool, after_from_cache: bool) -> tuple[bool, str]:
+    """Whether a cached request sent with bypassCache was recompiled, leaving the cached copy in place."""
+    if not warmed:
+        return False, "the request never came back from cache, so there was nothing for bypassCache to skip"
+    if bypassed_from_cache:
+        return False, "bypassCache was answered from cache: a forced recompile did nothing"
+    if not after_from_cache:
+        return False, "recompiled, but the cached copy was gone afterwards"
+    return True, "recompiled while cached, and the cached copy still served the next request"
+
+
+def check_bypass_cache_recompiles(
+    base: str, compiler_id: str, findings: Findings, warm_attempts: int = 4, warm_pause: float = 1.0
+) -> None:
+    """bypassCache must reach a worker even when the result is cached.
+
+    The router answers cache hits itself, so a router ignoring the flag would keep serving the
+    cached copy and the user's forced recompile would silently do nothing. A single bypassCache
+    request cannot show that: there is nothing cached for it to ignore. The worker writes the
+    cache entry around the time it answers, hence the retries before the cache counts as warm.
+    """
+    name = "bypassCache recompiles a cached request"
+    marker = uuid4().hex
+    body = compile_body(f"// bypass-probe-{marker}\nint square(int x) {{ return x * x; }}\n", user_arguments="-O2")
+    url = _compile_url(base, compiler_id)
+    total = 0.0
+
+    warmed = False
+    for attempt in range(warm_attempts):
+        if attempt:
+            time.sleep(warm_pause)
+        status, payload, secs = post_compile(url, body)
+        total += secs
+        ok, detail = classify_compilation(status, payload, require_success=True)
+        if not ok:
+            findings.add(name, False, f"warming the cache: {detail}", total)
+            return
+        if payload.get("retreivedFromCache"):
+            warmed = True
+            break
+
+    results = []
+    for bypass in (1, 0):
+        status, payload, secs = post_compile(url, {**body, "bypassCache": bypass})
+        total += secs
+        ok, detail = classify_compilation(status, payload, require_success=True)
+        if not ok:
+            findings.add(name, False, f"bypassCache={bypass}: {detail}", total)
+            return
+        results.append(bool(payload.get("retreivedFromCache")))
+
+    ok, detail = judge_bypass_cache(warmed, results[0], results[1])
+    findings.add(name, ok, detail, total)
+
+
 def check_large_result_project_build(base: str, compiler_id: str, findings: Findings) -> None:
     """The delayCaching branch: the inner result is assigned an s3Key without being stored."""
     files = [{"filename": "example.cpp", "contents": source_emitting_at_least(4 * WEBSOCKET_SIZE_THRESHOLD)}]
@@ -571,6 +626,7 @@ def run_checks(
     check_oversized_executor_request(base, queue_compiler, findings)
 
     check_large_result(base, queue_compiler, findings)
+    check_bypass_cache_recompiles(base, queue_compiler, findings)
     check_large_result_bypass_cache(base, queue_compiler, findings)
     check_large_result_project_build(base, queue_compiler, findings)
 
