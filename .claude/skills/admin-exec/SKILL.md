@@ -1,10 +1,14 @@
 ---
 name: admin-exec
-description: This skill should be used when running anything on the CE admin node from a workstation, such as installing a merged compiler or library ("install it on admin", "install the compiler on admin"), running a `ce` subcommand there, restarting or checking the conan proxy, or reaching the conan node (which only accepts SSH from admin), or checking something on a single CE instance (e.g. "what kernel are the instances on"). Covers the quoting-safe base64 wrapper for `bin/ce admin exec`, sudo installs, the conan hop, and SSHing to one instance via admin.
+description: This skill should be used when running anything on the CE admin node from a workstation, such as installing a merged compiler or library ("install it on admin", "install the compiler on admin"), running a `ce` subcommand there, restarting or checking the conan proxy, or reaching the conan node (which only accepts SSH from admin), or checking something on a single CE instance (e.g. "what kernel are the instances on"). Covers the quoting-safe base64 wrapper for `bin/ce admin exec`, sudo installs, the conan hop, and SSHing to one instance via admin. Only for CE maintainers with AWS and SSH access to CE infrastructure.
 version: 0.1.0
 ---
 
 # Running commands on the admin node
+
+Only for CE maintainers with CE's AWS credentials and SSH access to the admin
+node. Without them every command here fails; say so and stop rather than
+working around it.
 
 Work from the infra repo root; `bin/ce` is a relative path. If local `bin/ce`
 prints "python environment is out of date", run `make ce` locally. The message

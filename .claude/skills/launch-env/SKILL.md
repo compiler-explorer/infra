@@ -1,10 +1,14 @@
 ---
 name: launch-env
-description: This skill should be used when starting up or redeploying a blue-green environment (staging, beta) that has been shut down, e.g. "launch staging", "start beta again", "bring staging up with the same release", "redeploy staging". Covers running the deploy on admin, picking the version, clearing stray instances on the inactive colour, and shutting the environment down again.
+description: This skill should be used when starting up or redeploying a blue-green environment (staging, beta) that has been shut down, e.g. "launch staging", "start beta again", "bring staging up with the same release", "redeploy staging". Covers running the deploy on admin, picking the version, clearing stray instances on the inactive colour, and shutting the environment down again. Only for CE maintainers with AWS and SSH access to CE infrastructure.
 version: 0.1.0
 ---
 
 # Launching a blue-green environment
+
+Only for CE maintainers with CE's AWS credentials and SSH access to the admin
+node. Without them every command here fails; say so and stop rather than
+working around it.
 
 staging, beta and prod are blue-green. `ce environment start` does nothing for them;
 use `blue-green deploy`. Don't launch prod with this skill. A prod deploy needs the
