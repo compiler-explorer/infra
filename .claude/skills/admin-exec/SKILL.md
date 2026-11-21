@@ -1,6 +1,6 @@
 ---
 name: admin-exec
-description: This skill should be used when running anything on the CE admin node from a workstation, such as installing a merged compiler or library ("install it on admin", "install the compiler on admin"), running a `ce` subcommand there, restarting or checking the conan proxy, or reaching the conan node (which only accepts SSH from admin). Covers the quoting-safe base64 wrapper for `bin/ce admin exec`, sudo installs, and the conan hop.
+description: This skill should be used when running anything on the CE admin node from a workstation, such as installing a merged compiler or library ("install it on admin", "install the compiler on admin"), running a `ce` subcommand there, restarting or checking the conan proxy, or reaching the conan node (which only accepts SSH from admin), or checking something on a single CE instance (e.g. "what kernel are the instances on"). Covers the quoting-safe base64 wrapper for `bin/ce admin exec`, sudo installs, the conan hop, and SSHing to one instance via admin.
 version: 0.1.0
 ---
 
@@ -53,6 +53,27 @@ Otherwise ce_install quietly reports nothing matching the filter.
 A `PermissionError` under `/tmp/ce-cefs-temp` means sudo was missing. CEFS's
 working directories are root-owned. Don't route around it with
 `--cefs-temp-dir` or `--staging-dir`; rerun with sudo.
+
+## Inspecting an instance
+
+For a read-only look at CE instances (kernel, package versions, disk), check
+one instance through admin. Don't use `ce instances exec_all` or
+`ce ce-router exec_all`, from the workstation or from admin. Instances in an
+environment share an AMI, so one prod instance is representative; ask before
+widening to more instances or environments.
+
+Pick an address from the status listing, then SSH to it from admin:
+
+```bash
+CMD=$(printf '%s' 'cd /home/ubuntu/infra && ./bin/ce --env prod instances status 2>&1 | head -8' | base64 -w0)
+bin/ce admin exec -- bash -c "echo $CMD | base64 -d | bash"
+
+CMD=$(printf '%s' 'ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 ubuntu@<private-ip> uname -r' | base64 -w0)
+bin/ce admin exec -- bash -c "echo $CMD | base64 -d | bash"
+```
+
+The remote command after the address goes through a second shell, so keep it
+simple or quote it as one string.
 
 ## Conan proxy
 
