@@ -3,7 +3,15 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from lib.ubuntu_kernels import CveFix, KernelRelease, parse_entries, recent_releases, released_fixes
+from lib.ubuntu_kernels import (
+    CveFix,
+    KernelRelease,
+    changes_linux_ami,
+    kernel_issue_numbers,
+    parse_entries,
+    recent_releases,
+    released_fixes,
+)
 
 
 def entry(name: str, version: str, published: str | None) -> dict[str, str | None]:
@@ -76,3 +84,50 @@ def test_released_fixes_none_while_pending():
 def test_cve_fix_issue_title():
     fix = CveFix("CVE-2026-98432", "linux-aws", "6.8.0-1069.74")
     assert fix.issue_title == "CVE-2026-98432 fixed in Ubuntu 24.04: linux-aws 6.8.0-1069.74"
+
+
+def tf_diff(path: str, removed: str, added: str) -> str:
+    return f"""diff --git a/{path} b/{path}
+--- a/{path}
++++ b/{path}
+@@ -1,3 +1,3 @@
+ locals {{
+-{removed}
++{added}
+"""
+
+
+def test_changes_linux_ami_detects_prod_image_bump():
+    diff = tf_diff(
+        "terraform/lc.tf",
+        '  prod_image_id = "ami-0ac50ab7a0b2ac4b2"',
+        '  prod_image_id = "ami-0123456789abcdef0"',
+    )
+    assert changes_linux_ami(diff)
+
+
+def test_changes_linux_ami_ignores_windows_images():
+    diff = tf_diff(
+        "terraform/lc.tf",
+        '  winprod_image_id = "ami-0b0826bc65a0426b3"',
+        '  winprod_image_id = "ami-0123456789abcdef0"',
+    )
+    assert not changes_linux_ami(diff)
+
+
+def test_changes_linux_ami_ignores_comments_and_non_terraform():
+    assert not changes_linux_ami(tf_diff("terraform/ec2.tf", "", '//  ami = "ami-0b97d4bbd77733fc0"'))
+    assert not changes_linux_ami(tf_diff("docs/amis.md", "", "Use ami-0123456789abcdef0"))
+
+
+def test_changes_linux_ami_ignores_removed_lines():
+    assert not changes_linux_ami(tf_diff("terraform/lc.tf", '  prod_image_id = "ami-0ac50ab7a0b2ac4b2"', ""))
+
+
+def test_kernel_issue_numbers_matches_watch_titles_only():
+    issues = [
+        {"number": 2581, "title": "Ubuntu 24.04 kernel update: aws-7.0 7.0.0-1018.19~24.04.1"},
+        {"number": 2590, "title": "CVE-2026-98432 fixed in Ubuntu 24.04: linux-aws-7.0 7.0.0-1018.19~24.04.1"},
+        {"number": 2500, "title": "Upgrade to Ubuntu 24.04 on builders"},
+    ]
+    assert kernel_issue_numbers(issues) == [2581, 2590]
