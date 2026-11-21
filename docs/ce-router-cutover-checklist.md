@@ -335,10 +335,10 @@ half, which is cached with no expiry.
 | CloudWatch DynamoDB | `ThrottledRequests` on `events-connections` and `SubscriptionIndex` |
 | ALB | target 5xx, `TargetResponseTime` p99, unhealthy host count |
 | Prometheus | `ce_sqs_compilations_total` rate vs. the pre-switch baseline |
+| Prometheus (job `ce_router`) | `ce_router_compilation_cache_total` by `result`; hit rate is hit / (hit + miss) |
 
-There are no Grafana alerts covering the router or the compilation queues, and the router
-exposes no Prometheus endpoint — this is manual watching. An
-`ApproximateAgeOfOldestMessage` alert is worth adding before staging.
+There are no Grafana alerts covering the router or the compilation queues — this is manual
+watching. An `ApproximateAgeOfOldestMessage` alert is worth adding before staging.
 
 ## H2. Switching prod's scaling to the queue
 
