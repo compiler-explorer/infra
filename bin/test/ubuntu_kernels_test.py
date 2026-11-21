@@ -10,22 +10,23 @@ def entry(name: str, version: str, published: str | None) -> dict[str, str | Non
     return {"source_package_name": name, "source_package_version": version, "date_published": published}
 
 
-def test_parse_entries_keeps_aws_only():
+def test_parse_entries_keeps_aws_hwe_only():
     entries = [
         entry("linux-meta", "6.8.0-147.147", "2026-10-12T21:41:55.541612+00:00"),
         entry("linux-meta-aws", "6.8.0-1067.70", "2026-10-12T21:41:55+00:00"),
         entry("linux-meta-hwe-7.0", "7.0.0-42.42~24.04.1", "2026-10-28T00:08:20+00:00"),
         entry("linux-meta-aws-6.17", "6.17.0-1020.20~24.04.1+1", "2026-07-23T16:30:00+00:00"),
+        entry("linux-meta-aws-7.0", "7.0.0-1018.19~24.04.1", "2026-11-19T12:26:00+00:00"),
         entry("linux-meta-gcp", "6.8.0-1050.53", "2026-10-12T21:41:55+00:00"),
         entry("linux-meta-azure-6.17", "6.17.0-1010.10", "2026-10-12T21:41:55+00:00"),
         entry("linux-meta-lowlatency", "6.8.0-147.147", "2026-10-12T21:41:55+00:00"),
     ]
     sources = [r.source for r in parse_entries(entries)]
-    assert sources == ["linux-meta-aws-6.17", "linux-meta-aws"]
+    assert sources == ["linux-meta-aws-6.17", "linux-meta-aws-7.0"]
 
 
 def test_parse_entries_skips_unpublished():
-    assert parse_entries([entry("linux-meta", "6.8.0-149.149", None)]) == []
+    assert parse_entries([entry("linux-meta-aws-7.0", "7.0.0-1019.20~24.04.1", None)]) == []
 
 
 def test_recent_releases_filters_by_age():
@@ -55,17 +56,20 @@ def test_released_fixes_reports_released_noble_kernels_only():
     data = {
         "packages": [
             cve_package("linux-aws", "noble", "released", "6.8.0-1069.74"),
+            cve_package("linux-aws-7.0", "noble", "released", "7.0.0-1018.19~24.04.1"),
             cve_package("linux", "noble", "released", "6.8.0-149.149"),
             cve_package("linux-hwe-7.0", "noble", "released", "7.0.0-43.43~24.04.1"),
             cve_package("linux-aws-7.0", "jammy", "released", "7.0.0-1017.18"),
             cve_package("linux-gcp", "noble", "released", "6.8.0-1073.81"),
         ]
     }
-    assert released_fixes("CVE-2026-98432", data) == [CveFix("CVE-2026-98432", "linux-aws", "6.8.0-1069.74")]
+    assert released_fixes("CVE-2026-98432", data) == [
+        CveFix("CVE-2026-98432", "linux-aws-7.0", "7.0.0-1018.19~24.04.1")
+    ]
 
 
 def test_released_fixes_none_while_pending():
-    data = {"packages": [cve_package("linux-aws", "noble", "pending", "6.8.0-1069.74")]}
+    data = {"packages": [cve_package("linux-aws-7.0", "noble", "pending", "7.0.0-1018.19~24.04.1")]}
     assert released_fixes("CVE-2026-98432", data) == []
 
 
