@@ -13,7 +13,7 @@ LAUNCHPAD_ARCHIVE = "https://api.launchpad.net/1.0/ubuntu/+archive/primary"
 SERIES = "noble"
 POCKET = "Updates"
 
-TRACKED_SOURCE = re.compile(r"^linux-meta-aws(-\d+\.\d+)?$")
+TRACKED_SOURCE = re.compile(r"^linux-meta-aws-\d+\.\d+$")
 
 
 @dataclass(frozen=True)
@@ -77,7 +77,7 @@ def fetch_recent_releases(days: int) -> list[KernelRelease]:
 
 
 CVE_URL = "https://ubuntu.com/security/cves/{cve}.json"
-TRACKED_PACKAGE = re.compile(r"^linux-aws(-\d+\.\d+)?$")
+TRACKED_PACKAGE = re.compile(r"^linux-aws-\d+\.\d+$")
 
 
 @dataclass(frozen=True)
