@@ -111,3 +111,27 @@ def fetch_released_fixes(cve: str) -> list[CveFix]:
     with urllib.request.urlopen(url, timeout=60) as response:
         data = json.load(response)
     return released_fixes(cve, data)
+
+
+KERNEL_ISSUE_TITLE = re.compile(r"^(Ubuntu 24\.04 kernel update: |CVE-\S+ fixed in Ubuntu 24\.04: )")
+AMI_ID = re.compile(r"\bami-[0-9a-f]{8,}\b")
+
+
+def changes_linux_ami(diff: str) -> bool:
+    in_terraform = False
+    for line in diff.splitlines():
+        if line.startswith("+++ "):
+            in_terraform = line.startswith("+++ b/terraform/") and line.endswith(".tf")
+            continue
+        if not in_terraform or not line.startswith("+"):
+            continue
+        code = line[1:].strip()
+        if code.startswith(("#", "//")) or "win" in code.lower():
+            continue
+        if AMI_ID.search(code):
+            return True
+    return False
+
+
+def kernel_issue_numbers(issues: list[dict[str, Any]]) -> list[int]:
+    return sorted(issue["number"] for issue in issues if KERNEL_ISSUE_TITLE.match(issue["title"]))
