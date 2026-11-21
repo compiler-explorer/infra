@@ -1,0 +1,53 @@
+name: Ubuntu 24.04 AWS kernel watch
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: How many days back to look for published kernels
+        default: '7'
+        required: false
+      cves:
+        description: Space-separated CVEs to watch for a released noble AWS kernel fix
+        default: ''
+        required: false
+
+env:
+  WATCHED_CVES: ''
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    if: github.repository == 'compiler-explorer/infra'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Open issues for new kernels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DAYS: ${{ github.event.inputs.days || '7' }}
+          EXTRA_CVES: ${{ github.event.inputs.cves || '' }}
+        run: |
+          cve_args=()
+          for cve in $WATCHED_CVES $EXTRA_CVES; do
+            cve_args+=(--cve "$cve")
+          done
+          python bin/check_ubuntu_kernels.py --days "$DAYS" "${cve_args[@]}" > kernels.jsonl
+          while IFS= read -r line; do
+            title=$(jq -r .title <<< "$line")
+            existing=$(gh issue list --state all --search "\"$title\" in:title" --json title --jq "map(select(.title == \"$title\")) | length")
+            if [[ "$existing" == "0" ]]; then
+              jq -r .body <<< "$line" | gh issue create --title "$title" --body-file -
+            else
+              echo "Already reported: $title"
+            fi
+          done < kernels.jsonl
