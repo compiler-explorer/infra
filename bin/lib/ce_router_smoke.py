@@ -585,10 +585,10 @@ def run_checks(
 def check_charset_keeps_user_arguments(base: str, compiler_id: str, findings: Findings) -> None:
     """A charset on the content-type must not cost the caller their compiler flags.
 
-    Workers decide the request format with an exact string comparison against
-    'application/json', so 'application/json; charset=utf-8' falls to the text path and
-    userArguments, filters and libraries are dropped. The compile still succeeds, so the
-    caller gets the right code built the wrong way with nothing logged anywhere.
+    Workers once decided the request format with an exact string comparison against
+    'application/json', so 'application/json; charset=utf-8' fell to the text path and
+    userArguments, filters and libraries were dropped. The compile still succeeds, so a
+    regression gives the right code built the wrong way with nothing logged anywhere.
     """
     body = compile_body(source_needing_a_define(), user_arguments=f"-D{MARKER_DEFINE}")
     status, payload, secs = post_compile(
@@ -599,15 +599,15 @@ def check_charset_keeps_user_arguments(base: str, compiler_id: str, findings: Fi
         reached = MARKER_SYMBOL in asm_text(payload)
         ok = reached
         detail = "-D reached the compiler" if reached else "compiled without the caller's -D: flags were dropped"
-    findings.add("charset in content-type keeps user arguments", ok, detail, secs, tracked="compiler-explorer#9148")
+    findings.add("charset in content-type keeps user arguments", ok, detail, secs)
 
 
 def check_oversized_execution_keeps_output(base: str, compiler_id: str, findings: Findings) -> None:
     """An oversized result that also executed must still carry the program's output.
 
-    Large results are handed over by reference, and the object is written before
-    execResult is attached, so the reader is pointed at a body holding the asm and no
-    program output. Only reachable through a path that fetches by s3Key, which means the
+    Large results are handed over by reference. The object was once written before
+    execResult was attached, so the reader got a body holding the asm and no program
+    output. Only reachable through a path that fetches by s3Key, which means the
     router: served directly, the result never makes the round trip.
     """
     body = compile_body(source_emitting_at_least_that_runs(4 * WEBSOCKET_SIZE_THRESHOLD))
@@ -627,7 +627,7 @@ def check_oversized_execution_keeps_output(base: str, compiler_id: str, findings
             detail = (
                 f"asm {asm_size // 1024}KB arrived but the program's output did not (execResult={exec_result!r:.80})"
             )
-    findings.add("oversized result keeps execution output", ok, detail, secs, tracked="compiler-explorer#9149")
+    findings.add("oversized result keeps execution output", ok, detail, secs)
 
 
 def check_oversized_executor_request(base: str, compiler_id: str, findings: Findings) -> None:
@@ -734,5 +734,4 @@ def check_accept_default(base: str, compiler_id: str, findings: Findings) -> Non
         is_text,
         f"content-type: {content_type or '(none)'}",
         secs,
-        tracked="atlas F-16",
     )
