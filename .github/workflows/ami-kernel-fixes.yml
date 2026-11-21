@@ -2,19 +2,21 @@ name: Link kernel issues to AMI changes
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, closed]
     paths:
       - 'terraform/**.tf'
 
 permissions:
   contents: read
-  issues: read
-  pull-requests: write
 
 jobs:
   link:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
       - name: Set up Python
@@ -40,3 +42,28 @@ jobs:
           else
             echo "Nothing to link"
           fi
+
+  close:
+    if: github.event.action == 'closed' && github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Close kernel issues linked by the bot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/$GH_REPO/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.user.login == "github-actions[bot]") | .body' \
+            | grep -oxE 'Fixes #[0-9]+' | sort -u \
+            | while read -r _ ref; do
+                number=${ref#\#}
+                if [[ "$(gh issue view "$number" --json state --jq .state)" == "OPEN" ]]; then
+                  gh issue close "$number" --comment "Closed by #$PR, which updated the AMI."
+                else
+                  echo "#$number already closed"
+                fi
+              done
