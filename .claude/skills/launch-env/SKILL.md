@@ -10,6 +10,10 @@ Only for CE maintainers with CE's AWS credentials and SSH access to the admin
 node. Without them every command here fails; say so and stop rather than
 working around it.
 
+If SSH fails with `Permission denied (publickey)` or status 255, run `ssh-add -l`
+first. No identities usually means a password manager holding the key is locked;
+ask the user to unlock it and retry, rather than concluding they have no access.
+
 staging, beta and prod are blue-green. `ce environment start` does nothing for them;
 use `blue-green deploy`. Don't launch prod with this skill. A prod deploy needs the
 interactive notification prompt and the user's explicit go-ahead.

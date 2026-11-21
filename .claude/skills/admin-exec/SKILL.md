@@ -10,6 +10,10 @@ Only for CE maintainers with CE's AWS credentials and SSH access to the admin
 node. Without them every command here fails; say so and stop rather than
 working around it.
 
+If SSH fails with `Permission denied (publickey)` or status 255, run `ssh-add -l`
+first. No identities usually means a password manager holding the key is locked;
+ask the user to unlock it and retry, rather than concluding they have no access.
+
 Work from the infra repo root; `bin/ce` is a relative path. If local `bin/ce`
 prints "python environment is out of date", run `make ce` locally. The message
 comes from the local wrapper, not from admin.
