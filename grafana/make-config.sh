@@ -10,6 +10,7 @@ if [ -z "${ENV}" ]; then
     exit 1
 fi
 
+INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $METADATA_TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
 HOSTNAME=$(hostname)
-sed "s/@HOSTNAME@/${HOSTNAME}/g;s/@ENV@/${ENV}/g" /etc/grafana/agent.yaml.tpl > /etc/grafana/agent.yaml
+sed "s/@HOSTNAME@/${HOSTNAME}/g;s/@ENV@/${ENV}/g;s/@INSTANCE_ID@/${INSTANCE_ID}/g" /etc/grafana/agent.yaml.tpl > /etc/grafana/agent.yaml
 chmod 600 /etc/grafana/agent.yaml
