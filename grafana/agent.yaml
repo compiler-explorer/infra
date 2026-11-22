@@ -5,12 +5,13 @@ prometheus:
   configs:
     - name: agent
       scrape_configs:
-        - job_name: compiler_explorer
+        - job_name: '@APP_JOB@'
           static_configs:
-            - targets: [ 'localhost:10241' ]
+            - targets: [ 'localhost:@APP_PORT@' ]
               labels:
                 agent_hostname: '@HOSTNAME@'
                 env: '@ENV@'
+                instance_id: '@INSTANCE_ID@'
           relabel_configs:
             - source_labels: [ __address__ ]
               target_label: instance

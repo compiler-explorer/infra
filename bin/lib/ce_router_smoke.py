@@ -487,6 +487,61 @@ def check_large_result_bypass_cache(base: str, compiler_id: str, findings: Findi
     findings.add("large result + bypassCache", ok, detail, secs)
 
 
+def judge_bypass_cache(warmed: bool, bypassed_from_cache: bool, after_from_cache: bool) -> tuple[bool, str]:
+    """Whether a cached request sent with bypassCache was recompiled, leaving the cached copy in place."""
+    if not warmed:
+        return False, "the request never came back from cache, so there was nothing for bypassCache to skip"
+    if bypassed_from_cache:
+        return False, "bypassCache was answered from cache: a forced recompile did nothing"
+    if not after_from_cache:
+        return False, "recompiled, but the cached copy was gone afterwards"
+    return True, "recompiled while cached, and the cached copy still served the next request"
+
+
+def check_bypass_cache_recompiles(
+    base: str, compiler_id: str, findings: Findings, warm_attempts: int = 4, warm_pause: float = 1.0
+) -> None:
+    """bypassCache must reach a worker even when the result is cached.
+
+    The router answers cache hits itself, so a router ignoring the flag would keep serving the
+    cached copy and the user's forced recompile would silently do nothing. A single bypassCache
+    request cannot show that: there is nothing cached for it to ignore. The worker writes the
+    cache entry around the time it answers, hence the retries before the cache counts as warm.
+    """
+    name = "bypassCache recompiles a cached request"
+    marker = uuid4().hex
+    body = compile_body(f"// bypass-probe-{marker}\nint square(int x) {{ return x * x; }}\n", user_arguments="-O2")
+    url = _compile_url(base, compiler_id)
+    total = 0.0
+
+    warmed = False
+    for attempt in range(warm_attempts):
+        if attempt:
+            time.sleep(warm_pause)
+        status, payload, secs = post_compile(url, body)
+        total += secs
+        ok, detail = classify_compilation(status, payload, require_success=True)
+        if not ok:
+            findings.add(name, False, f"warming the cache: {detail}", total)
+            return
+        if payload.get("retreivedFromCache"):
+            warmed = True
+            break
+
+    results = []
+    for bypass in (1, 0):
+        status, payload, secs = post_compile(url, {**body, "bypassCache": bypass})
+        total += secs
+        ok, detail = classify_compilation(status, payload, require_success=True)
+        if not ok:
+            findings.add(name, False, f"bypassCache={bypass}: {detail}", total)
+            return
+        results.append(bool(payload.get("retreivedFromCache")))
+
+    ok, detail = judge_bypass_cache(warmed, results[0], results[1])
+    findings.add(name, ok, detail, total)
+
+
 def check_large_result_project_build(base: str, compiler_id: str, findings: Findings) -> None:
     """The delayCaching branch: the inner result is assigned an s3Key without being stored."""
     files = [{"filename": "example.cpp", "contents": source_emitting_at_least(4 * WEBSOCKET_SIZE_THRESHOLD)}]
@@ -571,6 +626,7 @@ def run_checks(
     check_oversized_executor_request(base, queue_compiler, findings)
 
     check_large_result(base, queue_compiler, findings)
+    check_bypass_cache_recompiles(base, queue_compiler, findings)
     check_large_result_bypass_cache(base, queue_compiler, findings)
     check_large_result_project_build(base, queue_compiler, findings)
 
@@ -585,10 +641,10 @@ def run_checks(
 def check_charset_keeps_user_arguments(base: str, compiler_id: str, findings: Findings) -> None:
     """A charset on the content-type must not cost the caller their compiler flags.
 
-    Workers decide the request format with an exact string comparison against
-    'application/json', so 'application/json; charset=utf-8' falls to the text path and
-    userArguments, filters and libraries are dropped. The compile still succeeds, so the
-    caller gets the right code built the wrong way with nothing logged anywhere.
+    Workers once decided the request format with an exact string comparison against
+    'application/json', so 'application/json; charset=utf-8' fell to the text path and
+    userArguments, filters and libraries were dropped. The compile still succeeds, so a
+    regression gives the right code built the wrong way with nothing logged anywhere.
     """
     body = compile_body(source_needing_a_define(), user_arguments=f"-D{MARKER_DEFINE}")
     status, payload, secs = post_compile(
@@ -599,15 +655,15 @@ def check_charset_keeps_user_arguments(base: str, compiler_id: str, findings: Fi
         reached = MARKER_SYMBOL in asm_text(payload)
         ok = reached
         detail = "-D reached the compiler" if reached else "compiled without the caller's -D: flags were dropped"
-    findings.add("charset in content-type keeps user arguments", ok, detail, secs, tracked="compiler-explorer#9148")
+    findings.add("charset in content-type keeps user arguments", ok, detail, secs)
 
 
 def check_oversized_execution_keeps_output(base: str, compiler_id: str, findings: Findings) -> None:
     """An oversized result that also executed must still carry the program's output.
 
-    Large results are handed over by reference, and the object is written before
-    execResult is attached, so the reader is pointed at a body holding the asm and no
-    program output. Only reachable through a path that fetches by s3Key, which means the
+    Large results are handed over by reference. The object was once written before
+    execResult was attached, so the reader got a body holding the asm and no program
+    output. Only reachable through a path that fetches by s3Key, which means the
     router: served directly, the result never makes the round trip.
     """
     body = compile_body(source_emitting_at_least_that_runs(4 * WEBSOCKET_SIZE_THRESHOLD))
@@ -627,7 +683,7 @@ def check_oversized_execution_keeps_output(base: str, compiler_id: str, findings
             detail = (
                 f"asm {asm_size // 1024}KB arrived but the program's output did not (execResult={exec_result!r:.80})"
             )
-    findings.add("oversized result keeps execution output", ok, detail, secs, tracked="compiler-explorer#9149")
+    findings.add("oversized result keeps execution output", ok, detail, secs)
 
 
 def check_oversized_executor_request(base: str, compiler_id: str, findings: Findings) -> None:
@@ -734,5 +790,4 @@ def check_accept_default(base: str, compiler_id: str, findings: Findings) -> Non
         is_text,
         f"content-type: {content_type or '(none)'}",
         secs,
-        tracked="atlas F-16",
     )

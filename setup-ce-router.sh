@@ -12,6 +12,9 @@ export SKIP_CEFS_SETUP=1
 export LOG_DEST_HOST_PARAM="/compiler-explorer/logDestHostRouter"
 export LOG_DEST_PORT_PARAM="/compiler-explorer/logDestPortRouter"
 
+export APP_JOB=ce_router
+export APP_PORT=10240
+
 "${DIR}/setup-common.sh"
 
 apt-get -y update
