@@ -11,6 +11,8 @@
 #   INSTALL_TYPE     ci | admin | <empty>  - picks which make-config.sh to use
 #   FS_IGNORE        regex of mount points to drop (default '^/.+$')
 #   GRAFANA_VERSION  grafana-agent release tag (default 0.41.1)
+#   APP_JOB          scrape job name for the host's app metrics (default compiler_explorer)
+#   APP_PORT         port the app serves /metrics on (default 10241)
 
 set -euxo pipefail
 
@@ -18,6 +20,8 @@ GRAFANA_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FS_IGNORE=${FS_IGNORE:-'^/.+$'}
 INSTALL_TYPE=${INSTALL_TYPE:-}
 GRAFANA_VERSION=${GRAFANA_VERSION:-0.41.1}
+APP_JOB=${APP_JOB:-compiler_explorer}
+APP_PORT=${APP_PORT:-10241}
 
 ARCH=$(dpkg --print-architecture)
 
@@ -50,6 +54,7 @@ unset PROM_PASSWORD LOKI_PASSWORD
 set -x
 
 sed -i "s#@FS_IGNORE@#$(sed_escape "${FS_IGNORE}")#g" /etc/grafana/agent.yaml.tpl
+sed -i "s#@APP_JOB@#$(sed_escape "${APP_JOB}")#g;s#@APP_PORT@#$(sed_escape "${APP_PORT}")#g" /etc/grafana/agent.yaml.tpl
 chmod 600 /etc/grafana/agent.yaml.tpl
 
 case "${INSTALL_TYPE}" in

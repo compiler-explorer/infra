@@ -1,0 +1,69 @@
+name: Link kernel issues to AMI changes
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - 'terraform/**.tf'
+
+permissions:
+  contents: read
+
+jobs:
+  link:
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Comment with kernel issues this AMI change fixes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr diff "$PR" > pr.diff
+          gh issue list --state open --limit 200 --search '"Ubuntu 24.04" in:title' --json number,title > issues.json
+          gh pr view "$PR" --json comments --jq '.comments[].body' > existing.txt
+          new_lines=()
+          while IFS= read -r line; do
+            if ! grep -qxF "$line" existing.txt; then
+              new_lines+=("$line")
+            fi
+          done < <(python bin/ami_kernel_fixes.py pr.diff issues.json)
+          if (( ${#new_lines[@]} > 0 )); then
+            printf '%s\n' "${new_lines[@]}" | gh pr comment "$PR" --body-file -
+          else
+            echo "Nothing to link"
+          fi
+
+  close:
+    if: github.event.action == 'closed' && github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Close kernel issues linked by the bot
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/$GH_REPO/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.user.login == "github-actions[bot]") | .body' \
+            | grep -oxE 'Fixes #[0-9]+' | sort -u \
+            | while read -r _ ref; do
+                number=${ref#\#}
+                if [[ "$(gh issue view "$number" --json state --jq .state)" == "OPEN" ]]; then
+                  gh issue close "$number" --comment "Closed by #$PR, which updated the AMI."
+                else
+                  echo "#$number already closed"
+                fi
+              done
