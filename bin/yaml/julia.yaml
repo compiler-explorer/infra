@@ -4,7 +4,8 @@ compilers:
     compression: gz
     dir: julia-{{name}}
     check_exe: bin/julia --version
-    url: https://julialang-s3.julialang.org/bin/linux/x64/{{ name.split('.')[:2] | join('.') }}/julia-{{name}}-linux-x86_64.tar.gz
+    major_minor: "{{ name.split('.')[:2] | join('.') }}"
+    url: https://julialang-s3.julialang.org/bin/linux/x64/{{major_minor}}/julia-{{name}}-linux-x86_64.tar.gz
     targets:
       - 1.13.4
       - 1.12.7
