@@ -4,19 +4,19 @@ compilers:
     compression: gz
     dir: julia-{{name}}
     check_exe: bin/julia --version
+    url: https://julialang-s3.julialang.org/bin/linux/x64/{{ name.split('.')[:2] | join('.') }}/julia-{{name}}-linux-x86_64.tar.gz
     targets:
-      - name: 1.12.5
-        url: https://julialang-s3.julialang.org/bin/linux/x64/1.12/julia-1.12.5-linux-x86_64.tar.gz
-      - name: 1.11.2
-        url: https://julialang-s3.julialang.org/bin/linux/x64/1.11/julia-1.11.2-linux-x86_64.tar.gz
-      - name: 1.10.0
-        url: https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.0-linux-x86_64.tar.gz
-      - name: 1.9.3
-        url: https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.3-linux-x86_64.tar.gz
-      - name: 1.8.5
-        url: https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.5-linux-x86_64.tar.gz
-      - name: 1.7.3
-        url: https://julialang-s3.julialang.org/bin/linux/x64/1.7/julia-1.7.3-linux-x86_64.tar.gz
+      - 1.13.4
+      - 1.12.7
+      - 1.12.5
+      - 1.11.9
+      - 1.11.2
+      - 1.10.13
+      - 1.10.0
+      - 1.9.4
+      - 1.9.3
+      - 1.8.5
+      - 1.7.3
     nightly:
       if: nightly
       install_always: true
