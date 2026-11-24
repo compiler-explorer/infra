@@ -620,6 +620,13 @@ libraries:
       targets:
       - 5.5.2
       type: github
+    cista:
+      check_file: include/cista/aligned_alloc.h
+      repo: felixguendling/cista
+      target_prefix: v
+      targets:
+      - '0.16'
+      type: github
     cli11:
       build_type: none
       check_file: include/CLI/CLI.hpp
