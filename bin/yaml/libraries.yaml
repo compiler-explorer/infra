@@ -3315,7 +3315,7 @@ libraries:
       - z
       targets:
       - 1.3.1
-      - 1.4
+      - "1.4"
       type: tarballs
       untar_dir: zlib-{{name}}
       url: https://www.zlib.net/zlib-{{name}}.tar.gz
