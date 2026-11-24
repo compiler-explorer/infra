@@ -248,6 +248,7 @@ libraries:
       targets:
       - '20250127.0'
       - '20260107.1'
+      - '20260817.0'
       type: github
     aerobus:
       check_file: README.md
