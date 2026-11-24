@@ -864,6 +864,12 @@ libraries:
       - 3.5.2
       - 3.5.0
       type: github
+    etl:
+      check_file: include/etl/absolute.h
+      repo: ETLCPP/etl
+      targets:
+      - 20.49.0
+      type: github
     eve:
       check_file: README.md
       repo: jfalcou/eve
