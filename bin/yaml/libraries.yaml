@@ -890,6 +890,13 @@ libraries:
       targets:
       - 0.1.0
       type: github
+    fast_float:
+      check_file: include/fast_float/ascii_number.h
+      repo: fastfloat/fast_float
+      target_prefix: v
+      targets:
+      - 8.4.0
+      type: github
     fastmod:
       check_file: README.md
       repo: lemire/fastmod
