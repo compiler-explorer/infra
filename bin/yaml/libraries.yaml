@@ -641,6 +641,13 @@ libraries:
       - 1.0.0
       - 1.1.5
       type: github
+    compile_time_regular_expressions:
+      check_file: include/ctll/actions.hpp
+      repo: hanickadot/compile-time-regular-expressions
+      target_prefix: v
+      targets:
+      - 3.11.0
+      type: github
     copperspice:
       build_type: none
       check_file: include/cs-config.h
