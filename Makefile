@@ -99,7 +99,7 @@ static-checks: ce  ## Runs all the static tests
 	env SKIP=test $(UV_BIN) run pre-commit run --all-files
 
 .PHONY: mugs
-mugs: ce  ## Generate all ABI reference mug designs (SVG + PNG)
+mugs: ce  ## Generate all mug designs: ABI references and architecture cheat sheets (SVG + PNG)
 	$(UV_BIN) run mugs/make_x86_64_systemv_mug.py mugs/x86_64_systemv_abi_mug.svg
 	$(UV_BIN) run mugs/make_x86_64_msvc_mug.py mugs/x86_64_msvc_abi_mug.svg
 	$(UV_BIN) run mugs/make_x86_64_go_mug.py mugs/x86_64_go_abi_mug.svg
@@ -108,6 +108,11 @@ mugs: ce  ## Generate all ABI reference mug designs (SVG + PNG)
 	$(UV_BIN) run mugs/make_arm64_go_mug.py mugs/arm64_go_abi_mug.svg
 	$(UV_BIN) run mugs/make_riscv_mug.py mugs/riscv_abi_mug.svg
 	$(UV_BIN) run mugs/make_riscv_go_mug.py mugs/riscv_go_abi_mug.svg
+	$(UV_BIN) run mugs/make_x86_64_intel_cheatsheet.py mugs/x86_64_intel_cheatsheet_mug.svg
+	$(UV_BIN) run mugs/make_x86_64_att_cheatsheet.py mugs/x86_64_att_cheatsheet_mug.svg
+	$(UV_BIN) run mugs/make_aarch64_cheatsheet.py mugs/aarch64_cheatsheet_mug.svg
+	$(UV_BIN) run mugs/make_riscv_cheatsheet.py mugs/riscv_cheatsheet_mug.svg
+	$(UV_BIN) run mugs/make_cpuinfo_mug.py mugs/cpuinfo_mug.svg
 
 LAMBDA_PACKAGE:=$(CURDIR)/.dist/lambda-package.zip
 LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/lambda-package.zip.sha256
