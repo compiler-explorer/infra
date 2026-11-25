@@ -648,6 +648,13 @@ libraries:
       - 1.0.0
       - 1.1.5
       type: github
+    concurrentqueue:
+      check_file: README.md
+      repo: cameron314/concurrentqueue
+      target_prefix: v
+      targets:
+      - 1.0.5
+      type: github
     copperspice:
       build_type: none
       check_file: include/cs-config.h
