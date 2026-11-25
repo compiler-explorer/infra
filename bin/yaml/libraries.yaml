@@ -4441,6 +4441,7 @@ libraries:
       targets:
       - 1.19.2
       - 1.46.0
+      - 1.53.3
       - 1.54.1
       type: cratesio
     tokio-util:
