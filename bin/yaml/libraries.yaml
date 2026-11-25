@@ -248,6 +248,7 @@ libraries:
       targets:
       - '20250127.0'
       - '20260107.1'
+      - '20260817.0'
       type: github
     aerobus:
       check_file: README.md
@@ -620,6 +621,13 @@ libraries:
       targets:
       - 5.5.2
       type: github
+    cista:
+      check_file: include/cista/aligned_alloc.h
+      repo: felixguendling/cista
+      target_prefix: v
+      targets:
+      - '0.16'
+      type: github
     cli11:
       build_type: none
       check_file: include/CLI/CLI.hpp
@@ -640,6 +648,13 @@ libraries:
       - 1.x
       - 1.0.0
       - 1.1.5
+      type: github
+    concurrentqueue:
+      check_file: README.md
+      repo: cameron314/concurrentqueue
+      target_prefix: v
+      targets:
+      - 1.0.5
       type: github
     copperspice:
       build_type: none
@@ -848,6 +863,7 @@ libraries:
       - 3.3.7
       - 3.3.9
       - 3.4.0
+      - 5.0.1
       type: gitlab
     entt:
       check_file: README.md
@@ -863,6 +879,12 @@ libraries:
       - 3.6.0
       - 3.5.2
       - 3.5.0
+      type: github
+    etl:
+      check_file: include/etl/absolute.h
+      repo: ETLCPP/etl
+      targets:
+      - 20.49.0
       type: github
     eve:
       check_file: README.md
@@ -890,12 +912,20 @@ libraries:
       targets:
       - 0.1.0
       type: github
+    fast_float:
+      check_file: include/fast_float/ascii_number.h
+      repo: fastfloat/fast_float
+      target_prefix: v
+      targets:
+      - 8.4.0
+      type: github
     fastmod:
       check_file: README.md
       repo: lemire/fastmod
       target_prefix: v
       targets:
       - 0.1.0
+      - 0.2.0
       type: github
     fastor:
       check_file: README.md
@@ -1063,6 +1093,7 @@ libraries:
       - 1.0.0
       - 1.0.1
       - 2.0.0
+      - 3.0.0
       type: github
     hfsm:
       check_file: README.md
@@ -1532,6 +1563,9 @@ libraries:
       target_prefix: v
       targets:
       - 4.3.11
+      - 4.4.0
+      - 4.5.0
+      - 4.6.0
       type: github
     nightly:
       anyxx:
@@ -1946,7 +1980,6 @@ libraries:
         build_type: none
         check_file: README.md
         method: nightlyclone
-        path_name: libs/etl
         repo: ETLCPP/etl
         targets:
         - trunk
@@ -2233,6 +2266,14 @@ libraries:
         method: nightlyclone
         path_name: libs/NamedType
         repo: joboccara/NamedType
+        targets:
+        - trunk
+        type: github
+      nanobench:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: martinus/nanobench
         targets:
         - trunk
         type: github
@@ -2621,6 +2662,7 @@ libraries:
       - 3.10.5
       - 3.11.1
       - 3.11.3
+      - 3.12.0
       type: github
     nsimd:
       check_file: x86_64/include/nsimd/nsimd.h
@@ -3315,6 +3357,7 @@ libraries:
       - z
       targets:
       - 1.3.1
+      - "1.4"
       type: tarballs
       untar_dir: zlib-{{name}}
       url: https://www.zlib.net/zlib-{{name}}.tar.gz
