@@ -1980,7 +1980,6 @@ libraries:
         build_type: none
         check_file: README.md
         method: nightlyclone
-        path_name: libs/etl
         repo: ETLCPP/etl
         targets:
         - trunk
