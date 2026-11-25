@@ -1562,6 +1562,9 @@ libraries:
       target_prefix: v
       targets:
       - 4.3.11
+      - 4.4.0
+      - 4.5.0
+      - 4.6.0
       type: github
     nightly:
       anyxx:
@@ -2263,6 +2266,14 @@ libraries:
         method: nightlyclone
         path_name: libs/NamedType
         repo: joboccara/NamedType
+        targets:
+        - trunk
+        type: github
+      nanobench:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: martinus/nanobench
         targets:
         - trunk
         type: github
