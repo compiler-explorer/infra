@@ -848,6 +848,7 @@ libraries:
       - 3.3.7
       - 3.3.9
       - 3.4.0
+      - 5.0.1
       type: gitlab
     entt:
       check_file: README.md
