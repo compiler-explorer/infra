@@ -157,8 +157,8 @@ The two-level autofs configuration works as follows:
 
 #### Migration Process
 
-1. Hash existing squashfs image and copy to `/efs/cefs-images/${HASH:0:2}/${HASH}.sqfs`
-2. Backup NFS directory and create symlink to `/cefs/${HASH:0:2}/${HASH}`
+1. Hash existing squashfs image and copy to `/efs/cefs-images/${HASH:0:2}/${HASH}_converted_<path>.sqfs`
+2. Backup NFS directory and create symlink to `/cefs/${HASH:0:2}/${HASH}_converted_<path>`
 3. First access triggers autofs mount of the CEFS image
 
 This is implemented in the `ce cefs convert`.
