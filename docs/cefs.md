@@ -77,9 +77,15 @@ Autofs automatically mounts squashfs images on demand:
 
 # /etc/auto.cefs.sub (executable script: handles /cefs/XX/HASH -> squashfs mount)
 #!/bin/bash
+# Only answer for well-formed CEFS image names (see generate_cefs_filename in
+# bin/lib/cefs_manifest.py) whose image exists.
+export LC_ALL=C
 key="$1"
-subdir="${key:0:2}"
-echo "-fstype=squashfs,loop,nosuid,nodev,ro :/efs/cefs-images/${subdir}/${key}.sqfs"
+valid_key='^[0-9a-f]{24}_[A-Za-z0-9._+-]+$'
+[[ "${key}" =~ ${valid_key} ]] || exit 1
+image="/efs/cefs-images/${key:0:2}/${key}.sqfs"
+[[ -f "${image}" ]] || exit 1
+echo "-fstype=squashfs,loop,nosuid,nodev,ro :${image}"
 
 # /etc/auto.master.d/cefs.autofs
 /cefs /etc/auto.cefs --negative-timeout 1
@@ -90,7 +96,9 @@ CEFS uses a hierarchical directory structure to avoid filesystem performance iss
 The two-level autofs configuration works as follows:
 1. First access to `/cefs/XX` creates a nested autofs mount using the executable script `/etc/auto.cefs.sub`
 2. Second access to `/cefs/XX/XXYYZZZ` calls the script with the hash as argument
-3. The script extracts the first two characters from the hash and returns mount options for `/efs/cefs-images/XX/XXYYZZZ.sqfs`
+3. The script checks the name is a well-formed CEFS image name whose `/efs/cefs-images/XX/XXYYZZZ....sqfs` exists, and returns mount options for it; for any other name it prints nothing and fails, so the lookup fails
+
+   The script is run for every lookup, so replacing `/etc/auto.cefs.sub` on a running node takes effect at once without reloading autofs. `bin/lib/cefs/autofs.py` and `setup-common.sh` both write it and must stay identical (`autofs_test.py` checks)
 4. Autofs mounts the squashfs image at the requested location
 
 ## Work
@@ -149,8 +157,8 @@ The two-level autofs configuration works as follows:
 
 #### Migration Process
 
-1. Hash existing squashfs image and copy to `/efs/cefs-images/${HASH:0:2}/${HASH}.sqfs`
-2. Backup NFS directory and create symlink to `/cefs/${HASH:0:2}/${HASH}`
+1. Hash existing squashfs image and copy to `/efs/cefs-images/${HASH:0:2}/${HASH}_converted_<path>.sqfs`
+2. Backup NFS directory and create symlink to `/cefs/${HASH:0:2}/${HASH}_converted_<path>`
 3. First access triggers autofs mount of the CEFS image
 
 This is implemented in the `ce cefs convert`.
