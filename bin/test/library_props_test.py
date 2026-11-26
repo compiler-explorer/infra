@@ -39,6 +39,16 @@ def test_version_to_id():
     assert version_to_id("20.01.5") == "20015"
 
 
+def test_version_to_id_sanitises_url_unsafe_characters():
+    """Semver build metadata (`+...`) must not leak a `+` into the ID: it decodes to a space in URLs."""
+    assert version_to_id("1.2.3+spec-1.1.0") == "123_spec-110"
+    assert version_to_id("0.25.21+spec-1.1.0") == "02521_spec-110"
+    # Characters existing IDs already use are kept as-is.
+    assert version_to_id("3.0.0-preview3") == "300-preview3"
+    assert version_to_id("v1.2_rc1") == "v12_rc1"
+    assert version_to_id("trunk") == "trunk"
+
+
 def test_extract_library_id_from_github_url():
     """Test extracting library ID from GitHub URLs."""
     assert extract_library_id_from_github_url("https://github.com/fmtlib/fmt") == "fmt"

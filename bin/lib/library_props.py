@@ -30,8 +30,12 @@ def generate_library_property_key(library_name, property_name):
 
 
 def version_to_id(version):
-    """Convert a version string to a version ID by removing dots."""
-    return version.replace(".", "")
+    """Convert a version string to a version ID by removing dots.
+
+    Any other character that is not a letter, digit, `_` or `-` is mapped to `_`. Version IDs travel in URLs
+    (where a `+`, as in semver build metadata like `1.2.3+spec-1.1.0`, decodes to a space) and in property keys,
+    so they must stick to the characters existing IDs use."""
+    return re.sub(r"[^A-Za-z0-9_-]", "_", version.replace(".", ""))
 
 
 def generate_version_property_suffix(version_id, property_name):

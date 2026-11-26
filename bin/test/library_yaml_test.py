@@ -251,3 +251,22 @@ def _plain(node):
         if isinstance(node, kind):
             return kind(node)
     return str(node)
+
+
+class TestRustProperties:
+    def test_build_metadata_kept_in_version_but_not_in_id(self, tmp_path):
+        (tmp_path / "libraries.yaml").write_text(
+            "libraries:\n  rust:\n    toml:\n      type: cratesio\n      targets:\n      - 0.8.23\n      - 1.2.3+spec-1.1.0\n"
+        )
+        props = LibraryYaml(str(tmp_path)).get_ce_properties_for_rust_libraries()
+        lines = props.splitlines()
+        assert not lines[-1]  # blank separator after each crate
+        assert lines[:-1] == [
+            "libs.toml.name=toml",
+            "libs.toml.url=https://crates.io/crates/toml",
+            "libs.toml.versions=0823:123_spec-110",
+            "libs.toml.versions.0823.version=0.8.23",
+            "libs.toml.versions.0823.path=libtoml.rlib",
+            "libs.toml.versions.123_spec-110.version=1.2.3+spec-1.1.0",
+            "libs.toml.versions.123_spec-110.path=libtoml.rlib",
+        ]
