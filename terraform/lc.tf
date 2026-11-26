@@ -1,7 +1,7 @@
 locals {
-  prod_image_id           = "ami-0ac50ab7a0b2ac4b2"
-  staging_image_id        = "ami-0ac50ab7a0b2ac4b2"
-  beta_image_id           = "ami-0ac50ab7a0b2ac4b2"
+  prod_image_id           = "ami-08b75b35ee0a6623f"
+  staging_image_id        = "ami-08b75b35ee0a6623f"
+  beta_image_id           = "ami-08b75b35ee0a6623f"
   gpu_image_id            = "ami-05ab9892d177dfbe9"
   aarch64prod_image_id    = "ami-00298b118278d619f"
   aarch64staging_image_id = "ami-00298b118278d619f"
