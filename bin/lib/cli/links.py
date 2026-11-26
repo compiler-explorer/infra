@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from collections import Counter
 from pprint import pformat
 
 import click
@@ -15,6 +16,14 @@ from lib.amazon import (
 )
 from lib.ce_utils import are_you_sure
 from lib.cli import cli
+from lib.links_ip_scrub import (
+    AddressClassifier,
+    apply_updates,
+    fetch_ip_ranges,
+    format_report,
+    point_in_time_recovery,
+    scan_links,
+)
 
 
 @cli.group()
@@ -121,3 +130,53 @@ def links_maintenance(dry_run: bool):
             delete_short_link(item)
     if are_you_sure(f"delete {len(s3dirty_set)} s3 elements:\n{s3dirty_set}\n") and not dry_run:
         delete_s3_links(s3dirty_set)
+
+
+@link.command(name="scrub-ips")
+@click.option("--apply", "apply", is_flag=True, help="Write the changes; without this nothing is modified")
+@click.option("--segments", type=click.IntRange(1, 64), default=16, show_default=True, help="Parallel scan segments")
+@click.option(
+    "--writes-per-second",
+    type=click.FloatRange(min=1, max=200),
+    default=25,
+    show_default=True,
+    help="Write rate when applying",
+)
+def links_scrub_ips(apply: bool, segments: int, writes_per_second: float):
+    """Replace unanonymised addresses in links' creation_ip with the anonymised client address.
+
+    Records written before compiler-explorer#9126 can hold a client's real address in a middle
+    X-Forwarded-For entry. Each affected record is rewritten to the single anonymised client address
+    that records have held since the fix. Only aggregate shapes and masked patterns are printed.
+
+    Dry run unless --apply is given. Writes are conditional on the value the scan saw, so it is safe
+    to re-run, and a second run should find nothing to do.
+    """
+    classifier = AddressClassifier(fetch_ip_ranges())
+    report = scan_links(classifier, segments)
+    print("\n".join(format_report(report)))
+
+    to_rewrite = len(report.updates)
+    if not report.updates:
+        print("\nNothing to rewrite.")
+        return
+    if not apply:
+        print(f"\nDRY RUN: would rewrite {to_rewrite:,} records. Pass --apply to do it.")
+        return
+    if report.unscrubbable:
+        raise click.ClickException("Some records cannot be scrubbed automatically; refusing to write any")
+
+    pitr = point_in_time_recovery()
+    if pitr["PointInTimeRecoveryStatus"] != "ENABLED":
+        raise click.ClickException("Point-in-time recovery is not enabled on links; refusing to write")
+    started = datetime.datetime.now(datetime.UTC).isoformat()
+    print(f"\nPITR is enabled; latest restorable time {pitr['LatestRestorableDateTime']}.")
+    print(f"To undo, restore links to a time before {started}.")
+    are_you_sure(f"rewrite creation_ip on {to_rewrite:,} links records")
+
+    outcomes: Counter[str] = Counter()
+    try:
+        apply_updates(report.updates, writes_per_second, outcomes)
+    finally:
+        for outcome, count in outcomes.most_common():
+            print(f"  {count:>10,}  {outcome}")

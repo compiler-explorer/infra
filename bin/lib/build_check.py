@@ -12,19 +12,54 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
+import jinja2
 import yaml
 
+from lib.config_expand import expand_target, is_value_type
 from lib.config_safe_loader import ConfigSafeLoader
 
-# Installer types that require CE to build/upload to S3
+# Installer types whose artifact may come from CE's S3, and so may need CE to build/upload it
 BUILD_REQUIRED_TYPES = frozenset({
     "s3tarballs",
     "non-free-s3tarballs",
     "nightly",
     "nightlytarballs",
     "edg",
+    "edg-s3tarballs",
+    "edg-nightly",
 })
+
+# Of BUILD_REQUIRED_TYPES, the ones that fetch their artifact from the target's `url`
+# rather than a CE S3 path. They only need a CE build when that url points at CE's bucket.
+URL_SOURCED_TYPES = frozenset({"nightlytarballs"})
+
+CE_S3_BUCKET = "compiler-explorer"
+
+# The gcc-cross-builder image's build.sh takes "<ARCHITECTURE> <VERSION>" and uploads
+# "<ARCHITECTURE>-gcc-<VERSION>.tar.xz", which the installable fetches via s3_path_prefix.
+GCC_CROSS_IMAGE = "gcc-cross"
+
+
+def is_ce_s3_url(url: str) -> bool:
+    """Return True if url points into CE's own S3 bucket (path- or virtual-hosted style)."""
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if not host.endswith(".amazonaws.com"):
+        return False
+    if host.startswith(f"{CE_S3_BUCKET}.s3."):
+        return True
+    return host.startswith("s3.") and parsed.path.split("/")[1:2] == [CE_S3_BUCKET]
+
+
+def requires_build(installer_type: str | None, url: str | None) -> bool:
+    """Return True if a target of this type and url needs CE to build its artifact."""
+    if installer_type not in BUILD_REQUIRED_TYPES:
+        return False
+    if installer_type in URL_SOURCED_TYPES:
+        return url is not None and is_ce_s3_url(url)
+    return True
 
 
 def get_misc_builder_scripts() -> dict[str, str]:
@@ -91,12 +126,42 @@ class Addition:
     context: list[str]
     target: str
     installer_type: str
+    # The target's cascaded (unexpanded) installable fields, as ce_install sees them
+    config: dict[str, Any] = field(default_factory=dict)
 
     @property
     def name(self) -> str:
         """Human-readable name for the addition."""
         ctx = "/".join(self.context) if self.context else "root"
         return f"{ctx} {self.target}"
+
+    def expanded_config(self) -> dict[str, Any] | None:
+        """The target's fields after Jinja expansion, or None if they can't be expanded."""
+        if not self.config:
+            return None
+        try:
+            return dict(expand_target(dict(self.config), self.context))
+        except (RuntimeError, jinja2.TemplateError):
+            return None
+
+    def gcc_cross_architecture(self) -> str | None:
+        """The ARCHITECTURE argument gcc-cross-builder needs to build this target.
+
+        gcc-cross-builder produces "<ARCHITECTURE>-gcc-<VERSION>.tar.xz", so the
+        architecture is the expanded s3_path_prefix minus its "-gcc-<name>" suffix.
+        This can't be read off the context path: nested groups such as
+        cross/gcc/mips/mips64 or cross/gcc/avr/newer don't name the architecture
+        in any one context part, and arm/arm-unknown builds "arm-unknown".
+        """
+        expanded = self.expanded_config()
+        if not expanded:
+            return None
+        prefix = expanded.get("s3_path_prefix")
+        name = expanded.get("name", self.target)
+        suffix = f"-gcc-{name}"
+        if not isinstance(prefix, str) or not prefix.endswith(suffix) or prefix == suffix:
+            return None
+        return prefix[: -len(suffix)]
 
     def get_build_params(
         self, available_images: set[str], misc_scripts: dict[str, str] | None = None
@@ -105,6 +170,17 @@ class Addition:
 
         Returns BuildParams if we can map to a known builder image, None otherwise.
         """
+        params = self._match_build_params(available_images, misc_scripts)
+        if params and params.image == GCC_CROSS_IMAGE:
+            arch = self.gcc_cross_architecture()
+            if arch:
+                params.version = f"{arch} {self.target}"
+        return params
+
+    def _match_build_params(
+        self, available_images: set[str], misc_scripts: dict[str, str] | None = None
+    ) -> BuildParams | None:
+        """Map the context path (or yaml filename) to a builder image and version."""
         if misc_scripts is None:
             misc_scripts = {}
 
@@ -201,19 +277,24 @@ def parse_yaml_file(yaml_path: Path) -> dict[str, Any]:
         return yaml.load(f, Loader=ConfigSafeLoader) or {}
 
 
-def extract_targets_with_context(
-    node: Any, context: list[str], inherited_type: str | None = None
-) -> list[tuple[list[str], str, str]]:
-    """Extract all targets from a YAML node with their context and types.
+def _walk_targets(
+    node: Any, context: list[str], inherited: dict[str, Any]
+) -> list[tuple[list[str], str, dict[str, Any]]]:
+    """Walk a YAML node, returning (context, target, config) for every target.
 
-    Returns list of (context, target, installer_type) tuples.
+    config holds the target's cascaded, unexpanded fields: scalar and
+    list-of-string group keys flow down to descendants, and a dict target's own
+    keys override them, mirroring how ce_install resolves them.
     """
-    results: list[tuple[list[str], str, str]] = []
+    results: list[tuple[list[str], str, dict[str, Any]]] = []
 
     if not isinstance(node, dict):
         return results
 
-    current_type = node.get("type", inherited_type)
+    current = dict(inherited)
+    for key, value in node.items():
+        if key != "targets" and is_value_type(value):
+            current[key] = value
 
     if "targets" in node:
         targets = node["targets"]
@@ -221,27 +302,60 @@ def extract_targets_with_context(
             for target in targets:
                 if isinstance(target, str):
                     target_name = target
+                    target_config = {**current, "name": target, "underscore_name": target.replace(".", "_")}
                 elif isinstance(target, (int, float)):
                     target_name = str(target)
+                    target_config = {**current, "name": target_name}
                 elif isinstance(target, dict):
                     target_name = target.get("name", str(target))
+                    target_config = {**current, **target}
                 else:
                     continue
 
-                if current_type:
-                    results.append((context[:], target_name, current_type))
+                if target_config.get("type"):
+                    results.append((context[:], target_name, target_config))
 
     for key, value in node.items():
-        if key in ("targets", "type", "if"):
+        if key in ("targets", "type", "url", "if"):
             continue
         if isinstance(value, dict):
-            results.extend(extract_targets_with_context(value, context + [key], current_type))
+            results.extend(_walk_targets(value, context + [key], current))
         elif isinstance(value, list):
             for item in value:
                 if isinstance(item, dict):
-                    results.extend(extract_targets_with_context(item, context + [key], current_type))
+                    results.extend(_walk_targets(item, context + [key], current))
 
     return results
+
+
+def extract_targets_with_context(
+    node: Any, context: list[str], inherited_type: str | None = None
+) -> list[tuple[list[str], str, str]]:
+    """Extract all targets from a YAML node with their context and types.
+
+    Returns list of (context, target, installer_type) tuples.
+    """
+    inherited = {"type": inherited_type} if inherited_type else {}
+    return [(ctx, target, config["type"]) for ctx, target, config in _walk_targets(node, context, inherited)]
+
+
+def extract_build_required_targets_with_config(
+    node: Any,
+) -> list[tuple[list[str], str, dict[str, Any]]]:
+    """Return (context, target, config) for the targets that need CE to build their artifact."""
+    return [
+        (ctx, target, config)
+        for ctx, target, config in _walk_targets(node, [], {})
+        if requires_build(config.get("type"), config.get("url"))
+    ]
+
+
+def extract_build_required_targets(node: Any) -> list[tuple[list[str], str, str]]:
+    """Extract the targets that need CE to build their artifact.
+
+    Returns list of (context, target, installer_type) tuples.
+    """
+    return [(ctx, target, config["type"]) for ctx, target, config in extract_build_required_targets_with_config(node)]
 
 
 def get_all_targets_from_yaml(yaml_path: Path) -> set[tuple[tuple[str, ...], str]]:
@@ -295,7 +409,10 @@ def analyze_git_diff(yaml_dir: Path, base_ref: str = "origin/main") -> AnalysisR
         if not current_path.exists():
             continue
 
-        current_targets = get_targets_with_types(current_path)
+        current_targets = {
+            (tuple(ctx), target): config
+            for ctx, target, config in extract_build_required_targets_with_config(parse_yaml_file(current_path))
+        }
 
         try:
             base_content_result = subprocess.run(
@@ -310,19 +427,17 @@ def analyze_git_diff(yaml_dir: Path, base_ref: str = "origin/main") -> AnalysisR
         except subprocess.CalledProcessError:
             base_targets = set()
 
-        new_target_keys = set(current_targets.keys()) - base_targets
-
-        for ctx_tuple, target in new_target_keys:
-            installer_type = current_targets[(ctx_tuple, target)]
-            if installer_type in BUILD_REQUIRED_TYPES:
-                result.requires_build.append(
-                    Addition(
-                        yaml_file=yaml_file,
-                        context=list(ctx_tuple),
-                        target=target,
-                        installer_type=installer_type,
-                    )
-                )
+        result.requires_build.extend(
+            Addition(
+                yaml_file=yaml_file,
+                context=list(ctx_tuple),
+                target=target,
+                installer_type=config["type"],
+                config=config,
+            )
+            for (ctx_tuple, target), config in current_targets.items()
+            if (ctx_tuple, target) not in base_targets
+        )
 
     return result
 

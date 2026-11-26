@@ -244,6 +244,27 @@ resource "aws_cloudwatch_metric_alarm" "no_prod_nodes_blue_green" {
   }
 }
 
+# The non-browser rate limit exempts HTTP libraries, so this should never fire.
+resource "aws_cloudwatch_metric_alarm" "waf_http_library_blocked" {
+  alarm_name         = "WafBlockedHttpLibrary"
+  alarm_description  = "The WAF blocked a request from a recognised HTTP library, which the non-browser rate limit is meant to exempt"
+  evaluation_periods = 1
+  period             = 60
+  namespace          = "AWS/WAFV2"
+  metric_name        = "BlockedRequests"
+  statistic          = "Maximum"
+  dimensions = {
+    WebACL         = aws_wafv2_web_acl.compiler-explorer.name
+    LabelNamespace = "awswaf:managed:aws:bot-control:bot:category"
+    LabelName      = "http_library"
+  }
+
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+}
+
 resource "aws_cloudwatch_metric_alarm" "waf_throttled" {
   alarm_name         = "WafIsThrottling"
   alarm_description  = "We're seeing some amount of WAF client throttling, which may indicate a DoS or a WAF rate limit too low"
@@ -260,4 +281,50 @@ resource "aws_cloudwatch_metric_alarm" "waf_throttled" {
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
+}
+
+# A throttled write to events-connections is a subscription that was never stored, and the
+# events API is one-way: the 501 it produces is discarded, so ce-router queues the compile
+# believing it subscribed and the caller waits out the full 60s deadline for a result that
+# can never be delivered. Nothing else reports this - it was found by grepping Lambda logs
+# after the fact - so alarm on any throttling at all rather than on a rate.
+#
+# WriteThrottleEvents rather than ThrottledRequests: during a load test that threw ~12,000
+# throttles a minute, ThrottledRequests published nothing while this metric published all of
+# them. Throttle metrics are only emitted when non-zero, hence treat_missing_data.
+resource "aws_cloudwatch_metric_alarm" "events_connections_write_throttled" {
+  alarm_name         = "EventsConnectionsWriteThrottled"
+  alarm_description  = "events-connections is throttling writes: compilation subscriptions are being silently dropped"
+  evaluation_periods = 1
+  period             = 60
+  namespace          = "AWS/DynamoDB"
+  metric_name        = "WriteThrottleEvents"
+  statistic          = "Sum"
+  dimensions = {
+    TableName = aws_dynamodb_table.events-connections.name
+  }
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+  ok_actions          = [data.aws_sns_topic.alert.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "events_connections_gsi_write_throttled" {
+  alarm_name         = "EventsConnectionsIndexWriteThrottled"
+  alarm_description  = "SubscriptionIndex is throttling writes, which also throttles the base table"
+  evaluation_periods = 1
+  period             = 60
+  namespace          = "AWS/DynamoDB"
+  metric_name        = "WriteThrottleEvents"
+  statistic          = "Sum"
+  dimensions = {
+    TableName                = aws_dynamodb_table.events-connections.name
+    GlobalSecondaryIndexName = "SubscriptionIndex"
+  }
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+  ok_actions          = [data.aws_sns_topic.alert.arn]
 }

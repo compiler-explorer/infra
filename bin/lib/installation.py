@@ -14,7 +14,7 @@ from lib.installable.archives import (
     TarballInstallable,
     ZipArchiveInstallable,
 )
-from lib.installable.edg import EdgCompilerInstallable
+from lib.installable.edg import EdgCompilerInstallable, EdgNightlyInstallable, EdgS3TarballInstallable
 from lib.installable.git import BitbucketInstallable, GitHubInstallable, GitLabInstallable
 from lib.installable.go import GoInstallable
 from lib.installable.go_module import GoModuleInstallable
@@ -102,6 +102,8 @@ _INSTALLER_TYPES = {
     "cratesio": CratesIOInstallable,
     "non-free-s3tarballs": NonFreeS3TarballInstallable,
     "edg": EdgCompilerInstallable,
+    "edg-s3tarballs": EdgS3TarballInstallable,
+    "edg-nightly": EdgNightlyInstallable,
     "go": GoInstallable,
     "gomod": GoModuleInstallable,
 }

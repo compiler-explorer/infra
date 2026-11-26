@@ -66,7 +66,7 @@ def check_staticfiles_for_deployment(release) -> bool:
                 print("No problems found")
                 return True
             else:
-                print("New webpackJsHack version number required to deploy static files to cdn")
+                print("Static files on the CDN are immutable: a changed file needs a new name (e.g. rename the image)")
                 return False
 
 

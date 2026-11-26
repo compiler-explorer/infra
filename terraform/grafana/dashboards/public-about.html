@@ -1,0 +1,30 @@
+<div style="text-align: center">
+<img src="https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/logo/site-logo-inverse.svg" alt="Compiler Explorer" style="max-height: 12em">
+</div>
+
+<p>
+Compiler Explorer is a site that lets you see how your compiler works. Type in C, C++, D, Rust, Java, Kotlin, Go (or many other languages) into one window and instantly see the compiler output, with useful highlighting of how the source language maps to the generated assembly or bytecode.
+</p>
+
+<p>
+Visit the site at <a href="https://godbolt.org/" target="_blank">godbolt.org</a>.
+</p>
+
+<p>
+These stats come from AWS CloudWatch and the Prometheus metrics the site reports, which are the very simple and limited information
+we keep to monitor and debug the site (for more on what we keep, see our <a href="https://godbolt.org/#privacy" target="_blank">Privacy Policy</a>).
+They cover the public site, including its Windows and GPU compilers. An "instance" is one of the EC2 virtual machines, on Amazon's
+infrastructure, that run the compilers. Most compilations are queued and picked up by whichever instance is free; Windows and GPU
+compilations go to instances of their own. For more on how it all fits together, see
+<a href="https://xania.org/202506/how-compiler-explorer-works" target="_blank">How Compiler Explorer works</a>.
+</p>
+
+<p>Support us by:</p>
+<ul>
+  <li>Contributing on <a href="https://github.com/compiler-explorer/compiler-explorer" target="_blank">GitHub</a></li>
+  <li>Becoming a <a href="https://github.com/sponsors/compiler-explorer" target="_blank">GitHub sponsor</a></li>
+  <li>Supporting us on <a href="https://patreon.com/mattgodbolt" target="_blank">Patreon</a></li>
+  <li>Buying gear from the <a href="https://shop.compiler-explorer.com" target="_blank">Compiler Explorer store</a></li>
+  <li>Following us on <a href="https://hachyderm.io/@compiler_explorer" target="_blank">Mastodon</a> or <a href="https://bsky.app/profile/compiler-explorer.com" target="_blank">Bluesky</a></li>
+  <li>Spreading the word to anyone who might benefit</li>
+</ul>

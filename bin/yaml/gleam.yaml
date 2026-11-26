@@ -1,0 +1,23 @@
+compilers:
+  gleam:
+    type: tarballs
+    url: https://github.com/gleam-lang/gleam/releases/download/v{{name}}/gleam-v{{name}}-x86_64-unknown-linux-musl.tar.gz
+    compression: gz
+    create_untar_dir: true
+    dir: gleam-{{name}}
+    check_exe: gleam --version
+    depends:
+      - compilers/erlang 28.1.1
+      - compilers/gleam-stdlib 1.0.5
+    targets:
+      - 1.18.1
+      - 1.17.0
+  gleam-stdlib:
+    type: tarballs
+    url: https://github.com/gleam-lang/stdlib/archive/refs/tags/v{{name}}.tar.gz
+    compression: gz
+    untar_dir: stdlib-{{name}}
+    dir: gleam-stdlib-{{name}}
+    check_file: gleam.toml
+    targets:
+      - 1.0.5

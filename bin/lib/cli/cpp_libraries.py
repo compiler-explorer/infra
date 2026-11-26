@@ -20,7 +20,7 @@ from lib.library_props import (
     process_library_specific_properties,
     validate_library_version_args,
 )
-from lib.library_yaml import LibraryYaml
+from lib.library_yaml import LibraryYaml, insert_sorted
 
 from ..ce_install import cli
 
@@ -158,7 +158,7 @@ def add_cpp_library(
         if package_install:
             library_entry["package_install"] = True
 
-        cpp_libraries[lib_id] = library_entry
+        insert_sorted(cpp_libraries, lib_id, library_entry)
         click.echo(f"Added new library {lib_id} with version {version}")
 
     library_yaml.save()

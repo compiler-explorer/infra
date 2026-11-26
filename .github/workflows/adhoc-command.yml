@@ -55,7 +55,7 @@ jobs:
 
       - name: Setup interactive session
         if: ${{ inputs.interactive }}
-        uses: owenthereal/action-upterm@v1
+        uses: owenthereal/action-upterm@v2
         with:
           limit-access-to-actor: true
           wait-timeout-minutes: ${{ inputs.timeout_minutes }}

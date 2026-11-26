@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from lib.cefs.deployment import (
+    backup_and_symlink,
     check_temp_space_available,
     deploy_to_cefs_transactional,
     has_enough_space,
@@ -210,3 +211,26 @@ def test_deploy_to_cefs_transactional_dry_run(tmp_path):
     assert not target_path.exists()
     assert not target_path.with_suffix(".yaml").exists()
     assert not Path(str(target_path.with_suffix(".yaml")) + ".inprogress").exists()
+
+
+def test_backup_and_symlink_keeps_live_path_available(tmp_path, monkeypatch):
+    previous = tmp_path / "previous"
+    previous.mkdir()
+    (previous / "header.h").write_text("old header")
+    replacement = tmp_path / "replacement"
+    replacement.mkdir()
+    (replacement / "header.h").write_text("new header")
+    current = tmp_path / "library"
+    current.symlink_to(previous, target_is_directory=True)
+    original_symlink_to = Path.symlink_to
+
+    def check_live_path(path, target, target_is_directory=False):
+        # Simulate a compiler reading a header while the replacement is prepared.
+        assert (current / "header.h").read_text() == "old header"
+        original_symlink_to(path, target, target_is_directory=target_is_directory)
+
+    monkeypatch.setattr(Path, "symlink_to", check_live_path)
+    backup_and_symlink(current, replacement, dry_run=False, defer_cleanup=False)
+
+    assert (current / "header.h").read_text() == "new header"
+    assert (tmp_path / "library.bak").readlink() == previous

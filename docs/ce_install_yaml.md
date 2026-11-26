@@ -109,10 +109,11 @@ The following properties are commonly used by installation targets:
 | `if` | Conditional flag to control if the target is included |
 | `s3_path_prefix` | Custom path in S3 storage for S3 installer types |
 | `install_always` | Whether to always install (used for nightlies). Without this, installation tries to be idempotent: the `check_file` or `check_exe` is used to determine if this target is already installed, and if so it is skipped |
-| `compression` | Compression format for archive types (e.g., `gz`, `bz2`, `xz`) |
+| `compression` | Compression format for archive types: `gz`, `bz2`, `xz`, `zstd`, `tar`, or `zip` (`zip` is downloaded then unpacked, so it does not support `strip_components` or `extract_only`) |
 | `untar_dir` | Directory name when extracting archives |
 | `create_untar_dir` | Whether to create the untar directory if it doesn't exist |
 | `strip_components` | Number of leading path components to strip when extracting |
+| `sha256` | Expected SHA-256 of the downloaded archive (`tarballs`, `go`, `ziparchive`). The download is checked before anything is extracted, and a mismatch fails the install. Pin the digest here rather than fetching a checksum file from the same place as the archive |
 | `strip` | Whether to apply stripping to executables |
 | `depends` | List of target dependencies |
 | `symlink` | Symlink to create for the installed target (only needed in rare cases) |
@@ -150,7 +151,9 @@ The following installer types are available, each with specific required and opt
 | `ziparchive` | Downloads and extracts a ZIP archive | `check_exe` or `check_file`, `url` | `dir` |
 | `cratesio` | Installs a Rust crate from crates.io | `check_exe` or `check_file` | `dir` |
 | `non-free-s3tarballs` | Downloads and extracts a non-free tarball from S3 | `check_exe` or `check_file` | `dir`, `s3_path_prefix` |
-| `edg` | Installs an EDG compiler (very special-case) | `check_exe` or `check_file` | `dir` |
+| `edg` | Installs a non-free EDG compiler supplied by EDG (very special-case) | `check_exe` or `check_file` | `dir` |
+| `edg-s3tarballs` | Installs one mode of an open-source EDG release we build (misc-builder `edg` image) | `check_exe` or `check_file`, `compiler_type` | `untar_dir`, `s3_path_prefix`, `macro_output_dir` |
+| `edg-nightly` | Installs one mode of the daily open-source EDG build | `check_exe` or `check_file`, `compiler_type`, `compiler_name` | `path_name_prefix`, `macro_output_dir` |
 | `restQueryTarballs` | Downloads tarball using REST API information | `check_exe` or `check_file`, `url`, `query` | `dir` |
 | `go` | Installs a Go compiler and automatically builds the standard library | `check_exe` or `check_file` | `dir`, `build_stdlib`, `build_stdlib_archs` |
 

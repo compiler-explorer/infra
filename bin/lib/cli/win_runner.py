@@ -29,6 +29,11 @@ STARTUP_COMPLETE_FILE = "C:/tmp/ce-startup-complete"
 STARTUP_LOG = "C:/tmp/log/cestartup-svc.log"
 STARTUP_SERVICE = "cestartup"
 
+# Per call while waiting for the runner to boot, so a session that stalls is retried rather
+# than hanging the loop: an ssh accepted early in boot can be cut off by Startup.ps1's
+# firewall reset without the client noticing.
+BOOT_SSH_TIMEOUT = 30
+
 STARTUP_READY = "ready"
 STARTUP_FAILED = "failed"
 STARTUP_WAITING = "waiting"
@@ -68,7 +73,9 @@ def win_runner_discovery():
 
 
 def startup_log_tail(instance, lines: int = 40) -> str:
-    tail = exec_remote(instance, ["Get-Content", "-Tail", str(lines), STARTUP_LOG], ignore_errors=True)
+    tail = exec_remote(
+        instance, ["Get-Content", "-Tail", str(lines), STARTUP_LOG], ignore_errors=True, timeout=BOOT_SSH_TIMEOUT
+    )
     return f" Last of {STARTUP_LOG}:\n{tail}"
 
 
@@ -153,7 +160,7 @@ def win_runner_start():
 
     for _ in range(60):
         try:
-            r = exec_remote(instance, ["echo", "hello"])
+            r = exec_remote(instance, ["echo", "hello"], timeout=BOOT_SSH_TIMEOUT)
             if r.strip() == "hello":
                 break
         except RuntimeError as e:
@@ -165,8 +172,10 @@ def win_runner_start():
     # There is no journalctl here, so wait on the file init/start.ps1 writes when it finishes.
     for _ in range(60):
         state = startup_state(
-            exec_remote(instance, ["Test-Path", STARTUP_COMPLETE_FILE], ignore_errors=True),
-            exec_remote(instance, ["Get-Service", "-Name", STARTUP_SERVICE], ignore_errors=True),
+            exec_remote(instance, ["Test-Path", STARTUP_COMPLETE_FILE], ignore_errors=True, timeout=BOOT_SSH_TIMEOUT),
+            exec_remote(
+                instance, ["Get-Service", "-Name", STARTUP_SERVICE], ignore_errors=True, timeout=BOOT_SSH_TIMEOUT
+            ),
         )
         if state == STARTUP_READY:
             break

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from pathlib import Path
 
-from lib.library_yaml import LibraryYaml, collect_library_leaves
+import yaml
+from lib.config_safe_loader import ConfigSafeLoader
+from lib.library_yaml import LibraryYaml, collect_library_leaves, insert_sorted
 
 
 def make_lib_props(versions: dict) -> dict:
@@ -186,3 +189,65 @@ class TestCollectLibraryLeaves:
         leaves = collect_library_leaves({"foo": {"targets": ["1.0"], "child": {"targets": ["2.0"]}}})
         assert "foo" in leaves
         assert "child" not in leaves
+
+
+class TestRoundTrip:
+    SAMPLE = """libraries:
+  c++:
+    # A comment that must survive a save.
+    beta:
+      repo: example/beta
+      targets:
+      - '1.10'
+      - 2.0.0
+      type: github
+    alpha:
+      type: github
+      description: "Quoted, and keys deliberately unsorted"
+      targets:
+      - 1.0.0
+"""
+
+    def _library_yaml(self, tmp_path, text):
+        (tmp_path / "libraries.yaml").write_text(text)
+        return LibraryYaml(str(tmp_path))
+
+    def test_unchanged_save_is_byte_identical(self, tmp_path):
+        library_yaml = self._library_yaml(tmp_path, self.SAMPLE)
+        library_yaml.save()
+        assert (tmp_path / "libraries.yaml").read_text() == self.SAMPLE
+
+    def test_adding_a_target_only_adds_that_line(self, tmp_path):
+        library_yaml = self._library_yaml(tmp_path, self.SAMPLE)
+        library_yaml.yaml_doc["libraries"]["c++"]["beta"]["targets"].append("3.0.0")
+        library_yaml.save()
+        assert (tmp_path / "libraries.yaml").read_text() == self.SAMPLE.replace(
+            "      - 2.0.0\n", "      - 2.0.0\n      - 3.0.0\n"
+        )
+
+    def test_insert_sorted_places_new_library_alphabetically(self, tmp_path):
+        library_yaml = self._library_yaml(tmp_path, "libraries:\n  c++:\n    apple: {}\n    cherry: {}\n")
+        insert_sorted(library_yaml.yaml_doc["libraries"]["c++"], "banana", {"type": "github", "repo": "x/banana"})
+        assert list(library_yaml.yaml_doc["libraries"]["c++"]) == ["apple", "banana", "cherry"]
+        assert list(library_yaml.yaml_doc["libraries"]["c++"]["banana"]) == ["repo", "type"]
+
+    def test_real_file_loads_the_same_data_as_the_install_loader(self):
+        # The installer reads libraries.yaml with ConfigSafeLoader (YAML 1.1, no timestamps); the round-trip
+        # loader is YAML 1.2. Values like `yes` or a bare date would load differently, so catch them here.
+        yaml_dir = Path(__file__).parent.parent / "yaml"
+        with (yaml_dir / "libraries.yaml").open(encoding="utf-8") as f:
+            expected = yaml.load(f, Loader=ConfigSafeLoader)
+        assert _plain(LibraryYaml(str(yaml_dir)).yaml_doc) == expected
+
+
+def _plain(node):
+    if isinstance(node, dict):
+        return {str(k): _plain(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [_plain(v) for v in node]
+    if isinstance(node, bool) or node is None:
+        return node
+    for kind in (int, float):
+        if isinstance(node, kind):
+            return kind(node)
+    return str(node)

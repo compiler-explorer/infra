@@ -4,11 +4,10 @@ import os
 from collections import defaultdict
 from pathlib import Path
 
-import yaml
+from ruamel.yaml import YAML
 
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.config_expand import is_value_type
-from lib.config_safe_loader import ConfigSafeLoader
 from lib.installation_context import FetchFailure
 from lib.library_platform import LibraryPlatform
 from lib.library_props import (
@@ -18,6 +17,23 @@ from lib.library_props import (
     version_to_id,
 )
 from lib.rust_crates import TopRustCrates
+
+
+def _round_trip_yaml() -> YAML:
+    # Round-trip mode keeps comments, key order and quoting, so a tool-driven edit only
+    # changes the lines it means to. The indent matches the file's existing list style.
+    yaml = YAML(typ="rt")
+    yaml.preserve_quotes = True
+    yaml.width = 4096
+    yaml.indent(mapping=2, sequence=2, offset=0)
+    return yaml
+
+
+def insert_sorted(mapping, key: str, value) -> None:
+    """Add a new key to a libraries.yaml mapping, before the first existing key that sorts after it."""
+    entry = {k: value[k] for k in sorted(value)} if isinstance(value, dict) else value
+    position = next((i for i, existing in enumerate(mapping) if str(existing) > key), len(mapping))
+    mapping.insert(position, key, entry)
 
 
 def collect_library_leaves(node) -> dict[str, list[dict]]:
@@ -73,25 +89,27 @@ class LibraryYaml:
 
     def load(self):
         with self.yaml_path.open(encoding="utf-8", mode="r") as yaml_file:
-            self.yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
+            self.yaml_doc = _round_trip_yaml().load(yaml_file)
 
     def save(self):
         with self.yaml_path.open(encoding="utf-8", mode="w") as yaml_file:
-            yaml.dump(self.yaml_doc, yaml_file)
+            _round_trip_yaml().dump(self.yaml_doc, yaml_file)
 
     def reformat(self):
         self.save()
 
     def add_rust_crate(self, libid, libversion):
         if "rust" not in self.yaml_doc["libraries"]:
-            self.yaml_doc["libraries"]["rust"] = dict()
+            insert_sorted(self.yaml_doc["libraries"], "rust", {})
 
         libraries_for_language = self.yaml_doc["libraries"]["rust"]
         if libid in libraries_for_language:
             if libversion not in libraries_for_language[libid]["targets"]:
                 libraries_for_language[libid]["targets"].append(libversion)
         else:
-            libraries_for_language[libid] = dict(type="cratesio", build_type="cargo", targets=[libversion])
+            insert_sorted(
+                libraries_for_language, libid, dict(type="cratesio", build_type="cargo", targets=[libversion])
+            )
 
     def get_ce_properties_for_rust_libraries(self) -> str:
         properties_txt = ""
@@ -343,6 +361,6 @@ class LibraryYaml:
 
         # Ensure language section exists
         if language not in library_yaml.yaml_doc["libraries"]:
-            library_yaml.yaml_doc["libraries"][language] = {}
+            insert_sorted(library_yaml.yaml_doc["libraries"], language, {})
 
         return library_yaml, library_yaml.yaml_doc["libraries"][language]

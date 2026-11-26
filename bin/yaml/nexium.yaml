@@ -1,0 +1,13 @@
+compilers:
+  nexium:
+    # https://londopy.github.io/nexium/ : nx emits C and drives a C compiler.
+    # The release archive holds nx, the standard library is embedded in it;
+    # the examples and docs beside it are what a user gets and cost little.
+    type: tarballs
+    compression: gz
+    url: https://github.com/Londopy/nexium/releases/download/v{{name}}/nx-v{{name}}-x86_64-unknown-linux-gnu.tar.gz
+    dir: nexium-{{name}}
+    create_untar_dir: true
+    check_exe: nx version
+    targets:
+      - 1.2.0

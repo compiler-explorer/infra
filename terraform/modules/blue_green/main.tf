@@ -15,8 +15,13 @@ resource "aws_sqs_queue" "compilation_queue" {
   name                        = "${var.environment}-compilation-queue-${each.value}.fifo"
   fifo_queue                  = true
   content_based_deduplication = false
-  message_retention_seconds   = 300 # 5 minutes
-  visibility_timeout_seconds  = 60  # 1 minute
+  # Matches ce-router's own 60s request deadline (60s is also the SQS minimum). A message
+  # that has not been picked up by then can no longer be answered: the router has given up
+  # and unsubscribed, so compiling it anyway produces a result with no subscriber, which
+  # the events API cannot report back - the worker just burns its full ack-retry budget.
+  # Keep this at or below whatever ce-router uses as its timeout.
+  message_retention_seconds  = 60
+  visibility_timeout_seconds = 60 # 1 minute
 
   tags = {
     Environment = var.environment

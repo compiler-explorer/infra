@@ -15,13 +15,13 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v7.0.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.12'
 
       - name: Install dependencies
         run: |
-          pip install pyyaml
+          pip install pyyaml jinja2
 
       - name: Check for build requirements
         id: check

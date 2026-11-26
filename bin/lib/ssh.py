@@ -63,6 +63,9 @@ _SSH_COMMAND = [
     "-oUserKnownHostsFile=/dev/null",
     "-oStrictHostKeyChecking=no",
     "-oLogLevel=ERROR",
+    # ConnectTimeout only covers the TCP connect and banner; these drop a session that goes quiet after.
+    "-oServerAliveInterval=15",
+    "-oServerAliveCountMax=4",
 ]
 
 DEFAULT_SSH_USER = "ubuntu"
@@ -85,14 +88,27 @@ def run_remote_shell(instance, use_mosh: bool = False):
     os.system(f"{ssh_command} {ssh_target_for(instance)}")
 
 
-def exec_remote(instance, command, ignore_errors: bool = False):
+def exec_remote(instance, command, ignore_errors: bool = False, timeout: float | None = None):
+    """Run command on instance and return its stdout.
+
+    A timeout kills ssh if it has not finished in that many seconds, which counts as a failure:
+    a session can stall after connecting, e.g. while a booting machine resets its firewall.
+    """
     command = shlex.join(command)
     logger.debug("Running '%s' on %s", command, instance)
     ssh_command = _SSH_COMMAND + [ssh_target_for(instance), command]
     with subprocess.Popen(
         args=ssh_command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
     ) as ssh_process:
-        stdout_text, stderr_text = ssh_process.communicate()
+        try:
+            stdout_text, stderr_text = ssh_process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            ssh_process.kill()
+            ssh_process.communicate()
+            if ignore_errors:
+                return ""
+            logger.error("Execution of '%s' timed out after %ss", command, timeout)
+            raise RuntimeError(f"Remote command execution timed out after {timeout}s") from None
     status = ssh_process.returncode
     if status != 0 and not ignore_errors:
         logger.error("Execution of '%s' failed with status %d", command, status)

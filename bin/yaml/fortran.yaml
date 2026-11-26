@@ -69,6 +69,9 @@ compilers:
         - name: 2025.3.2.25
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/3e53d136-2870-4836-adb1-892b558fa34a/intel-fortran-compiler-{{name}}_offline.sh install.sh
+        - name: 2026.2.0.606
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/f2267e6f-5a6a-431e-a3c9-cca1a8cc6534/intel-fortran-compiler-{{name}}_offline.sh install.sh
     lfortran:
       check_exe: bin/lfortran --version
       path_name: "lfortran/v{{name}}"

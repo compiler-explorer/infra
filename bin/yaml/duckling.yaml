@@ -1,0 +1,12 @@
+compilers:
+  duckling:
+    if: nightly
+    type: nightlytarballs
+    dir: duckling-{{name}}
+    compression: gz
+    create_untar_dir: true
+    strip_components: 1
+    url: https://github.com/ducktype-org/duckling/releases/download/dev-weekly/duckling-dev-linux-x86_64.tar.gz
+    check_exe: bin/duckc --version
+    targets:
+      - trunk

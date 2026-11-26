@@ -20,6 +20,10 @@ compilers:
       - 2.0.0
       - 2.0.16
       - 2.2.10
+      - 2.2.12
+      - 2.2.14
+      - 2.4.0
+      - 2.4.2
     nightly:
       install_always: true
       if: nightly

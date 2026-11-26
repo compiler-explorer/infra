@@ -10,13 +10,24 @@ from botocore.exceptions import ClientError
 from lib.deployment_utils import clear_router_cache
 
 
+def _response(status_code: int, text: str = "") -> MagicMock:
+    response = MagicMock()
+    response.status_code = status_code
+    response.text = text
+    return response
+
+
+@patch("lib.deployment_utils.time.sleep")
+@patch("lib.deployment_utils.is_running_on_admin_node", return_value=True)
 class TestClearRouterCache(unittest.TestCase):
     """Test router cache clearing functionality."""
 
     @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
     @patch("lib.deployment_utils.requests.post")
-    def test_clear_router_cache_success(self, mock_post, mock_get_asg_info, mock_get_private_ip):
+    def test_clear_router_cache_success(
+        self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
         """Test successful router cache clearing."""
         mock_get_asg_info.return_value = {
             "Instances": [
@@ -24,55 +35,97 @@ class TestClearRouterCache(unittest.TestCase):
             ]
         }
         mock_get_private_ip.return_value = "10.0.1.50"
-
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = _response(200)
 
         result = clear_router_cache("staging")
 
-        self.assertTrue(result)
+        self.assertTrue(result.complete)
+        self.assertEqual(result.required, 1)
+        self.assertEqual(result.cleared, 1)
+        self.assertIsNone(result.not_applicable)
         mock_get_asg_info.assert_called_once_with("ce-router-staging")
         mock_get_private_ip.assert_called_once_with("i-router123")
-        mock_post.assert_called_once_with("http://10.0.1.50/admin/clear-cache", timeout=5)
+        mock_post.assert_called_once_with("http://10.0.1.50/admin/clear-cache", timeout=15)
 
     @patch("lib.deployment_utils.get_asg_info")
-    def test_clear_router_cache_asg_not_found(self, mock_get_asg_info):
-        """Test behavior when router ASG is not found."""
-        mock_get_asg_info.return_value = None
+    def test_clear_router_cache_not_on_admin_node(self, mock_get_asg_info, mock_admin_node, _mock_sleep):
+        """Routers are unreachable from elsewhere, and that is a failure, not a skip."""
+        mock_admin_node.return_value = False
 
         result = clear_router_cache("prod")
 
-        self.assertFalse(result)
-        mock_get_asg_info.assert_called_once_with("ce-router-prod")
+        self.assertFalse(result.complete)
+        self.assertIsNone(result.not_applicable)
+        self.assertIn("admin node", result.failures[0])
+        mock_get_asg_info.assert_not_called()
 
     @patch("lib.deployment_utils.get_asg_info")
-    def test_clear_router_cache_no_instances(self, mock_get_asg_info):
+    def test_clear_router_cache_asg_not_found(self, mock_get_asg_info, _mock_admin_node, _mock_sleep):
+        """Environments without a router ASG are not a failure."""
+        mock_get_asg_info.return_value = None
+
+        result = clear_router_cache("gpu")
+
+        self.assertIsNotNone(result.not_applicable)
+        self.assertEqual(result.failures, [])
+        mock_get_asg_info.assert_called_once_with("ce-router-gpu")
+
+    @patch("lib.deployment_utils.get_asg_info")
+    def test_clear_router_cache_no_instances(self, mock_get_asg_info, _mock_admin_node, _mock_sleep):
         """Test behavior when router ASG has no instances."""
         mock_get_asg_info.return_value = {"Instances": []}
 
         result = clear_router_cache("beta")
 
-        self.assertFalse(result)
-        mock_get_asg_info.assert_called_once_with("ce-router-beta")
+        self.assertIsNotNone(result.not_applicable)
+        self.assertEqual(result.failures, [])
 
+    @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
-    def test_clear_router_cache_no_in_service_instances(self, mock_get_asg_info):
-        """Test behavior when router ASG has no in-service instances."""
+    @patch("lib.deployment_utils.requests.post")
+    def test_clear_router_cache_no_in_service_instances(
+        self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
+        """Nothing is required, but a router that is out of service still gets a try."""
         mock_get_asg_info.return_value = {
             "Instances": [
                 {"InstanceId": "i-router123", "LifecycleState": "Pending"},
             ]
         }
+        mock_get_private_ip.return_value = "10.0.1.50"
+        mock_post.return_value = _response(200)
 
         result = clear_router_cache("staging")
 
-        self.assertFalse(result)
+        self.assertIsNotNone(result.not_applicable)
+        self.assertEqual(result.failures, [])
+        mock_post.assert_called_once_with("http://10.0.1.50/admin/clear-cache", timeout=15)
 
     @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
-    def test_clear_router_cache_no_private_ip(self, mock_get_asg_info, mock_get_private_ip):
-        """Test behavior when router instance has no private IP."""
+    @patch("lib.deployment_utils.requests.post")
+    def test_clear_router_cache_failed_best_effort_is_mentioned(
+        self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
+        """A flapping router comes back holding whatever the failed clear left behind."""
+        mock_get_asg_info.return_value = {
+            "Instances": [
+                {"InstanceId": "i-router123", "LifecycleState": "Pending"},
+            ]
+        }
+        mock_get_private_ip.return_value = "10.0.1.50"
+        mock_post.side_effect = requests.exceptions.ConnectionError("not listening")
+
+        result = clear_router_cache("staging")
+
+        self.assertIn("stale cache", result.not_applicable)
+
+    @patch("lib.deployment_utils.get_instance_private_ip")
+    @patch("lib.deployment_utils.get_asg_info")
+    def test_clear_router_cache_no_private_ip(
+        self, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
+        """An instance whose IP cannot be found has not been cleared."""
         mock_get_asg_info.return_value = {
             "Instances": [
                 {"InstanceId": "i-router123", "LifecycleState": "InService"},
@@ -82,51 +135,57 @@ class TestClearRouterCache(unittest.TestCase):
 
         result = clear_router_cache("prod")
 
-        self.assertFalse(result)
+        self.assertFalse(result.complete)
+        self.assertEqual(len(result.failures), 1)
 
     @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
     @patch("lib.deployment_utils.requests.post")
-    def test_clear_router_cache_http_error(self, mock_post, mock_get_asg_info, mock_get_private_ip):
-        """Test behavior when cache clear endpoint returns non-200 status."""
+    def test_clear_router_cache_http_error(
+        self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
+        """A router that keeps returning an error is retried and then reported."""
         mock_get_asg_info.return_value = {
             "Instances": [
                 {"InstanceId": "i-router123", "LifecycleState": "InService"},
             ]
         }
         mock_get_private_ip.return_value = "10.0.1.50"
-
-        mock_response = MagicMock()
-        mock_response.status_code = 500
-        mock_response.text = "Internal Server Error"
-        mock_post.return_value = mock_response
+        mock_post.return_value = _response(500, "Internal error")
 
         result = clear_router_cache("staging")
 
-        self.assertFalse(result)
+        self.assertFalse(result.complete)
+        self.assertEqual(mock_post.call_count, 3)
+        self.assertIn("HTTP 500", result.failures[0])
 
     @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
     @patch("lib.deployment_utils.requests.post")
-    def test_clear_router_cache_timeout(self, mock_post, mock_get_asg_info, mock_get_private_ip):
-        """Test behavior when cache clear request times out."""
+    def test_clear_router_cache_retry_succeeds(
+        self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
+        """Most partial failures are transient, so a retry counts as success."""
         mock_get_asg_info.return_value = {
             "Instances": [
                 {"InstanceId": "i-router123", "LifecycleState": "InService"},
             ]
         }
         mock_get_private_ip.return_value = "10.0.1.50"
-        mock_post.side_effect = requests.exceptions.Timeout("Timeout")
+        mock_post.side_effect = [requests.exceptions.Timeout("too slow"), _response(200)]
 
         result = clear_router_cache("prod")
 
-        self.assertFalse(result)
+        self.assertTrue(result.complete)
+        self.assertEqual(mock_post.call_count, 2)
 
     @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
     @patch("lib.deployment_utils.requests.post")
-    def test_clear_router_cache_connection_error(self, mock_post, mock_get_asg_info, mock_get_private_ip):
-        """Test behavior when cache clear request has connection error."""
+    def test_clear_router_cache_connection_error(
+        self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
+        """Test behavior when connection fails."""
         mock_get_asg_info.return_value = {
             "Instances": [
                 {"InstanceId": "i-router123", "LifecycleState": "InService"},
@@ -137,23 +196,27 @@ class TestClearRouterCache(unittest.TestCase):
 
         result = clear_router_cache("beta")
 
-        self.assertFalse(result)
+        self.assertFalse(result.complete)
+        self.assertIn("ConnectionError", result.failures[0])
 
     @patch("lib.deployment_utils.get_asg_info")
-    def test_clear_router_cache_aws_error(self, mock_get_asg_info):
-        """Test behavior when AWS API returns an error."""
+    def test_clear_router_cache_aws_error(self, mock_get_asg_info, _mock_admin_node, _mock_sleep):
+        """Test behavior when AWS API call fails."""
         mock_get_asg_info.side_effect = ClientError(
             {"Error": {"Code": "AccessDenied", "Message": "Access denied"}}, "DescribeAutoScalingGroups"
         )
 
         result = clear_router_cache("staging")
 
-        self.assertFalse(result)
+        self.assertFalse(result.complete)
+        self.assertEqual(len(result.failures), 1)
 
     @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
     @patch("lib.deployment_utils.requests.post")
-    def test_clear_router_cache_multiple_instances(self, mock_post, mock_get_asg_info, mock_get_private_ip):
+    def test_clear_router_cache_multiple_instances(
+        self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
         """Test that cache is cleared on all in-service instances."""
         mock_get_asg_info.return_value = {
             "Instances": [
@@ -162,24 +225,22 @@ class TestClearRouterCache(unittest.TestCase):
             ]
         }
         mock_get_private_ip.side_effect = ["10.0.1.50", "10.0.1.51"]
-
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        mock_post.return_value = _response(200)
 
         result = clear_router_cache("prod")
 
-        self.assertTrue(result)
-        self.assertEqual(mock_get_private_ip.call_count, 2)
-        self.assertEqual(mock_post.call_count, 2)
-        mock_post.assert_any_call("http://10.0.1.50/admin/clear-cache", timeout=5)
-        mock_post.assert_any_call("http://10.0.1.51/admin/clear-cache", timeout=5)
+        self.assertTrue(result.complete)
+        self.assertEqual(result.cleared, 2)
+        mock_post.assert_any_call("http://10.0.1.50/admin/clear-cache", timeout=15)
+        mock_post.assert_any_call("http://10.0.1.51/admin/clear-cache", timeout=15)
 
     @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
     @patch("lib.deployment_utils.requests.post")
-    def test_clear_router_cache_partial_success(self, mock_post, mock_get_asg_info, mock_get_private_ip):
-        """Test that function returns True if at least one instance succeeds."""
+    def test_clear_router_cache_partial_is_not_success(
+        self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
+        """Reaching one of several routers leaves the others serving the old colour."""
         mock_get_asg_info.return_value = {
             "Instances": [
                 {"InstanceId": "i-router1", "LifecycleState": "InService"},
@@ -187,42 +248,40 @@ class TestClearRouterCache(unittest.TestCase):
             ]
         }
         mock_get_private_ip.side_effect = ["10.0.1.50", "10.0.1.51"]
-
-        mock_success = MagicMock()
-        mock_success.status_code = 200
-        mock_failure = MagicMock()
-        mock_failure.status_code = 500
-        mock_failure.text = "Internal error"
-        mock_post.side_effect = [mock_success, mock_failure]
+        mock_post.side_effect = [_response(200), _response(500, "Internal error"), _response(500), _response(500)]
 
         result = clear_router_cache("staging")
 
-        self.assertTrue(result)
-        self.assertEqual(mock_post.call_count, 2)
+        self.assertFalse(result.complete)
+        self.assertEqual(result.cleared, 1)
+        self.assertEqual(result.required, 2)
+        self.assertEqual(len(result.failures), 1)
+        self.assertIn("i-router2", result.failures[0])
 
     @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
     @patch("lib.deployment_utils.requests.post")
-    def test_clear_router_cache_skip_instance_without_ip(self, mock_post, mock_get_asg_info, mock_get_private_ip):
-        """Test that instances without private IPs are skipped."""
+    def test_clear_router_cache_other_states_are_best_effort(
+        self, mock_post, mock_get_asg_info, mock_get_private_ip, _mock_admin_node, _mock_sleep
+    ):
+        """A router that is out of service is tried once; one that is gone is left alone."""
         mock_get_asg_info.return_value = {
             "Instances": [
                 {"InstanceId": "i-router1", "LifecycleState": "InService"},
-                {"InstanceId": "i-router2", "LifecycleState": "InService"},
+                {"InstanceId": "i-router2", "LifecycleState": "Standby"},
+                {"InstanceId": "i-router3", "LifecycleState": "Terminating:Wait"},
+                {"InstanceId": "i-router4", "LifecycleState": "Terminated"},
             ]
         }
-        mock_get_private_ip.side_effect = [None, "10.0.1.51"]
+        mock_get_private_ip.side_effect = ["10.0.1.50", "10.0.1.51"]
+        mock_post.side_effect = [_response(200), requests.exceptions.ConnectionError("not listening yet")]
 
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+        result = clear_router_cache("prod")
 
-        result = clear_router_cache("beta")
-
-        self.assertTrue(result)
-        self.assertEqual(mock_get_private_ip.call_count, 2)
-        self.assertEqual(mock_post.call_count, 1)
-        mock_post.assert_called_once_with("http://10.0.1.51/admin/clear-cache", timeout=5)
+        self.assertTrue(result.complete)
+        self.assertEqual(result.required, 1)
+        self.assertEqual(mock_post.call_count, 2)
+        mock_post.assert_any_call("http://10.0.1.51/admin/clear-cache", timeout=15)
 
 
 if __name__ == "__main__":

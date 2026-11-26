@@ -2,11 +2,16 @@
 # Auto Scaling Group and Load Balancer Target Group for CE Router instances
 
 resource "aws_autoscaling_group" "ce_router" {
-  name                      = "ce-router-${var.environment}"
-  vpc_zone_identifier       = var.subnet_ids
-  target_group_arns         = [aws_alb_target_group.ce_router.arn]
-  health_check_type         = "ELB"
-  health_check_grace_period = 300
+  name                = "ce-router-${var.environment}"
+  vpc_zone_identifier = var.subnet_ids
+  target_group_arns   = [aws_alb_target_group.ce_router.arn]
+  health_check_type   = "ELB"
+  # A router answers /healthcheck about 45s after launch and the target group calls it
+  # healthy at ~95s (interval 30 x healthy_threshold 2). One that is not up by 150s is
+  # not coming up, so replace it. This is also what an instance refresh inherits as its
+  # instance warmup -- a refresh spends that long per instance idle after the new one is
+  # already serving -- so it sets the floor on how long `ce ce-router refresh` takes.
+  health_check_grace_period = 150
 
   min_size         = var.min_size
   max_size         = var.max_size

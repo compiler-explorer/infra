@@ -21,10 +21,13 @@ compilers:
     ppci:
       type: tarballs
       compression: gz
+      # ppci 0.5.5 imports cgitb, which was removed in Python 3.13, so pin a CE-installed 3.12
+      depends:
+        - compilers/python 3.12.1
       check_exe:
         - /bin/bash
         - -c
-        - "/usr/bin/env PYTHONPATH=$(pwd)/ppci-{{name}} $(command -v python3) -B -mppci --version"
+        - "/usr/bin/env PYTHONPATH=$(pwd)/ppci-{{name}} %DEP0%/bin/python3 -B -mppci --version"
       dir: ppci-{{name}}
       untar_dir: ppci-{{name}}
       url: https://pypi.io/packages/source/p/ppci/ppci-{{name}}.tar.gz
@@ -115,6 +118,33 @@ compilers:
         check_exe: ccc --version
         targets:
           - main
+      sdcc:
+        type: nightly
+        check_exe: bin/sdcc --version
+        targets:
+          - trunk
+      llvm-z80:
+        type: nightlytarballs
+        compression: xz
+        dir: llvm-z80-{{name}}
+        untar_dir: LLVM-Z80-nightly-Linux-X64
+        check_exe: bin/clang --version
+        url: https://github.com/llvm-z80/llvm-z80/releases/download/nightly/LLVM-Z80-nightly-Linux-X64.tar.xz
+        targets:
+          - trunk
+      llvm-z80-release:
+        type: restQueryTarballs
+        install_always: true
+        compression: xz
+        dir: llvm-z80-release
+        strip_components: 1
+        create_untar_dir: true
+        check_exe: bin/clang --version
+        url: https://api.github.com/repos/llvm-z80/llvm-z80/releases/latest
+        query: |
+          [a['browser_download_url'] for a in document['assets'] if a['name'].endswith('-Linux-X64.tar.xz')][0]
+        targets:
+          - latest
       movfuscator:
         type: nightly
         check_env:
@@ -144,6 +174,12 @@ compilers:
         x86_32:
           arch: "x86_32"
           targets:
+            - "3.18"
+            - "3.17"
+            - "3.16"
+            - "3.15"
+            - "3.14"
+            - "3.13"
             - "3.12"
             - "3.11"
             - "3.10"
@@ -151,6 +187,12 @@ compilers:
         x86_64:
           arch: "x86_64"
           targets:
+            - "3.18"
+            - "3.17"
+            - "3.16"
+            - "3.15"
+            - "3.14"
+            - "3.13"
             - "3.12"
             - "3.11"
             - "3.10"
@@ -193,6 +235,9 @@ compilers:
             - 14.1.0
             - 14.2.0
             - 14.3.0
+            - 14.4.0
             - 15.1.0
             - 15.2.0
+            - 15.3.0
             - 16.1.0
+            - 16.2.0

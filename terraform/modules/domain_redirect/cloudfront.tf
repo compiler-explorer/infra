@@ -1,6 +1,6 @@
 resource "aws_cloudfront_distribution" "redirect" {
   origin {
-    domain_name = "${aws_s3_bucket.redirect_bucket.bucket}.s3-website.${data.aws_region.current.id}.amazonaws.com"
+    domain_name = "${aws_s3_bucket.redirect_bucket.bucket}.s3-website.${data.aws_region.current.region}.amazonaws.com"
     origin_id   = aws_s3_bucket.redirect_bucket.bucket
 
     custom_origin_config {

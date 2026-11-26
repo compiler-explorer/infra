@@ -81,6 +81,18 @@ resource "aws_route53_record" "auth-godbolt-org" {
   records = ["dev-ce-vupzkjx14g5sjvco-cd-qtr5mjlqgunghpuo.edge.tenants.us.auth0.com"]
 }
 
+// Direct to the ALB, bypassing CloudFront; used for the internal hop to winprod and gpu.
+resource "aws_route53_record" "alb-godbolt-org" {
+  name    = "alb"
+  zone_id = module.godbolt-org.zone_id
+  type    = "A"
+  alias {
+    name                   = aws_alb.GccExplorerApp.dns_name
+    zone_id                = aws_alb.GccExplorerApp.zone_id
+    evaluate_target_health = false
+  }
+}
+
 ////////////////////////////////////////////////////
 
 module "compiler-explorer-com" {
@@ -322,24 +334,4 @@ module "godbo-lt" {
   domain_name             = "godbo.lt"
   cloudfront_distribution = aws_cloudfront_distribution.godbo-lt
   certificate             = aws_acm_certificate.godbolt-org-et-al
-}
-
-
-////////////////////////////////////////////////////
-
-# Route 53 hosted zone for godbolt.net (not active yet, just transferred)
-resource "aws_route53_zone" "godbolt-net" {
-  name    = "godbolt.net"
-  comment = "godbolt.net domain"
-}
-
-resource "aws_route53domains_registered_domain" "godbolt-net" {
-  domain_name = "godbolt.net"
-
-  dynamic "name_server" {
-    for_each = toset(aws_route53_zone.godbolt-net.name_servers)
-    content {
-      name = name_server.value
-    }
-  }
 }

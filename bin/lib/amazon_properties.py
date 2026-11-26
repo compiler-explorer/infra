@@ -170,7 +170,7 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
             compiler = matches[2]
             compilerid = matches[3]
 
-            if key == "supportsBinary":
+            if compilerid == "supportsBinary":
                 _compilers[compiler][compilerid] = compilervalue == "true"
             else:
                 _compilers[compiler][compilerid] = compilervalue

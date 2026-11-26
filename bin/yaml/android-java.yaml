@@ -10,6 +10,18 @@ compilers:
     release:
       url: https://dl.google.com/android/maven2/com/android/tools/r8/{{name}}/r8-{{name}}.jar
       targets:
+        - 9.5.23
+        - 9.4.28
+        - 9.3.31
+        - 9.2.38
+        - 9.1.56
+        - 9.0.54
+        - 8.13.25
+        - 8.12.30
+        - 8.11.32
+        - 8.10.24
+        - 8.9.35
+        - 8.8.34
         - 8.7.18
         - 8.7.14
         - 8.6.27

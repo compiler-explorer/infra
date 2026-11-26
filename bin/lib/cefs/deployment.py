@@ -143,18 +143,25 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_c
                 else:
                     shutil.rmtree(backup_path)
 
-        if nfs_path.exists(follow_symlinks=False):
-            nfs_path.rename(backup_path)
-            _LOGGER.info("Backed up %s to %s", nfs_path, backup_path)
+        if nfs_path.is_symlink():
+            backup_path.symlink_to(nfs_path.readlink(), target_is_directory=True)
+            # Keep the live path available until the replacement is ready on the same filesystem.
+            with tempfile.TemporaryDirectory(dir=nfs_path.parent, prefix=".cefs_") as temp_dir:
+                replacement = Path(temp_dir) / nfs_path.name
+                replacement.symlink_to(cefs_target, target_is_directory=True)
+                replacement.replace(nfs_path)
+        else:
+            if nfs_path.exists(follow_symlinks=False):
+                nfs_path.rename(backup_path)
+                _LOGGER.info("Backed up %s to %s", nfs_path, backup_path)
 
-        nfs_path.parent.mkdir(parents=True, exist_ok=True)
-        nfs_path.symlink_to(cefs_target, target_is_directory=True)
+            nfs_path.parent.mkdir(parents=True, exist_ok=True)
+            nfs_path.symlink_to(cefs_target, target_is_directory=True)
         _LOGGER.info("Created symlink %s -> %s", nfs_path, cefs_target)
 
     except OSError as e:
         # Rollback on failure
-        if backup_path.exists():
-            nfs_path.unlink(missing_ok=True)
+        if not nfs_path.exists(follow_symlinks=False) and backup_path.exists(follow_symlinks=False):
             backup_path.rename(nfs_path)
             _LOGGER.error("Rollback: restored %s from backup", nfs_path)
         raise RuntimeError(f"Failed to create symlink: {e}") from e

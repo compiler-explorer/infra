@@ -484,6 +484,74 @@ def test_writebuildscript_gcc_defines_c_compiler(tmp_path, requests_mock):
     assert 'export CXX="/opt/compiler-explorer/gcc-15.1.0/bin/g++"' in script
 
 
+def _write_windows_buildscript(tmp_path, requests_mock, *, lib_type, source_files):
+    source = tmp_path / "src"
+    for name in source_files:
+        (source / name).parent.mkdir(parents=True, exist_ok=True)
+        (source / name).write_text("", encoding="utf-8")
+    build = tmp_path / "build"
+    build.mkdir()
+    requests_mock.get(f"{BASE}cpp.amazonwin.properties", text="")
+    build_config = create_test_build_config()
+    build_config.lib_type = lib_type
+    build_config.staticliblink = [] if lib_type == "headeronly" else ["testlib"]
+    builder = LibraryBuilder(
+        mock.Mock(spec_set=Logger),
+        "cpp",
+        "somelib",
+        "1.0",
+        str(source),
+        mock.Mock(spec_set=InstallationContext),
+        build_config,
+        False,
+        LibraryPlatform.Windows,
+    )
+    builder.writebuildscript(
+        str(build),
+        str(tmp_path / "install"),
+        str(source),
+        "mingw64_ucrt_gcc_1220",
+        "",
+        "C:/mingw/bin/g++.exe",
+        "",
+        "C:/mingw",
+        "Windows",
+        "Debug",
+        "x86_64",
+        "",
+        "",
+        [""],
+        "",
+        {},
+    )
+    return source, (build / builder.script_filename).read_text(encoding="utf-8")
+
+
+def test_windows_headeronly_guards_cmake_and_copies_source_root(tmp_path, requests_mock):
+    source, script = _write_windows_buildscript(
+        tmp_path, requests_mock, lib_type="headeronly", source_files=["hedley.h"]
+    )
+    assert f'if (Test-Path "{source}/CMakeLists.txt") {{' in script
+    assert script.index("Test-Path") < script.index("cmake --install-prefix") < script.index("Copy-Item")
+    assert f'Get-ChildItem -Path "{source}" -Force | Where-Object Name -ne ".git"' in script
+    assert "exit 1" not in script
+
+
+def test_windows_headeronly_copies_include_dir_when_present(tmp_path, requests_mock):
+    source, script = _write_windows_buildscript(
+        tmp_path, requests_mock, lib_type="headeronly", source_files=["CMakeLists.txt", "include/lib/lib.hpp"]
+    )
+    assert f'Get-ChildItem -Path "{source / "include"}" -Force' in script
+
+
+def test_windows_compiled_library_cmake_steps_unchanged(tmp_path, requests_mock):
+    _, script = _write_windows_buildscript(tmp_path, requests_mock, lib_type="static", source_files=["CMakeLists.txt"])
+    assert "Test-Path" not in script
+    assert "Copy-Item" not in script
+    assert "Get-Content -Tail 200 cecmakelog.txt; exit 1 }" in script
+    assert "Get-Content -Tail 200 ceinstall_0.txt; exit 1 }" in script
+
+
 def test_writebuildscript_nvhpc_omits_external_toolchain(tmp_path, requests_mock):
     _, script = _write_buildscript_for(
         tmp_path,

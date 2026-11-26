@@ -11,3 +11,10 @@ In either directory:
 * `terraform init` -> once, to set up
 * `terraform plan` -> previews changes
 * `terraform apply` -> applies changes
+
+## Variables that change behaviour
+
+* `prod_queue_scaling` (default `true`) -- scales prod's compilation fleet on SQS queue
+  metrics instead of CPU. `true` gives the queue policies and no cpu-tracker; `false` gives the
+  reverse, and is the revert. The commands are in `docs/ce-router-cutover-checklist.md`,
+  sections H2 and I.

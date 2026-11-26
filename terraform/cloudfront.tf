@@ -644,10 +644,7 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
   }
 
-  # Vulnerability scanners stamp X-Forwarded-For: 127.0.0.1 on every probe (infra#2353). No real
-  # client claims to be localhost, and after CloudFront and the ALB append their hops the app
-  # would ignore it anyway, so this just saves the origin the trouble. Corporate proxies add a
-  # legitimate X-Forwarded-For with an internal address, hence matching on content, not presence.
+  # Nothing legitimate claims a loopback address in X-Forwarded-For.
   rule {
     name     = "deny-loopback-forwarded-for"
     priority = 4
@@ -656,7 +653,7 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
     statement {
       regex_match_statement {
-        regex_string = "(^|[, ])((::ffff:)?127\\.[0-9.]+|::1|localhost)([, ]|$)"
+        regex_string = "(^|[, \\t])(127\\.[0-9]+\\.[0-9]+\\.[0-9]+|::ffff:127\\.[0-9]+\\.[0-9]+\\.[0-9]+|::1|localhost)($|[, \\t])"
         field_to_match {
           single_header {
             name = "x-forwarded-for"
@@ -671,6 +668,87 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     visibility_config {
       cloudwatch_metrics_enabled = true
       metric_name                = "deny-loopback-forwarded-for"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # AWS-maintained bot classification, in count mode: per-rule metrics and labels only. To block, set
+  # override_action to none and keep any rule you still only want counted with rule_action_override.
+  rule {
+    name     = "bot-control-observe"
+    priority = 10
+    override_action {
+      count {}
+    }
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesBotControlRuleSet"
+        managed_rule_group_configs {
+          aws_managed_rules_bot_control_rule_set {
+            inspection_level = "COMMON"
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "bot-control-observe"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Burst limit for unrecognised non-browser clients, keyed by TLS fingerprint rather than IP.
+  rule {
+    name     = "rate-limit-non-browser"
+    priority = 11
+    action {
+      block {
+        custom_response {
+          response_code            = 429
+          custom_response_body_key = "blocked-ratelimit"
+          response_header {
+            name  = "Retry-After"
+            value = "60"
+          }
+        }
+      }
+    }
+    statement {
+      rate_based_statement {
+        limit                 = 100
+        evaluation_window_sec = 60
+        aggregate_key_type    = "CUSTOM_KEYS"
+        custom_key {
+          ja4_fingerprint {
+            fallback_behavior = "NO_MATCH"
+          }
+        }
+        scope_down_statement {
+          and_statement {
+            statement {
+              label_match_statement {
+                scope = "LABEL"
+                key   = "awswaf:managed:aws:bot-control:signal:non_browser_user_agent"
+              }
+            }
+            statement {
+              not_statement {
+                statement {
+                  label_match_statement {
+                    scope = "LABEL"
+                    key   = "awswaf:managed:aws:bot-control:bot:category:http_library"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "rate-limit-non-browser"
       sampled_requests_enabled   = true
     }
   }
