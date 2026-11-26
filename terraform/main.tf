@@ -14,6 +14,10 @@ terraform {
       source  = "hashicorp/aws",
       version = "~> 6.66"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.8"
+    }
   }
   backend "s3" {
     bucket = "compiler-explorer"

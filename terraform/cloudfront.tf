@@ -56,6 +56,11 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   origin {
     domain_name = aws_alb.GccExplorerApp.dns_name
     origin_id   = "ALB-compiler-explorer"
+    # Proves to the ALB that the request came through our CloudFront; see alb.tf.
+    custom_header {
+      name  = local.cloudfront_origin_header_name
+      value = random_password.cloudfront_origin_secret.result
+    }
     custom_origin_config {
       http_port                = 80
       https_port               = 443
@@ -187,6 +192,11 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   origin {
     domain_name = aws_alb.GccExplorerApp.dns_name
     origin_id   = "ALB-compiler-explorer"
+    # Proves to the ALB that the request came through our CloudFront; see alb.tf.
+    custom_header {
+      name  = local.cloudfront_origin_header_name
+      value = random_password.cloudfront_origin_secret.result
+    }
     custom_origin_config {
       http_port                = 80
       https_port               = 443
@@ -316,6 +326,11 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
   origin {
     domain_name = aws_alb.GccExplorerApp.dns_name
     origin_id   = "ALB-compiler-explorer"
+    # Proves to the ALB that the request came through our CloudFront; see alb.tf.
+    custom_header {
+      name  = local.cloudfront_origin_header_name
+      value = random_password.cloudfront_origin_secret.result
+    }
     custom_origin_config {
       http_port                = 80
       https_port               = 443
