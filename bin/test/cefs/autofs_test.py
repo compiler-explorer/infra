@@ -7,7 +7,8 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from lib.cefs.autofs import make_lookup_script
+from lib.cefs.autofs import LOOKUP_SCRIPT_TEMPLATE, make_lookup_script
+from lib.cefs_manifest import generate_cefs_filename
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 VALID_NAME = "9da642f654bc890a12345678_opt_compiler-explorer_gcc-15.1.0"
@@ -82,3 +83,19 @@ def test_lookup_script_rejects(script: Path, name: str):
     result = _run(script, name)
     assert result.returncode != 0
     assert result.stdout == b""
+
+
+@pytest.mark.parametrize(
+    "operation,path",
+    [
+        ("install", Path("/opt/compiler-explorer/gcc-15.1.0")),
+        ("install", Path("/opt/compiler-explorer/odd name@v1~2,3=4:5?#$")),
+        ("convert", Path("/opt/compiler-explorer/arm/gcc-10.2.0.img")),
+        ("consolidate", None),
+    ],
+)
+def test_generated_names_pass_lookup_check(operation: str, path: Path | None):
+    match = re.search(r"valid_key='([^']*)'", LOOKUP_SCRIPT_TEMPLATE)
+    assert match
+    name = generate_cefs_filename("0123456789abcdef01234567", operation, path).removesuffix(".sqfs")
+    assert re.fullmatch(match.group(1), name)
