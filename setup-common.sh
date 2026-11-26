@@ -270,9 +270,15 @@ EOF
     echo "* -fstype=autofs program:/etc/auto.cefs.sub" > /etc/auto.cefs
     cat > /etc/auto.cefs.sub << 'EOF'
 #!/bin/bash
+# Only answer for well-formed CEFS image names (see generate_cefs_filename in
+# bin/lib/cefs_manifest.py) whose image exists.
+export LC_ALL=C
 key="$1"
-subdir="${key:0:2}"
-echo "-fstype=squashfs,loop,nosuid,nodev,ro :/efs/cefs-images/${subdir}/${key}.sqfs"
+valid_key='^[0-9a-f]{24}_[A-Za-z0-9._+-]+$'
+[[ "${key}" =~ ${valid_key} ]] || exit 1
+image="/efs/cefs-images/${key:0:2}/${key}.sqfs"
+[[ -f "${image}" ]] || exit 1
+echo "-fstype=squashfs,loop,nosuid,nodev,ro :${image}"
 EOF
     chmod +x /etc/auto.cefs.sub
     echo "/cefs /etc/auto.cefs --negative-timeout 1" > /etc/auto.master.d/cefs.autofs

@@ -16,6 +16,7 @@ import click
 import humanfriendly
 
 from lib.ce_install import CliContext, cli
+from lib.cefs.autofs import make_lookup_script
 from lib.cefs.consolidation import (
     ConsolidationCandidate,
     pack_items_into_groups,
@@ -277,11 +278,7 @@ def setup(context: CliContext, dry_run: bool):
         )
 
         # Step 2b: Create second-level autofs executable script (handles HASH -> squashfs mount)
-        auto_cefs_sub_script = f"""#!/bin/bash
-key="$1"
-subdir="${{key:0:2}}"
-echo "-fstype=squashfs,loop,nosuid,nodev,ro :{cefs_image_dir}/${{subdir}}/${{key}}.sqfs"
-"""
+        auto_cefs_sub_script = make_lookup_script(cefs_image_dir)
         _run_setup_command(
             ["sudo", "bash", "-c", f"cat > {auto_config_base}.sub << 'EOF'\n{auto_cefs_sub_script}EOF"],
             f"Creating {auto_config_base}.sub script",
