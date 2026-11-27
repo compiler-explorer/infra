@@ -27,7 +27,7 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.binary_info import BinaryInfo
 from lib.installation_context import FetchFailure, PostFailure
-from lib.library_build_config import CMAKE_CONFIG_FLAGS, CMAKE_CONFIG_FLAGS_MSVC, LibraryBuildConfig
+from lib.library_build_config import CMAKE_CONFIG_FLAGS, LibraryBuildConfig
 from lib.library_build_history import LibraryBuildHistory
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
@@ -1039,14 +1039,11 @@ class LibraryBuilder:
                     )
                     f.write(f"{expanded_line}\n")
 
-                # The conan package keeps the requested buildtype (CE always asks for Debug on
-                # Linux); cmake_build_type only changes how the library itself is compiled.
-                cmake_buildtype = self.buildconfig.cmake_build_type or buildtype
-                cmake_flags_suffix = f"_{cmake_buildtype.upper()}"
-                if self.buildconfig.cmake_build_type:
-                    config_flags = (CMAKE_CONFIG_FLAGS_MSVC if is_msvc else CMAKE_CONFIG_FLAGS)[cmake_buildtype]
-                    cxx_flags = f"{config_flags} {cxx_flags}"
-                    c_flags = f"{config_flags} {c_flags}"
+                cmake_flags_suffix = f"_{buildtype.upper()}"
+                # MSVC Release builds have always been compiled with just CE's flags; leave them be.
+                if not is_msvc and CMAKE_CONFIG_FLAGS.get(buildtype):
+                    cxx_flags = f"{CMAKE_CONFIG_FLAGS[buildtype]} {cxx_flags}"
+                    c_flags = f"{CMAKE_CONFIG_FLAGS[buildtype]} {c_flags}"
                 cudaflagsparam = ""
                 if compilerType == "nvcc" and not self.buildconfig.cxx_compiler_wrapper:
                     cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}"'
@@ -1059,7 +1056,7 @@ class LibraryBuilder:
 
                 cmakecmd = (
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
-                    f'{targetparams} "-DCMAKE_BUILD_TYPE={cmake_buildtype}" {toolchainparam} {sysrootparam} '
+                    f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
                     f"{cudatoolkitparam} "
                     f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
                     f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'
@@ -1872,7 +1869,7 @@ class LibraryBuilder:
         checkcompiler = ""
 
         build_supported_os = [self.platform.value]
-        build_supported_buildtype = ["Debug"]
+        build_supported_buildtype = list(self.buildconfig.build_types)
         build_supported_arch = ["x86_64", "x86"]
         build_supported_stdver = [""]
         build_supported_stdlib = ["", "libc++"]

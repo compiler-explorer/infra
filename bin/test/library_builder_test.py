@@ -137,7 +137,7 @@ def create_test_build_config():
     config.postbuild_script = []
     config.configure_flags = []
     config.extra_cmake_arg = []
-    config.cmake_build_type = ""
+    config.build_types = ["Debug"]
     config.extra_make_arg = []
     config.make_targets = []
     config.make_utility = "make"
@@ -420,7 +420,7 @@ def _write_buildscript_for(
     options="",
     stdlib="",
     platform=LibraryPlatform.Linux,
-    cmake_build_type="",
+    buildtype="Debug",
 ):
     requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
     requests_mock.get(f"{BASE}cpp.amazonwin.properties", text="")
@@ -428,7 +428,6 @@ def _write_buildscript_for(
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     build_config.make_targets = ["all"]
-    build_config.cmake_build_type = cmake_build_type
     builder = LibraryBuilder(
         logger,
         "cpp",
@@ -450,7 +449,7 @@ def _write_buildscript_for(
         compiler_type,
         toolchain,
         "Linux",
-        "Debug",
+        buildtype,
         "x86_64",
         "",
         stdlib,
@@ -670,7 +669,7 @@ def test_writebuildscript_defaults_to_the_package_buildtype(tmp_path, requests_m
     assert "-DNDEBUG" not in cxx_flags
 
 
-def test_writebuildscript_cmake_build_type_keeps_builder_flags(tmp_path, requests_mock):
+def test_writebuildscript_release_keeps_builder_flags(tmp_path, requests_mock):
     # The builder's flags must land in the flags variable for the configuration CMake actually uses,
     # or arch, -stdlib and the compiler's own options are silently dropped.
     builder, script = _write_buildscript_for(
@@ -682,7 +681,7 @@ def test_writebuildscript_cmake_build_type_keeps_builder_flags(tmp_path, request
         toolchain="/opt/compiler-explorer/gcc-13.2.0",
         options="--gcc-toolchain=/opt/compiler-explorer/gcc-13.2.0",
         stdlib="libc++",
-        cmake_build_type="Release",
+        buildtype="Release",
     )
     assert '"-DCMAKE_BUILD_TYPE=Release"' in script
     assert "CMAKE_CXX_FLAGS_DEBUG" not in script
@@ -692,11 +691,10 @@ def test_writebuildscript_cmake_build_type_keeps_builder_flags(tmp_path, request
     assert "-stdlib=libc++" in cxx_flags
     c_flags = re.search(r'"-DCMAKE_C_FLAGS_RELEASE=([^"]*)"', script).group(1)
     assert c_flags.startswith("-O3 -DNDEBUG ")
-    # CE looks packages up as Debug, so the conan settings must not follow the CMake configuration.
-    assert builder.current_buildparameters_obj["buildtype"] == "Debug"
+    assert builder.current_buildparameters_obj["buildtype"] == "Release"
 
 
-def test_writebuildscript_cmake_build_type_relwithdebinfo_suffix(tmp_path, requests_mock):
+def test_writebuildscript_relwithdebinfo_suffix(tmp_path, requests_mock):
     _, script = _write_buildscript_for(
         tmp_path,
         requests_mock,
@@ -704,7 +702,7 @@ def test_writebuildscript_cmake_build_type_relwithdebinfo_suffix(tmp_path, reque
         exe="/opt/compiler-explorer/gcc-15.1.0/bin/g++",
         compiler_type="",
         toolchain="/opt/compiler-explorer/gcc-15.1.0",
-        cmake_build_type="RelWithDebInfo",
+        buildtype="RelWithDebInfo",
     )
     assert '"-DCMAKE_BUILD_TYPE=RelWithDebInfo"' in script
     assert '"-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -g -DNDEBUG ' in script
