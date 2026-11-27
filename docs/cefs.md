@@ -92,7 +92,7 @@ image="/efs/cefs-images/${key:0:2}/${key}.sqfs"
 echo "-fstype=squashfs,loop,nosuid,nodev,ro :${image}"
 
 # /etc/auto.master.d/cefs.autofs
-/cefs /etc/auto.cefs --negative-timeout 1
+/cefs /etc/auto.cefs --negative-timeout 60
 ```
 
 CEFS uses a hierarchical directory structure to avoid filesystem performance issues with thousands of files in a single directory. Hash-based paths are structured as `/cefs/XX/XXYYZZZ...` where XX is the first two characters of the SHA256 hash. This provides up to 256 subdirectories (00-ff for hexadecimal hashes), distributing files evenly across the filesystem.
