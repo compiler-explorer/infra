@@ -626,7 +626,7 @@ def test_writebuildscript_clang_cuda_fixed_libcxx_is_tagged_libcxx(tmp_path, req
     assert builder.current_buildparameters_obj["libcxx"] == "libc++"
     assert "-s compiler.libcxx=libc++" in " ".join(builder.current_buildparameters)
     # -stdlib is already in the compiler options, so it must not be appended a second time.
-    cxx_flags = re.search(r'-DCMAKE_CXX_FLAGS=([^"]*)', script).group(1)
+    cxx_flags = re.search(r'-DCMAKE_CXX_FLAGS_INIT=([^"]*)', script).group(1)
     assert cxx_flags.count("-stdlib=libc++") == 1
 
 
@@ -667,9 +667,9 @@ def test_writebuildscript_defaults_to_the_package_buildtype(tmp_path, requests_m
         options="-march=x86-64",
     )
     assert '"-DCMAKE_BUILD_TYPE=Debug"' in script
-    # Not CMAKE_CXX_FLAGS_DEBUG: that would replace CMake's own Debug flags.
-    assert "CMAKE_CXX_FLAGS_" not in script
-    cxx_flags = re.search(r'"-DCMAKE_CXX_FLAGS=([^"]*)"', script).group(1)
+    # Not CMAKE_CXX_FLAGS_DEBUG: that would replace CMake's own Debug flags, including its -g.
+    assert "CMAKE_CXX_FLAGS_DEBUG" not in script
+    cxx_flags = re.search(r'"-DCMAKE_CXX_FLAGS_INIT=([^"]*)"', script).group(1)
     assert "-march=x86-64" in cxx_flags
     assert cxx_flags.endswith(" -g")
     assert "-DNDEBUG" not in cxx_flags
@@ -677,7 +677,7 @@ def test_writebuildscript_defaults_to_the_package_buildtype(tmp_path, requests_m
 
 def test_writebuildscript_release_uses_cmake_release_plus_g(tmp_path, requests_mock):
     # Release builds CMake's own Release configuration, so CMake and the project's CMakeLists.txt pick the
-    # optimisation. The builder's flags plus -g go in the config-independent variable, or arch, -stdlib
+    # optimisation. The builder's flags plus -g seed the config-independent variable, or arch, -stdlib
     # and the compiler's own options are lost.
     builder, script = _write_buildscript_for(
         tmp_path,
@@ -691,14 +691,14 @@ def test_writebuildscript_release_uses_cmake_release_plus_g(tmp_path, requests_m
         buildtype="Release",
     )
     assert '"-DCMAKE_BUILD_TYPE=Release"' in script
-    assert "CMAKE_CXX_FLAGS_" not in script
-    assert "CMAKE_C_FLAGS_" not in script
-    cxx_flags = re.search(r'"-DCMAKE_CXX_FLAGS=([^"]*)"', script).group(1)
+    assert "CMAKE_CXX_FLAGS_RELEASE" not in script
+    assert "CMAKE_C_FLAGS_RELEASE" not in script
+    cxx_flags = re.search(r'"-DCMAKE_CXX_FLAGS_INIT=([^"]*)"', script).group(1)
     assert "--gcc-toolchain=/opt/compiler-explorer/gcc-13.2.0" in cxx_flags
     assert "-stdlib=libc++" in cxx_flags
     assert cxx_flags.endswith(" -g")
     assert "-O" not in cxx_flags
-    c_flags = re.search(r'"-DCMAKE_C_FLAGS=([^"]*)"', script).group(1)
+    c_flags = re.search(r'"-DCMAKE_C_FLAGS_INIT=([^"]*)"', script).group(1)
     assert c_flags.endswith(" -g")
     assert builder.current_buildparameters_obj["buildtype"] == "Release"
 

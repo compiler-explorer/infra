@@ -1039,19 +1039,22 @@ class LibraryBuilder:
                     )
                     f.write(f"{expanded_line}\n")
 
-                # CMAKE_<LANG>_FLAGS_<CONFIG> replaces CMake's defaults for that config rather than adding
-                # to them, and our flags have no -O, so outside MSVC they go in the config-independent
-                # CMAKE_<LANG>_FLAGS. CMAKE_BUILD_TYPE then picks CMake's own per-config flags (and any a
-                # project's CMakeLists.txt sets), e.g. -O3 -DNDEBUG for Release. We add -g because CE
-                # needs the debug info (objdump, separating library from user code) and it doesn't
-                # change code generation. MSVC keeps the per-config variable: it only builds Release,
-                # and its flags carry their own optimisation and runtime settings.
+                # Our flags (arch, -stdlib, toolchain, the compiler's own options) apply whatever the
+                # build type, so they seed CMAKE_<LANG>_FLAGS via its _INIT variable. CMake adds its own
+                # platform defaults to that, and CMAKE_BUILD_TYPE picks the per-config flags: CMake's
+                # defaults (-g for Debug, -O3 -DNDEBUG for Release) or whatever the library's
+                # CMakeLists.txt sets. Setting CMAKE_<LANG>_FLAGS_<CONFIG> ourselves would replace
+                # those, which is how Debug packages used to lose -g. We add -g for every build type
+                # because CE needs the debug info (objdump, separating library from user code) and it
+                # doesn't change code generation.
+                # MSVC still replaces the Release flags, as it always has, until that's been tried on
+                # the Windows builders.
                 if is_msvc:
                     cmake_flags_suffix = f"_{buildtype.upper()}"
                     cmake_cxx_flags = cxx_flags
                     cmake_c_flags = c_flags
                 else:
-                    cmake_flags_suffix = ""
+                    cmake_flags_suffix = "_INIT"
                     cmake_cxx_flags = f"{cxx_flags} -g"
                     cmake_c_flags = f"{c_flags} -g"
                 cudaflagsparam = ""
