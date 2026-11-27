@@ -16,7 +16,7 @@ import click
 import humanfriendly
 
 from lib.ce_install import CliContext, cli
-from lib.cefs.autofs import make_lookup_script
+from lib.cefs.autofs import make_first_level_map, make_lookup_script
 from lib.cefs.consolidation import (
     ConsolidationCandidate,
     pack_items_into_groups,
@@ -270,9 +270,9 @@ def setup(context: CliContext, dry_run: bool):
         # Step 2: Create first-level autofs map file (handles {mount_point}/XX -> nested autofs)
         # Use the mount point name for autofs config files (e.g., /cefs -> auto.cefs, /test/mount -> auto.mount)
         auto_config_base = f"/etc/auto.{cefs_mount_point.name}"
-        auto_cefs_content = f"* -fstype=autofs program:{auto_config_base}.sub"
+        auto_cefs_content = make_first_level_map(Path(f"{auto_config_base}.sub"))
         _run_setup_command(
-            ["sudo", "bash", "-c", f"echo '{auto_cefs_content}' > {auto_config_base}"],
+            ["sudo", "bash", "-c", f"cat > {auto_config_base} << 'EOF'\n{auto_cefs_content}EOF"],
             f"Creating {auto_config_base}",
             dry_run,
         )

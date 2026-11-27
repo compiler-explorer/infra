@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from lib.cefs.autofs import LOOKUP_SCRIPT_TEMPLATE, make_lookup_script
+from lib.cefs.autofs import LOOKUP_SCRIPT_TEMPLATE, make_first_level_map, make_lookup_script
 from lib.cefs_manifest import generate_cefs_filename
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -99,3 +99,23 @@ def test_generated_names_pass_lookup_check(operation: str, path: Path | None):
     assert match
     name = generate_cefs_filename("0123456789abcdef01234567", operation, path).removesuffix(".sqfs")
     assert re.fullmatch(match.group(1), name)
+
+
+def _setup_common_first_level_map() -> str:
+    text = (REPO_ROOT / "setup-common.sh").read_text(encoding="utf-8")
+    match = re.search(r"^\s*(printf .*) > /etc/auto\.cefs$", text, re.MULTILINE)
+    assert match, "could not find the /etc/auto.cefs printf in setup-common.sh"
+    return subprocess.run(["bash", "-c", match.group(1)], capture_output=True, check=True, text=True).stdout
+
+
+def test_setup_common_first_level_map_matches_ce_install_map():
+    assert _setup_common_first_level_map() == make_first_level_map(Path("/etc/auto.cefs.sub"))
+
+
+def test_first_level_map_lists_every_two_hex_digit_prefix_once():
+    lines = make_first_level_map(Path("/etc/auto.cefs.sub")).splitlines()
+    assert lines == [f"{n:02x} -fstype=autofs program:/etc/auto.cefs.sub" for n in range(256)]
+
+
+def test_first_level_map_has_no_wildcard():
+    assert "*" not in make_first_level_map(Path("/etc/auto.cefs.sub"))

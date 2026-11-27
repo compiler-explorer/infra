@@ -267,7 +267,9 @@ EOF
     # To save us having to install `uv` etc in our packer stages we duplicate
     # the setup here.
     mkdir /cefs
-    echo "* -fstype=autofs program:/etc/auto.cefs.sub" > /etc/auto.cefs
+    # One line per two-hex-digit prefix, never a `*` wildcard: see FIRST_LEVEL_PREFIXES in
+    # bin/lib/cefs/autofs.py for why. autofs_test.py checks this matches make_first_level_map.
+    printf '%s -fstype=autofs program:/etc/auto.cefs.sub\n' {{0..9},{a..f}}{{0..9},{a..f}} > /etc/auto.cefs
     cat > /etc/auto.cefs.sub << 'EOF'
 #!/bin/bash
 # Only answer for well-formed CEFS image names (see generate_cefs_filename in

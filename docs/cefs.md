@@ -73,7 +73,11 @@ Autofs automatically mounts squashfs images on demand:
 
 ```
 # /etc/auto.cefs (first-level: handles /cefs/XX -> nested autofs)
-* -fstype=autofs program:/etc/auto.cefs.sub
+# One line for each of the 256 two-hex-digit prefixes, 00 to ff
+00 -fstype=autofs program:/etc/auto.cefs.sub
+01 -fstype=autofs program:/etc/auto.cefs.sub
+...
+ff -fstype=autofs program:/etc/auto.cefs.sub
 
 # /etc/auto.cefs.sub (executable script: handles /cefs/XX/HASH -> squashfs mount)
 #!/bin/bash
@@ -95,6 +99,8 @@ CEFS uses a hierarchical directory structure to avoid filesystem performance iss
 
 The two-level autofs configuration works as follows:
 1. First access to `/cefs/XX` creates a nested autofs mount using the executable script `/etc/auto.cefs.sub`
+
+   The prefixes are listed explicitly rather than with a `*` wildcard. autofs starts a daemon thread for every nested mount, so this keeps the daemon to at most 256 of them, and any other name under `/cefs` fails at once without a mount. `bin/lib/cefs/autofs.py` and `setup-common.sh` both write this map too (`autofs_test.py` checks they agree)
 2. Second access to `/cefs/XX/XXYYZZZ` calls the script with the hash as argument
 3. The script checks the name is a well-formed CEFS image name whose `/efs/cefs-images/XX/XXYYZZZ....sqfs` exists, and returns mount options for it; for any other name it prints nothing and fails, so the lookup fails
 
