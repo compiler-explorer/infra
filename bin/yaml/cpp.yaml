@@ -1225,6 +1225,7 @@ compilers:
           - assertions-11.0.0
           - 11.0.1
           - assertions-11.0.1
+          - 11.1.0
           - 12.0.0
           - assertions-12.0.0
           - 12.0.1
@@ -1235,8 +1236,10 @@ compilers:
           - assertions-13.0.1
           - 14.0.0
           - assertions-14.0.0
+          - 14.0.6
           - 15.0.0
           - assertions-15.0.0
+          - 15.0.7
           - 16.0.0
           - assertions-16.0.0
           - 17.0.1
