@@ -289,7 +289,7 @@ def setup(context: CliContext, dry_run: bool):
         )
 
         # Step 3: Create autofs master entry
-        auto_master_content = f"{cefs_mount_point} {auto_config_base} --negative-timeout 60"
+        auto_master_content = f"{cefs_mount_point} {auto_config_base}"
         _run_setup_command(
             ["sudo", "mkdir", "-p", "/etc/auto.master.d"], "Creating /etc/auto.master.d directory", dry_run
         )

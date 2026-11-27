@@ -279,7 +279,7 @@ EOF
     printf '%s -fstype=autofs program:/etc/auto.cefs.sub\n' {{0..9},{a..f}}{{0..9},{a..f}} > /etc/auto.cefs
     # init/start.sh compares the installed script against this file at start-up.
     install -o root -g root -m 755 /infra/init/auto.cefs.sub /etc/auto.cefs.sub
-    echo "/cefs /etc/auto.cefs --negative-timeout 60" > /etc/auto.master.d/cefs.autofs
+    echo "/cefs /etc/auto.cefs" > /etc/auto.master.d/cefs.autofs
     service autofs restart
 }
 
