@@ -94,7 +94,7 @@ pushd /opt
 # node.js
 TARGET_NODE_VERSION="v$(cat "${DIR}/node-version")"
 echo "Installing node ${TARGET_NODE_VERSION}"
-curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.xz" | tar xJf - && mv "node-${TARGET_NODE_VERSION}-linux-x64" node
+curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.xz" | tar --no-same-owner -xJf - && mv "node-${TARGET_NODE_VERSION}-linux-x64" node
 popd
 
 cp nginx/nginx.conf /etc/nginx/nginx.conf

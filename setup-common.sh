@@ -86,6 +86,13 @@ locale-gen
 
 apt-get autoremove --purge -y
 
+# Crashes inside a jail must not start a helper process on the host, which runs outside the jail's
+# limits. apport installs a piped core_pattern at boot; ubuntu-server depends on apport, so mask it
+# rather than purge it, and pin a plain core_pattern. init/start.sh checks this at start-up.
+systemctl mask --now apport.service
+echo 'kernel.core_pattern=core' >/etc/sysctl.d/99-ce-core-pattern.conf
+sysctl -p /etc/sysctl.d/99-ce-core-pattern.conf
+
 # This returns amd64 or arm64
 ARCH=$(dpkg --print-architecture)
 
@@ -270,19 +277,8 @@ EOF
     # One line per two-hex-digit prefix, never a `*` wildcard: see FIRST_LEVEL_PREFIXES in
     # bin/lib/cefs/autofs.py for why. autofs_test.py checks this matches make_first_level_map.
     printf '%s -fstype=autofs program:/etc/auto.cefs.sub\n' {{0..9},{a..f}}{{0..9},{a..f}} > /etc/auto.cefs
-    cat > /etc/auto.cefs.sub << 'EOF'
-#!/bin/bash
-# Only answer for well-formed CEFS image names (see generate_cefs_filename in
-# bin/lib/cefs_manifest.py) whose image exists.
-export LC_ALL=C
-key="$1"
-valid_key='^[0-9a-f]{24}_[A-Za-z0-9._+-]+$'
-[[ "${key}" =~ ${valid_key} ]] || exit 1
-image="/efs/cefs-images/${key:0:2}/${key}.sqfs"
-[[ -f "${image}" ]] || exit 1
-echo "-fstype=squashfs,loop,nosuid,nodev,ro :${image}"
-EOF
-    chmod +x /etc/auto.cefs.sub
+    # init/start.sh compares the installed script against this file at start-up.
+    install -o root -g root -m 755 /infra/init/auto.cefs.sub /etc/auto.cefs.sub
     echo "/cefs /etc/auto.cefs --negative-timeout 1" > /etc/auto.master.d/cefs.autofs
     service autofs restart
 }
