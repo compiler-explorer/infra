@@ -6,6 +6,20 @@ from lib.installation_context import is_windows
 
 valid_lib_types = ["static", "shared", "cshared", "headeronly", "cmake_built_headeronly"]
 
+# The builder hands its own flags (arch, -stdlib, compiler options) to CMake through
+# CMAKE_<LANG>_FLAGS_<CONFIG>, which replaces CMake's per-config defaults. These put the
+# optimisation and NDEBUG back for configurations other than the Debug one we package under.
+CMAKE_CONFIG_FLAGS = {
+    "Release": "-O3 -DNDEBUG",
+    "RelWithDebInfo": "-O2 -g -DNDEBUG",
+    "MinSizeRel": "-Os -DNDEBUG",
+}
+CMAKE_CONFIG_FLAGS_MSVC = {
+    "Release": "/O2 /Ob2 /DNDEBUG",
+    "RelWithDebInfo": "/Zi /O2 /Ob1 /DNDEBUG",
+    "MinSizeRel": "/O1 /Ob1 /DNDEBUG",
+}
+
 
 class LibraryBuildConfig:
     def __init__(self, config: dict[str, Any]):
@@ -46,6 +60,15 @@ class LibraryBuildConfig:
         if is_windows():
             self.postbuild_script = self.config_get("postbuild_script_pwsh", self.postbuild_script)
         self.extra_cmake_arg = self.config_get("extra_cmake_arg", [])
+        self.cmake_build_type = self.config_get("cmake_build_type", "")
+        if self.cmake_build_type and self.cmake_build_type not in CMAKE_CONFIG_FLAGS:
+            valid = ", ".join(CMAKE_CONFIG_FLAGS)
+            raise RuntimeError(f"cmake_build_type {self.cmake_build_type} is not one of {valid}")
+        if any(arg.startswith("-DCMAKE_BUILD_TYPE") for arg in self.extra_cmake_arg):
+            raise RuntimeError(
+                "Set cmake_build_type instead of passing -DCMAKE_BUILD_TYPE in extra_cmake_arg: "
+                "the builder's own compiler flags only apply to the configuration it selects"
+            )
         self.extra_make_arg = self.config_get("extra_make_arg", [])
         self.make_targets = self.config_get("make_targets", [])
         self.make_utility = self.config_get("make_utility", "make")

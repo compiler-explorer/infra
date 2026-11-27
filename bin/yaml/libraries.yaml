@@ -417,6 +417,7 @@ libraries:
       type: github
     benchmark:
       build_type: cmake
+      cmake_build_type: Release
       extra_cmake_arg:
       - -DBENCHMARK_ENABLE_TESTING=off
       - -DHAVE_STD_REGEX=1
@@ -1149,10 +1150,10 @@ libraries:
     hpx:
       build_type: cmake
       check_file: CMakeLists.txt
+      cmake_build_type: RelWithDebInfo
       depends:
       - libraries/c++/boost 1.84.0
       extra_cmake_arg:
-      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
       - -DHPX_WITH_TESTS=OFF
       - -DHPX_WITH_EXAMPLES=OFF
       - -DHPX_WITH_CXX_STANDARD=20
@@ -1346,10 +1347,10 @@ libraries:
     libassert:
       build_type: cmake
       check_file: README.md
+      cmake_build_type: Release
       depends:
       - libraries/c++/cpptrace 1.0.2
       extra_cmake_arg:
-      - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_SHARED_LIBS=on
       lib_type: shared
       method: clone_branch
@@ -1723,6 +1724,7 @@ libraries:
       benchmark:
         build_type: cmake
         check_file: README.md
+        cmake_build_type: Release
         extra_cmake_arg:
         - -DBENCHMARK_ENABLE_TESTING=off
         - -DHAVE_STD_REGEX=1

@@ -27,7 +27,7 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.binary_info import BinaryInfo
 from lib.installation_context import FetchFailure, PostFailure
-from lib.library_build_config import LibraryBuildConfig
+from lib.library_build_config import CMAKE_CONFIG_FLAGS, CMAKE_CONFIG_FLAGS_MSVC, LibraryBuildConfig
 from lib.library_build_history import LibraryBuildHistory
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
@@ -1039,8 +1039,14 @@ class LibraryBuilder:
                     )
                     f.write(f"{expanded_line}\n")
 
-                # Use appropriate CMAKE_*_FLAGS based on build type
-                cmake_flags_suffix = "_DEBUG" if buildtype == "Debug" else "_RELEASE"
+                # The conan package keeps the requested buildtype (CE always asks for Debug on
+                # Linux); cmake_build_type only changes how the library itself is compiled.
+                cmake_buildtype = self.buildconfig.cmake_build_type or buildtype
+                cmake_flags_suffix = f"_{cmake_buildtype.upper()}"
+                if self.buildconfig.cmake_build_type:
+                    config_flags = (CMAKE_CONFIG_FLAGS_MSVC if is_msvc else CMAKE_CONFIG_FLAGS)[cmake_buildtype]
+                    cxx_flags = f"{config_flags} {cxx_flags}"
+                    c_flags = f"{config_flags} {c_flags}"
                 cudaflagsparam = ""
                 if compilerType == "nvcc" and not self.buildconfig.cxx_compiler_wrapper:
                     cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}"'
@@ -1053,7 +1059,7 @@ class LibraryBuilder:
 
                 cmakecmd = (
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
-                    f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
+                    f'{targetparams} "-DCMAKE_BUILD_TYPE={cmake_buildtype}" {toolchainparam} {sysrootparam} '
                     f"{cudatoolkitparam} "
                     f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
                     f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'

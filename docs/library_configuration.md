@@ -220,6 +220,7 @@ from the library's YAML dict.
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `extra_cmake_arg` | list | `[]` | Additional arguments passed to `cmake`. Supports build-time variable expansion. |
+| `cmake_build_type` | string | `""` | CMake configuration to compile the library in: `Release`, `RelWithDebInfo` or `MinSizeRel`. Empty uses the package's build type (Debug on Linux). The conan package is still published under the package's build type, because that is what CE asks for. Use this rather than `-DCMAKE_BUILD_TYPE` in `extra_cmake_arg`, which is rejected: the builder passes its flags (arch, `-stdlib`, compiler options) through `CMAKE_<LANG>_FLAGS_<CONFIG>`, so overriding the configuration behind its back drops them. |
 | `extra_make_arg` | list | `[]` | Additional arguments passed to `make` or `ninja`. |
 | `make_targets` | list | `[]` | Specific build targets (e.g. `all`, `bal`, `bsl`). If empty, builds the default target. |
 | `make_utility` | string | `make` | Build tool: `make` or `ninja`. |

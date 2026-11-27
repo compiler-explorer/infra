@@ -69,3 +69,19 @@ class TestCsharedValidation:
     def test_cshared_requires_use_compiler(self):
         with pytest.raises(RuntimeError, match="required to supply a .cross.compiler"):
             LibraryBuildConfig(_config(lib_type="cshared"))
+
+
+class TestCmakeBuildType:
+    def test_defaults_to_empty(self):
+        assert not LibraryBuildConfig(_config()).cmake_build_type
+
+    def test_accepts_release(self):
+        assert LibraryBuildConfig(_config(cmake_build_type="Release")).cmake_build_type == "Release"
+
+    def test_rejects_unknown_configuration(self):
+        with pytest.raises(RuntimeError, match="cmake_build_type Fast is not one of"):
+            LibraryBuildConfig(_config(cmake_build_type="Fast"))
+
+    def test_rejects_build_type_in_extra_cmake_arg(self):
+        with pytest.raises(RuntimeError, match="Set cmake_build_type instead"):
+            LibraryBuildConfig(_config(extra_cmake_arg=["-DCMAKE_BUILD_TYPE=Release"]))
