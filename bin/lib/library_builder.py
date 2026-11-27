@@ -27,7 +27,7 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.binary_info import BinaryInfo
 from lib.installation_context import FetchFailure, PostFailure
-from lib.library_build_config import BUILD_TYPE_FLAGS, LibraryBuildConfig
+from lib.library_build_config import MAKE_BUILD_TYPE_FLAGS, LibraryBuildConfig
 from lib.library_build_history import LibraryBuildHistory
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
@@ -970,12 +970,6 @@ class LibraryBuilder:
             c_flags = f"{c_compileroptions} {archflag} {extraflags}"
             asm_flags = f"{archflag}"
 
-            # MSVC Release builds have always been compiled with just CE's flags; leave them be.
-            build_type_flags = "" if is_msvc else BUILD_TYPE_FLAGS.get(buildtype, "")
-            if build_type_flags:
-                cxx_flags = f"{build_type_flags} {cxx_flags}"
-                c_flags = f"{build_type_flags} {c_flags}"
-
             expanded_configure_flags = [
                 self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
                 for arg in self.buildconfig.configure_flags
@@ -1045,7 +1039,15 @@ class LibraryBuilder:
                     )
                     f.write(f"{expanded_line}\n")
 
-                cmake_flags_suffix = f"_{buildtype.upper()}"
+                # Release (outside MSVC) is CMake's RelWithDebInfo, with our flags in CMAKE_<LANG>_FLAGS so
+                # CMake's own per-config optimisation, -g and NDEBUG still apply. Debug and MSVC keep putting
+                # our flags in the per-config variable, which replaces CMake's defaults, as they always have.
+                if buildtype == "Release" and not is_msvc:
+                    cmake_config = "RelWithDebInfo"
+                    cmake_flags_suffix = ""
+                else:
+                    cmake_config = buildtype
+                    cmake_flags_suffix = f"_{buildtype.upper()}"
                 cudaflagsparam = ""
                 if compilerType == "nvcc" and not self.buildconfig.cxx_compiler_wrapper:
                     cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}"'
@@ -1058,7 +1060,7 @@ class LibraryBuilder:
 
                 cmakecmd = (
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
-                    f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
+                    f'{targetparams} "-DCMAKE_BUILD_TYPE={cmake_config}" {toolchainparam} {sysrootparam} '
                     f"{cudatoolkitparam} "
                     f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
                     f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'
@@ -1133,8 +1135,9 @@ class LibraryBuilder:
                     f.write("make clean > cemakeclean.txt 2>&1 || /bin/true\n")
                 f.write("rm -f *.so*\n")
                 f.write("rm -f *.a\n")
-                f.write(self.script_env("CXXFLAGS", cxx_flags))
-                f.write(self.script_env("CFLAGS", c_flags))
+                make_flags = "" if is_msvc else MAKE_BUILD_TYPE_FLAGS.get(buildtype, "")
+                f.write(self.script_env("CXXFLAGS", f"{make_flags} {cxx_flags}".strip()))
+                f.write(self.script_env("CFLAGS", f"{make_flags} {c_flags}".strip()))
                 logdir = ""
                 if self.buildconfig.source_folder:
                     f.write("LOGDIR=$(pwd)/\n")

@@ -6,11 +6,11 @@ from lib.installation_context import is_windows
 
 valid_lib_types = ["static", "shared", "cshared", "headeronly", "cmake_built_headeronly"]
 
-# Flags put ahead of the builder's own for each build type. The builder hands its flags to CMake
-# through CMAKE_<LANG>_FLAGS_<CONFIG>, which replaces CMake's per-config defaults, and to Make
-# through CXXFLAGS/CFLAGS, so nothing else supplies them. Release keeps -g: CE needs the debug
-# info (objdump, telling library code from user code) and it doesn't change code generation.
-BUILD_TYPE_FLAGS = {
+# Build types a library can be published as. CMake libraries build Release as CMake's
+# RelWithDebInfo. Make libraries have no build type of their own, so Release gets the same flags
+# that RelWithDebInfo uses, ahead of the builder's. -g matters: CE needs the debug info (objdump,
+# telling library code from user code) and it doesn't change code generation.
+MAKE_BUILD_TYPE_FLAGS = {
     "Debug": "",
     "Release": "-O2 -g -DNDEBUG",
 }
@@ -56,9 +56,9 @@ class LibraryBuildConfig:
             self.postbuild_script = self.config_get("postbuild_script_pwsh", self.postbuild_script)
         self.extra_cmake_arg = self.config_get("extra_cmake_arg", [])
         self.build_types = self.config_get("build_types", ["Debug"])
-        unknown = [bt for bt in self.build_types if bt not in BUILD_TYPE_FLAGS]
+        unknown = [bt for bt in self.build_types if bt not in MAKE_BUILD_TYPE_FLAGS]
         if unknown or not self.build_types:
-            valid = ", ".join(BUILD_TYPE_FLAGS)
+            valid = ", ".join(MAKE_BUILD_TYPE_FLAGS)
             raise RuntimeError(f"build_types {self.build_types} must be a non-empty list drawn from {valid}")
         self.extra_make_arg = self.config_get("extra_make_arg", [])
         self.make_targets = self.config_get("make_targets", [])
