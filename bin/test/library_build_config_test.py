@@ -85,3 +85,8 @@ class TestBuildTypes:
     def test_rejects_empty_list(self):
         with pytest.raises(RuntimeError, match="must be a non-empty list"):
             LibraryBuildConfig(_config(build_types=[]))
+
+    @pytest.mark.parametrize("build_types", ["Release", 1, None, {"Release": True}, [["Release"]], [1]])
+    def test_rejects_malformed_values(self, build_types):
+        with pytest.raises(RuntimeError, match="must be a non-empty list"):
+            LibraryBuildConfig(_config(build_types=build_types))

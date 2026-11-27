@@ -405,7 +405,8 @@ def test_writebuildscript_nvcc_without_wrapper_uses_native_cuda(tmp_path, reques
     assert 'export PATH="/opt/compiler-explorer/cuda/13.3.0/bin:$PATH"' in script
     assert 'export CUDACXX="/opt/compiler-explorer/cuda/13.3.0/bin/nvcc"' in script
     assert 'export CXX="/opt/compiler-explorer/gcc-14.1.0/bin/g++"' in script
-    assert "CMAKE_CUDA_FLAGS" in script
+    cuda_flags = re.search(r'"-DCMAKE_CUDA_FLAGS_INIT=([^"]*)"', script).group(1)
+    assert cuda_flags.endswith(" -g")
     assert "nvcc_wrapper" not in script
 
 
@@ -700,6 +701,8 @@ def test_writebuildscript_release_uses_cmake_release_plus_g(tmp_path, requests_m
     assert "-O" not in cxx_flags
     c_flags = re.search(r'"-DCMAKE_C_FLAGS_INIT=([^"]*)"', script).group(1)
     assert c_flags.endswith(" -g")
+    asm_flags = re.search(r'"-DCMAKE_ASM_FLAGS_INIT=([^"]*)"', script).group(1)
+    assert asm_flags.endswith(" -g")
     assert builder.current_buildparameters_obj["buildtype"] == "Release"
 
 

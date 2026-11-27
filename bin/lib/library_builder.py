@@ -1051,15 +1051,13 @@ class LibraryBuilder:
                 # the Windows builders.
                 if is_msvc:
                     cmake_flags_suffix = f"_{buildtype.upper()}"
-                    cmake_cxx_flags = cxx_flags
-                    cmake_c_flags = c_flags
+                    debug_info_flag = ""
                 else:
                     cmake_flags_suffix = "_INIT"
-                    cmake_cxx_flags = f"{cxx_flags} -g"
-                    cmake_c_flags = f"{c_flags} -g"
+                    debug_info_flag = " -g"
                 cudaflagsparam = ""
                 if compilerType == "nvcc" and not self.buildconfig.cxx_compiler_wrapper:
-                    cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}"'
+                    cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}{debug_info_flag}"'
 
                 # clang finds the toolkit through --cuda-path, which find_package(CUDAToolkit) does
                 # not read, so name the root for it. nvcc builds don't need this: their toolkit is
@@ -1071,8 +1069,9 @@ class LibraryBuilder:
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
                     f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
                     f"{cudatoolkitparam} "
-                    f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cmake_cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={cmake_c_flags}" '
-                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'
+                    f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}{debug_info_flag}" '
+                    f'"-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}{debug_info_flag}" '
+                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}{debug_info_flag}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'
                 )
                 cmakeline = self.script_run_logged(cmakecmd, "cecmakelog.txt", "cmake configure failed:")
                 self.logger.debug(cmakeline)
