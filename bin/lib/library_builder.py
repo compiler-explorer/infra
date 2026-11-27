@@ -1039,14 +1039,22 @@ class LibraryBuilder:
                     )
                     f.write(f"{expanded_line}\n")
 
-                # Release (outside MSVC) is CMake's RelWithDebInfo, with our flags in CMAKE_<LANG>_FLAGS so
-                # CMake's own per-config optimisation, -g and NDEBUG still apply. Debug and MSVC keep putting
-                # our flags in the per-config variable, which replaces CMake's defaults, as they always have.
+                # Release (outside MSVC) builds CMake's own Release configuration, leaving the per-config
+                # flags alone so the library gets exactly what CMake and its CMakeLists.txt ask for in
+                # Release (CMake's -O3 -DNDEBUG, or e.g. a project's own tuning). Our flags, plus -g, go in
+                # the config-independent CMAKE_<LANG>_FLAGS. -g because CE needs the debug info (objdump,
+                # separating library from user code), and it doesn't change code generation. We don't use
+                # RelWithDebInfo: projects that tune their optimisation usually only tune Release.
+                # Debug and MSVC keep putting our flags in the per-config variable, which replaces
+                # CMake's defaults, as they always have.
+                cmake_config = buildtype
+                cmake_cxx_flags = cxx_flags
+                cmake_c_flags = c_flags
                 if buildtype == "Release" and not is_msvc:
-                    cmake_config = "RelWithDebInfo"
                     cmake_flags_suffix = ""
+                    cmake_cxx_flags = f"{cxx_flags} -g"
+                    cmake_c_flags = f"{c_flags} -g"
                 else:
-                    cmake_config = buildtype
                     cmake_flags_suffix = f"_{buildtype.upper()}"
                 cudaflagsparam = ""
                 if compilerType == "nvcc" and not self.buildconfig.cxx_compiler_wrapper:
@@ -1062,7 +1070,7 @@ class LibraryBuilder:
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
                     f'{targetparams} "-DCMAKE_BUILD_TYPE={cmake_config}" {toolchainparam} {sysrootparam} '
                     f"{cudatoolkitparam} "
-                    f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
+                    f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cmake_cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={cmake_c_flags}" '
                     f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'
                 )
                 cmakeline = self.script_run_logged(cmakecmd, "cecmakelog.txt", "cmake configure failed:")

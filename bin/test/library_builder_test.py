@@ -671,9 +671,10 @@ def test_writebuildscript_defaults_to_the_package_buildtype(tmp_path, requests_m
     assert "-DNDEBUG" not in cxx_flags
 
 
-def test_writebuildscript_release_is_relwithdebinfo_with_builder_flags(tmp_path, requests_mock):
-    # Release builds as CMake's RelWithDebInfo, so CMake supplies -O2 -g -DNDEBUG. The builder's flags
-    # go in the config-independent variable, or arch, -stdlib and the compiler's own options are lost.
+def test_writebuildscript_release_uses_cmake_release_plus_g(tmp_path, requests_mock):
+    # Release builds CMake's own Release configuration, so CMake and the project's CMakeLists.txt pick the
+    # optimisation. The builder's flags plus -g go in the config-independent variable, or arch, -stdlib
+    # and the compiler's own options are lost.
     builder, script = _write_buildscript_for(
         tmp_path,
         requests_mock,
@@ -685,15 +686,16 @@ def test_writebuildscript_release_is_relwithdebinfo_with_builder_flags(tmp_path,
         stdlib="libc++",
         buildtype="Release",
     )
-    assert '"-DCMAKE_BUILD_TYPE=RelWithDebInfo"' in script
+    assert '"-DCMAKE_BUILD_TYPE=Release"' in script
     assert "CMAKE_CXX_FLAGS_" not in script
     assert "CMAKE_C_FLAGS_" not in script
     cxx_flags = re.search(r'"-DCMAKE_CXX_FLAGS=([^"]*)"', script).group(1)
     assert "--gcc-toolchain=/opt/compiler-explorer/gcc-13.2.0" in cxx_flags
     assert "-stdlib=libc++" in cxx_flags
-    assert "-O2" not in cxx_flags
-    assert '"-DCMAKE_C_FLAGS=' in script
-    # The conan package is still published as Release.
+    assert cxx_flags.endswith(" -g")
+    assert "-O" not in cxx_flags
+    c_flags = re.search(r'"-DCMAKE_C_FLAGS=([^"]*)"', script).group(1)
+    assert c_flags.endswith(" -g")
     assert builder.current_buildparameters_obj["buildtype"] == "Release"
 
 

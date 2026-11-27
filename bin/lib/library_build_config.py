@@ -6,10 +6,10 @@ from lib.installation_context import is_windows
 
 valid_lib_types = ["static", "shared", "cshared", "headeronly", "cmake_built_headeronly"]
 
-# Build types a library can be published as. CMake libraries build Release as CMake's
-# RelWithDebInfo. Make libraries have no build type of their own, so Release gets the same flags
-# that RelWithDebInfo uses, ahead of the builder's. -g matters: CE needs the debug info (objdump,
-# telling library code from user code) and it doesn't change code generation.
+# Build types a library can be published as. CMake libraries build Release as CMake's own Release
+# configuration plus -g (see LibraryBuilder.writebuildscript). Make libraries have no build type of
+# their own, so Release gets these flags ahead of the builder's. -g matters: CE needs the debug info
+# (objdump, telling library code from user code) and it doesn't change code generation.
 MAKE_BUILD_TYPE_FLAGS = {
     "Debug": "",
     "Release": "-O2 -g -DNDEBUG",
