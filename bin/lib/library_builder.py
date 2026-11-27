@@ -1039,23 +1039,21 @@ class LibraryBuilder:
                     )
                     f.write(f"{expanded_line}\n")
 
-                # Release (outside MSVC) builds CMake's own Release configuration, leaving the per-config
-                # flags alone so the library gets exactly what CMake and its CMakeLists.txt ask for in
-                # Release (CMake's -O3 -DNDEBUG, or e.g. a project's own tuning). Our flags, plus -g, go in
-                # the config-independent CMAKE_<LANG>_FLAGS. -g because CE needs the debug info (objdump,
-                # separating library from user code), and it doesn't change code generation. We don't use
-                # RelWithDebInfo: projects that tune their optimisation usually only tune Release.
-                # Debug and MSVC keep putting our flags in the per-config variable, which replaces
-                # CMake's defaults, as they always have.
-                cmake_config = buildtype
-                cmake_cxx_flags = cxx_flags
-                cmake_c_flags = c_flags
-                if buildtype == "Release" and not is_msvc:
+                # CMAKE_<LANG>_FLAGS_<CONFIG> replaces CMake's defaults for that config rather than adding
+                # to them, and our flags have no -O, so outside MSVC they go in the config-independent
+                # CMAKE_<LANG>_FLAGS. CMAKE_BUILD_TYPE then picks CMake's own per-config flags (and any a
+                # project's CMakeLists.txt sets), e.g. -O3 -DNDEBUG for Release. We add -g because CE
+                # needs the debug info (objdump, separating library from user code) and it doesn't
+                # change code generation. MSVC keeps the per-config variable: it only builds Release,
+                # and its flags carry their own optimisation and runtime settings.
+                if is_msvc:
+                    cmake_flags_suffix = f"_{buildtype.upper()}"
+                    cmake_cxx_flags = cxx_flags
+                    cmake_c_flags = c_flags
+                else:
                     cmake_flags_suffix = ""
                     cmake_cxx_flags = f"{cxx_flags} -g"
                     cmake_c_flags = f"{c_flags} -g"
-                else:
-                    cmake_flags_suffix = f"_{buildtype.upper()}"
                 cudaflagsparam = ""
                 if compilerType == "nvcc" and not self.buildconfig.cxx_compiler_wrapper:
                     cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}"'
@@ -1068,7 +1066,7 @@ class LibraryBuilder:
 
                 cmakecmd = (
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
-                    f'{targetparams} "-DCMAKE_BUILD_TYPE={cmake_config}" {toolchainparam} {sysrootparam} '
+                    f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
                     f"{cudatoolkitparam} "
                     f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cmake_cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={cmake_c_flags}" '
                     f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'

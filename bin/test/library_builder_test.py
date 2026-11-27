@@ -422,6 +422,7 @@ def _write_buildscript_for(
     platform=LibraryPlatform.Linux,
     buildtype="Debug",
     build_system="cmake",
+    compiler_props=None,
 ):
     requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
     requests_mock.get(f"{BASE}cpp.amazonwin.properties", text="")
@@ -457,7 +458,7 @@ def _write_buildscript_for(
         stdlib,
         [""],
         "",
-        {},
+        compiler_props or {},
     )
     return builder, (tmp_path / builder.script_filename).read_text(encoding="utf-8")
 
@@ -625,7 +626,7 @@ def test_writebuildscript_clang_cuda_fixed_libcxx_is_tagged_libcxx(tmp_path, req
     assert builder.current_buildparameters_obj["libcxx"] == "libc++"
     assert "-s compiler.libcxx=libc++" in " ".join(builder.current_buildparameters)
     # -stdlib is already in the compiler options, so it must not be appended a second time.
-    cxx_flags = re.search(r'-DCMAKE_CXX_FLAGS_DEBUG=([^"]*)', script).group(1)
+    cxx_flags = re.search(r'-DCMAKE_CXX_FLAGS=([^"]*)', script).group(1)
     assert cxx_flags.count("-stdlib=libc++") == 1
 
 
@@ -666,8 +667,11 @@ def test_writebuildscript_defaults_to_the_package_buildtype(tmp_path, requests_m
         options="-march=x86-64",
     )
     assert '"-DCMAKE_BUILD_TYPE=Debug"' in script
-    cxx_flags = re.search(r'"-DCMAKE_CXX_FLAGS_DEBUG=([^"]*)"', script).group(1)
+    # Not CMAKE_CXX_FLAGS_DEBUG: that would replace CMake's own Debug flags.
+    assert "CMAKE_CXX_FLAGS_" not in script
+    cxx_flags = re.search(r'"-DCMAKE_CXX_FLAGS=([^"]*)"', script).group(1)
     assert "-march=x86-64" in cxx_flags
+    assert cxx_flags.endswith(" -g")
     assert "-DNDEBUG" not in cxx_flags
 
 
@@ -699,6 +703,23 @@ def test_writebuildscript_release_uses_cmake_release_plus_g(tmp_path, requests_m
     assert builder.current_buildparameters_obj["buildtype"] == "Release"
 
 
+def test_writebuildscript_msvc_release_keeps_the_per_config_flags(tmp_path, requests_mock):
+    _, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="vcpp_v19_40_VS17_10_x64",
+        exe="C:/msvc/bin/Hostx64/x64/cl.exe",
+        compiler_type="win32-vc",
+        toolchain="",
+        platform=LibraryPlatform.Windows,
+        buildtype="Release",
+        compiler_props={"libPath": "C:/msvc/lib/x64", "includePath": "C:/msvc/include"},
+    )
+    assert "-DCMAKE_BUILD_TYPE=Release" in script
+    assert "-DCMAKE_CXX_FLAGS_RELEASE=" in script
+    assert "-DCMAKE_C_FLAGS_RELEASE=" in script
+
+
 def test_writebuildscript_release_make_library_gets_release_flags(tmp_path, requests_mock):
     _, script = _write_buildscript_for(
         tmp_path,
@@ -718,7 +739,7 @@ def test_writebuildscript_release_make_library_gets_release_flags(tmp_path, requ
     assert cflags.startswith("-O2 -g -DNDEBUG ")
 
 
-def test_writebuildscript_debug_make_library_flags_unchanged(tmp_path, requests_mock):
+def test_writebuildscript_debug_make_library_gets_debug_info(tmp_path, requests_mock):
     _, script = _write_buildscript_for(
         tmp_path,
         requests_mock,
@@ -729,6 +750,7 @@ def test_writebuildscript_debug_make_library_flags_unchanged(tmp_path, requests_
         build_system="make",
     )
     cxxflags = re.search(r'export CXXFLAGS="([^"]*)"', script).group(1)
+    assert cxxflags.split()[0] == "-g"
     assert "NDEBUG" not in cxxflags
     assert "-O2" not in cxxflags
 
