@@ -6,14 +6,13 @@ from lib.installation_context import is_windows
 
 valid_lib_types = ["static", "shared", "cshared", "headeronly", "cmake_built_headeronly"]
 
-# The builder hands its own flags (arch, -stdlib, compiler options) to CMake through
-# CMAKE_<LANG>_FLAGS_<CONFIG>, which replaces CMake's per-config defaults. These put the
-# optimisation and NDEBUG back for the configurations other than Debug.
-CMAKE_CONFIG_FLAGS = {
+# Flags put ahead of the builder's own for each build type. The builder hands its flags to CMake
+# through CMAKE_<LANG>_FLAGS_<CONFIG>, which replaces CMake's per-config defaults, and to Make
+# through CXXFLAGS/CFLAGS, so nothing else supplies them. Release keeps -g: CE needs the debug
+# info (objdump, telling library code from user code) and it doesn't change code generation.
+BUILD_TYPE_FLAGS = {
     "Debug": "",
-    "Release": "-O3 -DNDEBUG",
-    "RelWithDebInfo": "-O2 -g -DNDEBUG",
-    "MinSizeRel": "-Os -DNDEBUG",
+    "Release": "-O2 -g -DNDEBUG",
 }
 
 
@@ -57,9 +56,9 @@ class LibraryBuildConfig:
             self.postbuild_script = self.config_get("postbuild_script_pwsh", self.postbuild_script)
         self.extra_cmake_arg = self.config_get("extra_cmake_arg", [])
         self.build_types = self.config_get("build_types", ["Debug"])
-        unknown = [bt for bt in self.build_types if bt not in CMAKE_CONFIG_FLAGS]
+        unknown = [bt for bt in self.build_types if bt not in BUILD_TYPE_FLAGS]
         if unknown or not self.build_types:
-            valid = ", ".join(CMAKE_CONFIG_FLAGS)
+            valid = ", ".join(BUILD_TYPE_FLAGS)
             raise RuntimeError(f"build_types {self.build_types} must be a non-empty list drawn from {valid}")
         self.extra_make_arg = self.config_get("extra_make_arg", [])
         self.make_targets = self.config_get("make_targets", [])

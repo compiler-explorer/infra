@@ -80,7 +80,7 @@ class TestBuildTypes:
 
     def test_rejects_unknown_configuration(self):
         with pytest.raises(RuntimeError, match="must be a non-empty list"):
-            LibraryBuildConfig(_config(build_types=["Fast"]))
+            LibraryBuildConfig(_config(build_types=["RelWithDebInfo"]))
 
     def test_rejects_empty_list(self):
         with pytest.raises(RuntimeError, match="must be a non-empty list"):
