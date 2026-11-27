@@ -67,9 +67,11 @@ lock_down_deploy_dir() {
 }
 
 # Prints the first file under $1 (following $1 itself if it is a link) that is not root-owned or is
-# writable by group or others.
+# writable by group or others. If the tree cannot be fully inspected, prints $1 itself.
 first_unprotected_path() {
-    find -H "$1" \( ! -user root -o \( ! -type l -perm /022 \) \) -print -quit
+    local offender
+    offender=$(find -H "$1" \( ! -user root -o \( ! -type l -perm /022 \) \) -print -quit) || offender="$1"
+    echo "${offender}"
 }
 
 update_code() {
@@ -193,8 +195,8 @@ check_sandbox_preconditions() {
         failed=1
     fi
 
-    if ! grep -qsF -- '-fstype=squashfs,loop,nosuid,nodev,ro ' /etc/auto.cefs.sub; then
-        echo "Sandbox precondition failed: /etc/auto.cefs.sub does not mount images nosuid,nodev,ro"
+    if ! cmp -s "${PWD}/init/auto.cefs.sub" /etc/auto.cefs.sub; then
+        echo "Sandbox precondition failed: /etc/auto.cefs.sub differs from init/auto.cefs.sub"
         failed=1
     fi
 

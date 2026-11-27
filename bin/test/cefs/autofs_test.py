@@ -15,11 +15,8 @@ VALID_NAME = "9da642f654bc890a12345678_opt_compiler-explorer_gcc-15.1.0"
 MISSING_NAME = "0123456789abcdef01234567_consolidated"
 
 
-def _setup_common_script() -> str:
-    text = (REPO_ROOT / "setup-common.sh").read_text(encoding="utf-8")
-    match = re.search(r"cat > /etc/auto\.cefs\.sub << 'EOF'\n(.*?\n)EOF\n", text, re.DOTALL)
-    assert match, "could not find the /etc/auto.cefs.sub heredoc in setup-common.sh"
-    return match.group(1)
+def _node_script() -> str:
+    return (REPO_ROOT / "init" / "auto.cefs.sub").read_text(encoding="utf-8")
 
 
 def _run(script: Path, key: str) -> subprocess.CompletedProcess[bytes]:
@@ -47,8 +44,8 @@ def fixture_script(tmp_path: Path) -> Path:
     return script
 
 
-def test_setup_common_script_matches_ce_install_script():
-    assert _setup_common_script() == make_lookup_script(Path("/efs/cefs-images"))
+def test_node_script_matches_ce_install_script():
+    assert _node_script() == make_lookup_script(Path("/efs/cefs-images"))
 
 
 @pytest.mark.parametrize("name", [VALID_NAME, "abcdef0123456789abcdef01_consolidated"])
@@ -119,3 +116,13 @@ def test_first_level_map_lists_every_two_hex_digit_prefix_once():
 
 def test_first_level_map_has_no_wildcard():
     assert "*" not in make_first_level_map(Path("/etc/auto.cefs.sub"))
+
+
+def test_setup_common_installs_node_script():
+    text = (REPO_ROOT / "setup-common.sh").read_text(encoding="utf-8")
+    assert "install -o root -g root -m 755 /infra/init/auto.cefs.sub /etc/auto.cefs.sub" in text
+
+
+def test_start_up_check_compares_against_node_script():
+    text = (REPO_ROOT / "start-support.sh").read_text(encoding="utf-8")
+    assert 'cmp -s "${PWD}/init/auto.cefs.sub" /etc/auto.cefs.sub' in text

@@ -5,8 +5,8 @@ from __future__ import annotations
 from itertools import product
 from pathlib import Path
 
-# setup-common.sh writes the same script for /efs/cefs-images avoiding Python and
-# any deployment hassle. autofs_test.py checks that the two stay identical.
+# init/auto.cefs.sub is the same script for /efs/cefs-images, installed by setup-common.sh to avoid Python and
+# any deployment hassle, and checked at start-up by init/start.sh. autofs_test.py keeps the two identical.
 LOOKUP_SCRIPT_TEMPLATE = """#!/bin/bash
 # Only answer for well-formed CEFS image names (see generate_cefs_filename in
 # bin/lib/cefs_manifest.py) whose image exists.
