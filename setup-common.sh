@@ -86,6 +86,13 @@ locale-gen
 
 apt-get autoremove --purge -y
 
+# Crashes inside a jail must not start a helper process on the host, which runs outside the jail's
+# limits. apport installs a piped core_pattern at boot; ubuntu-server depends on apport, so mask it
+# rather than purge it, and pin a plain core_pattern. init/start.sh checks this at start-up.
+systemctl mask --now apport.service
+echo 'kernel.core_pattern=core' >/etc/sysctl.d/99-ce-core-pattern.conf
+sysctl -p /etc/sysctl.d/99-ce-core-pattern.conf
+
 # This returns amd64 or arm64
 ARCH=$(dpkg --print-architecture)
 

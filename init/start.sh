@@ -27,6 +27,10 @@ mount_opt
 mount_nosym
 update_code
 
+if ! check_sandbox_preconditions; then
+    exit 1
+fi
+
 if ! sudo -u "${CE_USER}" nsjail --config /infra/.deploy/etc/nsjail/compilers-and-tools.cfg -- /bin/bash -c "echo nsjail works"; then
     echo "nsjail is not working, please check the configuration."
     log_cgroups

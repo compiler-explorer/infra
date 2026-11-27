@@ -57,8 +57,14 @@ get_released_code() {
     pushd "${DEST}"
     echo "${S3_KEY}" >s3_key
     curl -sL "${URL}" | tar Jxf -
-    chown -R ${CE_USER}:${CE_USER} .
     popd
+}
+
+# The service user, and so every jail, only needs to read the release. Applied on every start so a
+# tree unpacked by an older version of this script is brought into line too.
+lock_down_deploy_dir() {
+    chown -R root:root "${DEPLOY_DIR}"
+    chmod -R u=rwX,go=rX "${DEPLOY_DIR}"
 }
 
 update_code() {
@@ -77,6 +83,7 @@ update_code() {
         get_released_code "${DEPLOY_DIR}" "${S3_KEY}"
         get_discovered_compilers "${DEPLOY_DIR}" "${S3_KEY}"
     fi
+    lock_down_deploy_dir
 }
 
 install_asmparser() {
@@ -149,6 +156,50 @@ mount_nosym() {
     mount -onosymfollow --bind / /nosym
     # seems to need a remount to pick it up properly on our version of Ubuntu (but not 23.10)
     mount -oremount,nosymfollow --bind / /nosym
+}
+
+# Host-side protections the sandbox relies on. Nothing else verifies them, so check each one before
+# starting the server and refuse to start if any has regressed.
+check_sandbox_preconditions() {
+    local failed=0
+    local path offender
+
+    if ! findmnt -n -o VFS-OPTIONS --mountpoint /nosym | tr ',' '\n' | grep -qx nosymfollow; then
+        echo "Sandbox precondition failed: /nosym is not mounted with nosymfollow"
+        failed=1
+    fi
+
+    for path in /usr/local/bin/nsjail "${DEPLOY_DIR}" /etc/auto.master.d/cefs.autofs /etc/auto.cefs /etc/auto.cefs.sub; do
+        if [[ ! -e "${path}" ]]; then
+            echo "Sandbox precondition failed: ${path} is missing"
+            failed=1
+            continue
+        fi
+        offender=$(find "${path}" \( ! -user root -o \( ! -type l -perm /022 \) \) -print -quit)
+        if [[ -n "${offender}" ]]; then
+            echo "Sandbox precondition failed: ${offender} is not root-owned or is writable by others"
+            failed=1
+        fi
+    done
+
+    if [[ "$(cat /proc/sys/kernel/core_pattern)" == '|'* ]]; then
+        echo "Sandbox precondition failed: kernel.core_pattern runs a helper on the host"
+        failed=1
+    fi
+
+    if ! grep -qsF -- '-fstype=squashfs,loop,nosuid,nodev,ro ' /etc/auto.cefs.sub; then
+        echo "Sandbox precondition failed: /etc/auto.cefs.sub does not mount images nosuid,nodev,ro"
+        failed=1
+    fi
+
+    offender=$(findmnt -rn -t squashfs -o TARGET,VFS-OPTIONS \
+        | awk '$1 ~ "^/cefs/" && !($2 ~ /(^|,)ro(,|$)/ && $2 ~ /(^|,)nosuid(,|$)/ && $2 ~ /(^|,)nodev(,|$)/) {print $1; exit}')
+    if [[ -n "${offender}" ]]; then
+        echo "Sandbox precondition failed: ${offender} is not mounted ro,nosuid,nodev"
+        failed=1
+    fi
+
+    return "${failed}"
 }
 
 install_ce_router() {
