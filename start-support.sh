@@ -177,7 +177,8 @@ check_sandbox_preconditions() {
         failed=1
     fi
 
-    for path in /usr/local/bin/nsjail "${DEPLOY_DIR}" /etc/auto.master.d/cefs.autofs /etc/auto.cefs /etc/auto.cefs.sub; do
+    for path in /usr/local/bin/nsjail /opt/node "${DEPLOY_DIR}" "${PWD}/init" "${PWD}/start-support.sh" "${PWD}/site-${ENV}.sh" \
+        /etc/auto.master.d/cefs.autofs /etc/auto.cefs /etc/auto.cefs.sub; do
         if [[ ! -e "${path}" ]]; then
             echo "Sandbox precondition failed: ${path} is missing"
             failed=1
@@ -220,6 +221,7 @@ install_ce_router() {
         return
     fi
     unzip -q -o /tmp/ce-router.zip -d /infra/.deploy
+    chmod -R go-w /infra/.deploy
     rm -f /tmp/ce-router.zip
 
     echo "${latest_version}" > /infra/.deploy/ce-router-version
