@@ -220,6 +220,7 @@ from the library's YAML dict.
 | Property | Type | Default | Description |
 |---|---|---|---|
 | `extra_cmake_arg` | list | `[]` | Additional arguments passed to `cmake`. Supports build-time variable expansion. |
+| `build_types` | list | `[Debug]` | Build types to build and publish, each as its own conan package (`build_type=<name>`): `Debug` and/or `Release`. CMake libraries build CMake's own configuration of that name, so they get whatever CMake and their CMakeLists.txt ask for (CMake's defaults are `-g` for Debug and `-O3 -DNDEBUG` for Release); the builder's flags plus `-g` seed the config-independent `CMAKE_<LANG>_FLAGS` through `CMAKE_<LANG>_FLAGS_INIT`, so CMake still adds its platform defaults. Make libraries have no build type, so they get `-g` (Debug) or `-O2 -g -DNDEBUG` (Release) ahead of the builder's `CXXFLAGS`/`CFLAGS`. `-g` is always there because CE needs the debug info and it doesn't change code generation. MSVC on Windows always builds `Release` only, with the builder's flags in `CMAKE_<LANG>_FLAGS_RELEASE`, as before. CE links the Debug package unless the compile request asks for Release per library. Prefer this to `-DCMAKE_BUILD_TYPE` in `extra_cmake_arg`, which would publish a package labelled with the wrong build type. |
 | `extra_make_arg` | list | `[]` | Additional arguments passed to `make` or `ninja`. |
 | `make_targets` | list | `[]` | Specific build targets (e.g. `all`, `bal`, `bsl`). If empty, builds the default target. |
 | `make_utility` | string | `make` | Build tool: `make` or `ninja`. |

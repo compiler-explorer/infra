@@ -137,6 +137,7 @@ def create_test_build_config():
     config.postbuild_script = []
     config.configure_flags = []
     config.extra_cmake_arg = []
+    config.build_types = ["Debug"]
     config.extra_make_arg = []
     config.make_targets = []
     config.make_utility = "make"
@@ -404,7 +405,8 @@ def test_writebuildscript_nvcc_without_wrapper_uses_native_cuda(tmp_path, reques
     assert 'export PATH="/opt/compiler-explorer/cuda/13.3.0/bin:$PATH"' in script
     assert 'export CUDACXX="/opt/compiler-explorer/cuda/13.3.0/bin/nvcc"' in script
     assert 'export CXX="/opt/compiler-explorer/gcc-14.1.0/bin/g++"' in script
-    assert "CMAKE_CUDA_FLAGS" in script
+    cuda_flags = re.search(r'"-DCMAKE_CUDA_FLAGS_INIT=([^"]*)"', script).group(1)
+    assert cuda_flags.endswith(" -g")
     assert "nvcc_wrapper" not in script
 
 
@@ -419,6 +421,9 @@ def _write_buildscript_for(
     options="",
     stdlib="",
     platform=LibraryPlatform.Linux,
+    buildtype="Debug",
+    build_system="cmake",
+    compiler_props=None,
 ):
     requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
     requests_mock.get(f"{BASE}cpp.amazonwin.properties", text="")
@@ -426,6 +431,7 @@ def _write_buildscript_for(
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     build_config.make_targets = ["all"]
+    build_config.build_type = build_system
     builder = LibraryBuilder(
         logger,
         "cpp",
@@ -447,13 +453,13 @@ def _write_buildscript_for(
         compiler_type,
         toolchain,
         "Linux",
-        "Debug",
+        buildtype,
         "x86_64",
         "",
         stdlib,
         [""],
         "",
-        {},
+        compiler_props or {},
     )
     return builder, (tmp_path / builder.script_filename).read_text(encoding="utf-8")
 
@@ -621,7 +627,7 @@ def test_writebuildscript_clang_cuda_fixed_libcxx_is_tagged_libcxx(tmp_path, req
     assert builder.current_buildparameters_obj["libcxx"] == "libc++"
     assert "-s compiler.libcxx=libc++" in " ".join(builder.current_buildparameters)
     # -stdlib is already in the compiler options, so it must not be appended a second time.
-    cxx_flags = re.search(r'-DCMAKE_CXX_FLAGS_DEBUG=([^"]*)', script).group(1)
+    cxx_flags = re.search(r'-DCMAKE_CXX_FLAGS_INIT=([^"]*)', script).group(1)
     assert cxx_flags.count("-stdlib=libc++") == 1
 
 
@@ -649,6 +655,107 @@ def test_writebuildscript_without_cuda_path_omits_the_toolkit_root(tmp_path, req
         toolchain="/opt/compiler-explorer/gcc-15.1.0",
     )
     assert "CUDAToolkit_ROOT" not in script
+
+
+def test_writebuildscript_defaults_to_the_package_buildtype(tmp_path, requests_mock):
+    _, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="g151",
+        exe="/opt/compiler-explorer/gcc-15.1.0/bin/g++",
+        compiler_type="",
+        toolchain="/opt/compiler-explorer/gcc-15.1.0",
+        options="-march=x86-64",
+    )
+    assert '"-DCMAKE_BUILD_TYPE=Debug"' in script
+    # Not CMAKE_CXX_FLAGS_DEBUG: that would replace CMake's own Debug flags, including its -g.
+    assert "CMAKE_CXX_FLAGS_DEBUG" not in script
+    cxx_flags = re.search(r'"-DCMAKE_CXX_FLAGS_INIT=([^"]*)"', script).group(1)
+    assert "-march=x86-64" in cxx_flags
+    assert cxx_flags.endswith(" -g")
+    assert "-DNDEBUG" not in cxx_flags
+
+
+def test_writebuildscript_release_uses_cmake_release_plus_g(tmp_path, requests_mock):
+    # Release builds CMake's own Release configuration, so CMake and the project's CMakeLists.txt pick the
+    # optimisation. The builder's flags plus -g seed the config-independent variable, or arch, -stdlib
+    # and the compiler's own options are lost.
+    builder, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="clang1810",
+        exe="/opt/compiler-explorer/clang-18.1.0/bin/clang++",
+        compiler_type="clang",
+        toolchain="/opt/compiler-explorer/gcc-13.2.0",
+        options="--gcc-toolchain=/opt/compiler-explorer/gcc-13.2.0",
+        stdlib="libc++",
+        buildtype="Release",
+    )
+    assert '"-DCMAKE_BUILD_TYPE=Release"' in script
+    assert "CMAKE_CXX_FLAGS_RELEASE" not in script
+    assert "CMAKE_C_FLAGS_RELEASE" not in script
+    cxx_flags = re.search(r'"-DCMAKE_CXX_FLAGS_INIT=([^"]*)"', script).group(1)
+    assert "--gcc-toolchain=/opt/compiler-explorer/gcc-13.2.0" in cxx_flags
+    assert "-stdlib=libc++" in cxx_flags
+    assert cxx_flags.endswith(" -g")
+    assert "-O" not in cxx_flags
+    c_flags = re.search(r'"-DCMAKE_C_FLAGS_INIT=([^"]*)"', script).group(1)
+    assert c_flags.endswith(" -g")
+    asm_flags = re.search(r'"-DCMAKE_ASM_FLAGS_INIT=([^"]*)"', script).group(1)
+    assert asm_flags.endswith(" -g")
+    assert builder.current_buildparameters_obj["buildtype"] == "Release"
+
+
+def test_writebuildscript_msvc_release_keeps_the_per_config_flags(tmp_path, requests_mock):
+    _, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="vcpp_v19_40_VS17_10_x64",
+        exe="C:/msvc/bin/Hostx64/x64/cl.exe",
+        compiler_type="win32-vc",
+        toolchain="",
+        platform=LibraryPlatform.Windows,
+        buildtype="Release",
+        compiler_props={"libPath": "C:/msvc/lib/x64", "includePath": "C:/msvc/include"},
+    )
+    assert "-DCMAKE_BUILD_TYPE=Release" in script
+    assert "-DCMAKE_CXX_FLAGS_RELEASE=" in script
+    assert "-DCMAKE_C_FLAGS_RELEASE=" in script
+
+
+def test_writebuildscript_release_make_library_gets_release_flags(tmp_path, requests_mock):
+    _, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="g151",
+        exe="/opt/compiler-explorer/gcc-15.1.0/bin/g++",
+        compiler_type="",
+        toolchain="/opt/compiler-explorer/gcc-15.1.0",
+        options="-march=x86-64",
+        buildtype="Release",
+        build_system="make",
+    )
+    cxxflags = re.search(r'export CXXFLAGS="([^"]*)"', script).group(1)
+    assert cxxflags.startswith("-O2 -g -DNDEBUG ")
+    assert "-march=x86-64" in cxxflags
+    cflags = re.search(r'export CFLAGS="([^"]*)"', script).group(1)
+    assert cflags.startswith("-O2 -g -DNDEBUG ")
+
+
+def test_writebuildscript_debug_make_library_gets_debug_info(tmp_path, requests_mock):
+    _, script = _write_buildscript_for(
+        tmp_path,
+        requests_mock,
+        compiler="g151",
+        exe="/opt/compiler-explorer/gcc-15.1.0/bin/g++",
+        compiler_type="",
+        toolchain="/opt/compiler-explorer/gcc-15.1.0",
+        build_system="make",
+    )
+    cxxflags = re.search(r'export CXXFLAGS="([^"]*)"', script).group(1)
+    assert cxxflags.split()[0] == "-g"
+    assert "NDEBUG" not in cxxflags
+    assert "-O2" not in cxxflags
 
 
 def test_get_cuda_path_from_options(requests_mock):
