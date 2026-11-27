@@ -92,7 +92,7 @@ image="/efs/cefs-images/${key:0:2}/${key}.sqfs"
 echo "-fstype=squashfs,loop,nosuid,nodev,ro :${image}"
 
 # /etc/auto.master.d/cefs.autofs
-/cefs /etc/auto.cefs --negative-timeout 1
+/cefs /etc/auto.cefs
 ```
 
 CEFS uses a hierarchical directory structure to avoid filesystem performance issues with thousands of files in a single directory. Hash-based paths are structured as `/cefs/XX/XXYYZZZ...` where XX is the first two characters of the SHA256 hash. This provides up to 256 subdirectories (00-ff for hexadecimal hashes), distributing files evenly across the filesystem.
@@ -106,6 +106,8 @@ The two-level autofs configuration works as follows:
 
    The script is run for every lookup, so replacing `/etc/auto.cefs.sub` on a running node takes effect at once without reloading autofs. `bin/lib/cefs/autofs.py` and `setup-common.sh` both write it and must stay identical (`autofs_test.py` checks)
 4. Autofs mounts the squashfs image at the requested location
+
+Failed lookups are cached for autofs's default negative timeout (`negative_timeout` in `/etc/autofs.conf`, 60s unless set). The master map deliberately has no `--negative-timeout`: it would only apply to `/cefs` itself, as autofs does not pass it on to the nested `/cefs/XX` mounts where image lookups happen.
 
 ## Work
 
