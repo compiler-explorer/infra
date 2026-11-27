@@ -108,3 +108,7 @@ compilers:
     check_exe: bin/tc --version
     targets:
       - 8.1.0
+      # 8.2.0 has no "full" asset; every build's bin/tc emits all four targets (cuda, opencl, metal, hip).
+      - name: 8.2.0
+        untar_dir: tornadovm-{{name}}-cuda
+        url: https://github.com/beehive-lab/TornadoVM/releases/download/v{{name}}/tornadovm-{{name}}-jdk22plus-cuda-linux-amd64.tar.gz
