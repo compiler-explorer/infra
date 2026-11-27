@@ -227,6 +227,7 @@ locals {
     compiles_per_min_by_language       = "sum by (language) (${local.public_counter_sums.compiles_rate}) * 60"
     compiles_per_min_by_language_not_c = "sum by (language) (${local.public_counter_sums.compiles_rate_not_c}) * 60"
     executions_per_min_by_language     = "sum by (language) (${local.public_counter_sums.executions_rate}) * 60"
+    router_cache_hit_rate              = "sum(rate(ce_router_compilation_cache_total{env=~\"${local.public_envs}\", result=\"hit\"}[$__rate_interval])) / sum(rate(ce_router_compilation_cache_total{env=~\"${local.public_envs}\", result=~\"hit|miss|error\"}[$__rate_interval]))"
   }
 }
 

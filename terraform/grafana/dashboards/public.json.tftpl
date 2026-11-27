@@ -1174,6 +1174,17 @@
           "legendFormat": "{{name}}-{{type}}",
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "grafanacloud-prom"
+          },
+          "editorMode": "code",
+          "expr": ${jsonencode(expr.router_cache_hit_rate)},
+          "legendFormat": "router-compilation",
+          "range": true,
+          "refId": "B"
         }
       ],
       "title": "Cache Hit Rate",
