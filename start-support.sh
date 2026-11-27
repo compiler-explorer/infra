@@ -60,11 +60,16 @@ get_released_code() {
     popd
 }
 
-# The service user, and so every jail, only needs to read the release. Applied on every start so a
-# tree unpacked by an older version of this script is brought into line too.
+# The service user, and so every jail, only needs to read the release.
 lock_down_deploy_dir() {
     chown -R root:root "${DEPLOY_DIR}"
     chmod -R u=rwX,go=rX "${DEPLOY_DIR}"
+}
+
+# Prints the first file under $1 (following $1 itself if it is a link) that is not root-owned or is
+# writable by group or others.
+first_unprotected_path() {
+    find -H "$1" \( ! -user root -o \( ! -type l -perm /022 \) \) -print -quit
 }
 
 update_code() {
@@ -76,14 +81,15 @@ update_code() {
         CUR_S3_KEY=$(cat "${DEPLOY_DIR}/s3_key")
     fi
 
-    if [[ "${S3_KEY}" == "${CUR_S3_KEY}" ]]; then
+    # A tree the service user could have written to is not trusted, even if it is the right build.
+    if [[ "${S3_KEY}" == "${CUR_S3_KEY}" && -z "$(first_unprotected_path "${DEPLOY_DIR}")" ]]; then
         echo "Build ${S3_KEY} already checked out"
     else
         rm -rf "${DEPLOY_DIR}"
         get_released_code "${DEPLOY_DIR}" "${S3_KEY}"
         get_discovered_compilers "${DEPLOY_DIR}" "${S3_KEY}"
+        lock_down_deploy_dir
     fi
-    lock_down_deploy_dir
 }
 
 install_asmparser() {
@@ -175,7 +181,7 @@ check_sandbox_preconditions() {
             failed=1
             continue
         fi
-        offender=$(find "${path}" \( ! -user root -o \( ! -type l -perm /022 \) \) -print -quit)
+        offender=$(first_unprotected_path "${path}")
         if [[ -n "${offender}" ]]; then
             echo "Sandbox precondition failed: ${offender} is not root-owned or is writable by others"
             failed=1
