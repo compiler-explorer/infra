@@ -423,6 +423,7 @@ libraries:
       extra_cmake_arg:
       - -DBENCHMARK_ENABLE_TESTING=off
       - -DHAVE_STD_REGEX=1
+      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
       make_utility: ninja
       repo: google/benchmark
       subdir: google-benchmark
