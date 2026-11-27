@@ -7,16 +7,12 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from lib.cefs.autofs import LOOKUP_SCRIPT_TEMPLATE, make_first_level_map, make_lookup_script
+from lib.cefs.autofs import NODE_IMAGE_DIR, NODE_LOOKUP_SCRIPT, make_first_level_map, make_lookup_script
 from lib.cefs_manifest import generate_cefs_filename
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 VALID_NAME = "9da642f654bc890a12345678_opt_compiler-explorer_gcc-15.1.0"
 MISSING_NAME = "0123456789abcdef01234567_consolidated"
-
-
-def _node_script() -> str:
-    return (REPO_ROOT / "init" / "auto.cefs.sub").read_text(encoding="utf-8")
 
 
 def _run(script: Path, key: str) -> subprocess.CompletedProcess[bytes]:
@@ -44,8 +40,14 @@ def fixture_script(tmp_path: Path) -> Path:
     return script
 
 
-def test_node_script_matches_ce_install_script():
-    assert _node_script() == make_lookup_script(Path("/efs/cefs-images"))
+def test_lookup_script_for_node_is_the_installed_file():
+    assert make_lookup_script(NODE_IMAGE_DIR) == NODE_LOOKUP_SCRIPT.read_text(encoding="utf-8")
+
+
+def test_lookup_script_uses_given_image_dir():
+    script = make_lookup_script(Path("/some/other/images"))
+    assert 'image="/some/other/images/${key:0:2}/${key}.sqfs"' in script
+    assert str(NODE_IMAGE_DIR) not in script
 
 
 @pytest.mark.parametrize("name", [VALID_NAME, "abcdef0123456789abcdef01_consolidated"])
@@ -92,7 +94,7 @@ def test_lookup_script_rejects(script: Path, name: str):
     ],
 )
 def test_generated_names_pass_lookup_check(operation: str, path: Path | None):
-    match = re.search(r"valid_key='([^']*)'", LOOKUP_SCRIPT_TEMPLATE)
+    match = re.search(r"valid_key='([^']*)'", NODE_LOOKUP_SCRIPT.read_text(encoding="utf-8"))
     assert match
     name = generate_cefs_filename("0123456789abcdef01234567", operation, path).removesuffix(".sqfs")
     assert re.fullmatch(match.group(1), name)
