@@ -18,7 +18,7 @@ compilers:
       - rm -rf std/.git
     # sha256 is the x86_64-linux tarball's entry in each release's SHA256SUMS
     targets:
-      - name: 7.3.0
-        sha256: dd92c6c739c78f6a4aeab189bef835e3a56c89fab210cff33d8eb25d015c8798
+      - name: 7.3.1
+        sha256: 5b9f29b53b2cc0aa756573576b5ac2f89fac4a47df0c91ae39ef7ce22b8b3777
         std: 10.3.0
         std_commit: 2d888a65beda1db06818940f249ce3eb302a3e9f
