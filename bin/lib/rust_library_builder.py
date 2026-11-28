@@ -66,6 +66,68 @@ build_timeout = 600
 
 conanserver_url = "https://conan.compiler-explorer.com"
 
+CARGO_MESSAGES_FILE = "cargo-messages.json"
+
+# First cargo that can emit JSON artifact messages while still rendering diagnostics as text.
+_MIN_CARGO_FOR_JSON_MESSAGES = (1, 38)
+_CARGO_VERSION_RE = re.compile(r"^cargo (\d+)\.(\d+)\.")
+
+
+class CargoArtifactCollision(RuntimeError):
+    pass
+
+
+def cargo_supports_json_messages(cargo: str) -> bool:
+    try:
+        output = subprocess.check_output([cargo, "--version"], text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    match = _CARGO_VERSION_RE.match(output)
+    if not match:
+        return False
+    return (int(match[1]), int(match[2])) >= _MIN_CARGO_FOR_JSON_MESSAGES
+
+
+def _is_crate_artifact(filename: Path, target_kinds: list[str]) -> bool:
+    if filename.suffix in (".rlib", ".rmeta"):
+        return True
+    # A proc-macro crate's artifact is a shared object that rustc loads when a dependent crate expands its macros.
+    return filename.suffix == ".so" and "proc-macro" in target_kinds
+
+
+def move_crate_artifacts_to_deps(messages_file: Path, target_dir: Path) -> list[Path]:
+    """Move the crate artifacts cargo reports into <target_dir>/debug/deps, where CE looks for dependencies.
+
+    cargo 1.100 builds each package in its own build/<pkg>/<hash>/out directory instead of debug/deps.
+    For older cargos everything is already in debug/deps (or uplifted to debug/), so this moves nothing.
+    """
+    debug_dir = (target_dir / "debug").resolve()
+    deps_dir = debug_dir / "deps"
+    to_move: dict[Path, None] = {}
+    with messages_file.open(encoding="utf-8") as f:
+        for line in f:
+            if not line.startswith("{"):
+                continue
+            message = json.loads(line)
+            if message.get("reason") != "compiler-artifact":
+                continue
+            target_kinds = message.get("target", {}).get("kind", [])
+            for filename in message.get("filenames", []):
+                path = Path(filename).resolve()
+                if path.parent in (debug_dir, deps_dir) or not _is_crate_artifact(path, target_kinds):
+                    continue
+                to_move[path] = None
+
+    moved = []
+    for path in to_move:
+        destination = deps_dir / path.name
+        if destination.exists():
+            raise CargoArtifactCollision(f"Not moving {path}: {destination} already exists")
+        deps_dir.mkdir(parents=True, exist_ok=True)
+        path.rename(destination)
+        moved.append(destination)
+    return moved
+
 
 @contextlib.contextmanager
 def open_script(script: Path) -> Generator[TextIO, None, None]:
@@ -164,7 +226,16 @@ class RustLibraryBuilder:
                 f.write(f"{line}\n")
 
             if self.buildconfig.build_type == "cargo":
-                cargoline = f"$CARGO build {methodflags} --target-dir {buildfolder} > {logfolder}/buildlog.txt 2>&1\n"
+                if cargo_supports_json_messages(f"{rustbinpath}/cargo"):
+                    # JSON artifact messages go to their own file; diagnostics still render as text into the log.
+                    cargoline = (
+                        f"$CARGO build {methodflags} --message-format=json-render-diagnostics --target-dir {buildfolder}"
+                        f" > {logfolder}/{CARGO_MESSAGES_FILE} 2> {logfolder}/buildlog.txt\n"
+                    )
+                else:
+                    cargoline = (
+                        f"$CARGO build {methodflags} --target-dir {buildfolder} > {logfolder}/buildlog.txt 2>&1\n"
+                    )
                 f.write(cargoline)
             else:
                 raise RuntimeError("Unknown build_type {self.buildconfig.build_type}")
@@ -585,6 +656,8 @@ class RustLibraryBuilder:
 
         build_status = self.executebuildscript(source_folder)
         if build_status == BuildStatus.Ok:
+            build_status = self.move_artifacts_to_deps(real_build_folder, log_folder)
+        if build_status == BuildStatus.Ok:
             self.writeconanscript(build_folder)
             if not self.install_context.dry_run:
                 build_status = self.executeconanscript(build_folder, arch, stdlib)
@@ -606,6 +679,21 @@ class RustLibraryBuilder:
             self.logger.info("Build has timed out")
 
         return build_status
+
+    def move_artifacts_to_deps(self, real_build_folder, log_folder) -> BuildStatus:
+        messages_file = Path(log_folder) / CARGO_MESSAGES_FILE
+        if not messages_file.exists():
+            return BuildStatus.Ok
+        try:
+            moved = move_crate_artifacts_to_deps(messages_file, Path(real_build_folder))
+        except CargoArtifactCollision as e:
+            self.logger.error(str(e))
+            with (Path(log_folder) / "buildlog.txt").open("a", encoding="utf-8") as log:
+                log.write(f"\n{e}\n")
+            return BuildStatus.Failed
+        if moved:
+            self.logger.info(f"Moved {len(moved)} crate artifacts into debug/deps")
+        return BuildStatus.Ok
 
     def build_cleanup(self, buildfolder):
         if self.install_context.dry_run:
