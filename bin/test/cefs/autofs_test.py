@@ -7,19 +7,12 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from lib.cefs.autofs import LOOKUP_SCRIPT_TEMPLATE, make_lookup_script
+from lib.cefs.autofs import NODE_IMAGE_DIR, NODE_LOOKUP_SCRIPT, make_first_level_map, make_lookup_script
 from lib.cefs_manifest import generate_cefs_filename
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 VALID_NAME = "9da642f654bc890a12345678_opt_compiler-explorer_gcc-15.1.0"
 MISSING_NAME = "0123456789abcdef01234567_consolidated"
-
-
-def _setup_common_script() -> str:
-    text = (REPO_ROOT / "setup-common.sh").read_text(encoding="utf-8")
-    match = re.search(r"cat > /etc/auto\.cefs\.sub << 'EOF'\n(.*?\n)EOF\n", text, re.DOTALL)
-    assert match, "could not find the /etc/auto.cefs.sub heredoc in setup-common.sh"
-    return match.group(1)
 
 
 def _run(script: Path, key: str) -> subprocess.CompletedProcess[bytes]:
@@ -47,8 +40,14 @@ def fixture_script(tmp_path: Path) -> Path:
     return script
 
 
-def test_setup_common_script_matches_ce_install_script():
-    assert _setup_common_script() == make_lookup_script(Path("/efs/cefs-images"))
+def test_lookup_script_for_node_is_the_installed_file():
+    assert make_lookup_script(NODE_IMAGE_DIR) == NODE_LOOKUP_SCRIPT.read_text(encoding="utf-8")
+
+
+def test_lookup_script_uses_given_image_dir():
+    script = make_lookup_script(Path("/some/other/images"))
+    assert 'image="/some/other/images/${key:0:2}/${key}.sqfs"' in script
+    assert str(NODE_IMAGE_DIR) not in script
 
 
 @pytest.mark.parametrize("name", [VALID_NAME, "abcdef0123456789abcdef01_consolidated"])
@@ -95,7 +94,37 @@ def test_lookup_script_rejects(script: Path, name: str):
     ],
 )
 def test_generated_names_pass_lookup_check(operation: str, path: Path | None):
-    match = re.search(r"valid_key='([^']*)'", LOOKUP_SCRIPT_TEMPLATE)
+    match = re.search(r"valid_key='([^']*)'", NODE_LOOKUP_SCRIPT.read_text(encoding="utf-8"))
     assert match
     name = generate_cefs_filename("0123456789abcdef01234567", operation, path).removesuffix(".sqfs")
     assert re.fullmatch(match.group(1), name)
+
+
+def _setup_common_first_level_map() -> str:
+    text = (REPO_ROOT / "setup-common.sh").read_text(encoding="utf-8")
+    match = re.search(r"^\s*(printf .*) > /etc/auto\.cefs$", text, re.MULTILINE)
+    assert match, "could not find the /etc/auto.cefs printf in setup-common.sh"
+    return subprocess.run(["bash", "-c", match.group(1)], capture_output=True, check=True, text=True).stdout
+
+
+def test_setup_common_first_level_map_matches_ce_install_map():
+    assert _setup_common_first_level_map() == make_first_level_map(Path("/etc/auto.cefs.sub"))
+
+
+def test_first_level_map_lists_every_two_hex_digit_prefix_once():
+    lines = make_first_level_map(Path("/etc/auto.cefs.sub")).splitlines()
+    assert lines == [f"{n:02x} -fstype=autofs program:/etc/auto.cefs.sub" for n in range(256)]
+
+
+def test_first_level_map_has_no_wildcard():
+    assert "*" not in make_first_level_map(Path("/etc/auto.cefs.sub"))
+
+
+def test_setup_common_installs_node_script():
+    text = (REPO_ROOT / "setup-common.sh").read_text(encoding="utf-8")
+    assert "install -o root -g root -m 755 /infra/init/auto.cefs.sub /etc/auto.cefs.sub" in text
+
+
+def test_start_up_check_compares_against_node_script():
+    text = (REPO_ROOT / "start-support.sh").read_text(encoding="utf-8")
+    assert 'cmp -s "${PWD}/init/auto.cefs.sub" /etc/auto.cefs.sub' in text

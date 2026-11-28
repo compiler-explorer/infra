@@ -57,8 +57,21 @@ get_released_code() {
     pushd "${DEST}"
     echo "${S3_KEY}" >s3_key
     curl -sL "${URL}" | tar Jxf -
-    chown -R ${CE_USER}:${CE_USER} .
     popd
+}
+
+# The service user, and so every jail, only needs to read the release.
+lock_down_deploy_dir() {
+    chown -R root:root "${DEPLOY_DIR}"
+    chmod -R u=rwX,go=rX "${DEPLOY_DIR}"
+}
+
+# Prints the first file under $1 (following $1 itself if it is a link) that is not root-owned or is
+# writable by group or others. If the tree cannot be fully inspected, prints $1 itself.
+first_unprotected_path() {
+    local offender
+    offender=$(find -H "$1" \( ! -user root -o \( ! -type l -perm /022 \) \) -print -quit) || offender="$1"
+    echo "${offender}"
 }
 
 update_code() {
@@ -70,12 +83,14 @@ update_code() {
         CUR_S3_KEY=$(cat "${DEPLOY_DIR}/s3_key")
     fi
 
-    if [[ "${S3_KEY}" == "${CUR_S3_KEY}" ]]; then
+    # A tree the service user could have written to is not trusted, even if it is the right build.
+    if [[ "${S3_KEY}" == "${CUR_S3_KEY}" && -z "$(first_unprotected_path "${DEPLOY_DIR}")" ]]; then
         echo "Build ${S3_KEY} already checked out"
     else
         rm -rf "${DEPLOY_DIR}"
         get_released_code "${DEPLOY_DIR}" "${S3_KEY}"
         get_discovered_compilers "${DEPLOY_DIR}" "${S3_KEY}"
+        lock_down_deploy_dir
     fi
 }
 
@@ -151,6 +166,51 @@ mount_nosym() {
     mount -oremount,nosymfollow --bind / /nosym
 }
 
+# Host-side protections the sandbox relies on. Nothing else verifies them, so check each one before
+# starting the server and refuse to start if any has regressed.
+check_sandbox_preconditions() {
+    local failed=0
+    local path offender
+
+    if ! findmnt -n -o VFS-OPTIONS --mountpoint /nosym | tr ',' '\n' | grep -qx nosymfollow; then
+        echo "Sandbox precondition failed: /nosym is not mounted with nosymfollow"
+        failed=1
+    fi
+
+    for path in /usr/local/bin/nsjail /opt/node "${DEPLOY_DIR}" "${PWD}/init" "${PWD}/start-support.sh" "${PWD}/site-${ENV}.sh" \
+        /etc/auto.master.d/cefs.autofs /etc/auto.cefs /etc/auto.cefs.sub; do
+        if [[ ! -e "${path}" ]]; then
+            echo "Sandbox precondition failed: ${path} is missing"
+            failed=1
+            continue
+        fi
+        offender=$(first_unprotected_path "${path}")
+        if [[ -n "${offender}" ]]; then
+            echo "Sandbox precondition failed: ${offender} is not root-owned or is writable by others"
+            failed=1
+        fi
+    done
+
+    if [[ "$(cat /proc/sys/kernel/core_pattern)" == '|'* ]]; then
+        echo "Sandbox precondition failed: kernel.core_pattern runs a helper on the host"
+        failed=1
+    fi
+
+    if ! cmp -s "${PWD}/init/auto.cefs.sub" /etc/auto.cefs.sub; then
+        echo "Sandbox precondition failed: /etc/auto.cefs.sub differs from init/auto.cefs.sub"
+        failed=1
+    fi
+
+    offender=$(findmnt -rn -t squashfs -o TARGET,VFS-OPTIONS \
+        | awk '$1 ~ "^/cefs/" && !($2 ~ /(^|,)ro(,|$)/ && $2 ~ /(^|,)nosuid(,|$)/ && $2 ~ /(^|,)nodev(,|$)/) {print $1; exit}')
+    if [[ -n "${offender}" ]]; then
+        echo "Sandbox precondition failed: ${offender} is not mounted ro,nosuid,nodev"
+        failed=1
+    fi
+
+    return "${failed}"
+}
+
 install_ce_router() {
     local latest_version
 
@@ -161,6 +221,7 @@ install_ce_router() {
         return
     fi
     unzip -q -o /tmp/ce-router.zip -d /infra/.deploy
+    chmod -R go-w /infra/.deploy
     rm -f /tmp/ce-router.zip
 
     echo "${latest_version}" > /infra/.deploy/ce-router-version
