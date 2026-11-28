@@ -733,6 +733,7 @@ libraries:
       repo: hosseinmoein/DataFrame
       targets:
       - 1.19.0
+      - 4.1.0
       type: github
     date:
       build_type: cmake
