@@ -4384,6 +4384,11 @@ libraries:
       targets:
       - 2.1.3
       type: cratesio
+    reqwest:
+      build_type: cargo
+      targets:
+      - 0.13.5
+      type: cratesio
     rustc_version:
       build_type: cargo
       targets:
