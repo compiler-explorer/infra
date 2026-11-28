@@ -220,7 +220,8 @@ class RustLibraryBuilder:
             f.write(f"export CC={linkerpath}/gcc\n")
             f.write(f"export CXX={linkerpath}/g++\n")
             f.write(f"export PATH={rustbinpath}:{linkerpath}\n")
-            f.write(f'export RUSTFLAGS="-C linker={linkerpath}/gcc"\n')
+            # Cap lints as cargo does for dependencies: a crate's own #![deny(warnings)] must not fail on a newer rustc.
+            f.write(f'export RUSTFLAGS="-C linker={linkerpath}/gcc --cap-lints=warn"\n')
 
             for line in self.buildconfig.prebuild_script:
                 f.write(f"{line}\n")

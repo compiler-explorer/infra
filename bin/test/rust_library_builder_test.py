@@ -608,7 +608,9 @@ def test_writebuildscript_cargo_line(tmp_path, requests_mock, json_messages):
         )
     supports.assert_called_once_with("/opt/rust/bin/cargo")
 
-    cargo_line = (tmp_path / "build.sh").read_text().splitlines()[-1]
+    script = (tmp_path / "build.sh").read_text().splitlines()
+    assert 'export RUSTFLAGS="-C linker=/opt/gcc/bin/gcc --cap-lints=warn"' in script
+    cargo_line = script[-1]
     if json_messages:
         assert cargo_line == (
             "$CARGO build --all-features --message-format=json-render-diagnostics --target-dir /b/build"
