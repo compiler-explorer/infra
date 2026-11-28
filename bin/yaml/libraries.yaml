@@ -1059,6 +1059,7 @@ libraries:
       - 2.1.0
       - 3.0.0
       - 3.0.1
+      - 4.2.2
       type: github
     hdf5:
       after_stage_script:
