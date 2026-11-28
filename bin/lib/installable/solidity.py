@@ -18,9 +18,9 @@ class SolidityInstallable(SingleFileInstallable):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
         artifacts = solidity_available_releases(self.install_context, self.url + "/list.json")
-        release_path = artifacts[self.target_name]
         if self.target_name not in artifacts:
             raise RuntimeError(f"Unable to find solidity {self.target_name}")
+        release_path = artifacts[self.target_name]
         self.url = f"{self.url}/{release_path}"
         self.filename = self.config_get("filename")
 
