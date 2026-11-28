@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import re
 import subprocess
 import sys
 from functools import lru_cache
@@ -173,8 +174,14 @@ def simplify_validation_error(error: ValidationError) -> str:
     return "; ".join(parts) if parts else f"{len(error.errors())} validation error(s)"
 
 
+_UNSAFE_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9._+-]")
+
+
 def sanitize_path_for_filename(path: Path) -> str:
     """Sanitize a path for use in filename by replacing problematic characters.
+
+    Anything outside [A-Za-z0-9._+-] becomes "_", the same set the autofs lookup script accepts
+    (see lib/cefs/autofs.py), so every generated image name can be mounted.
 
     Args:
         path: Path to sanitize
@@ -182,8 +189,7 @@ def sanitize_path_for_filename(path: Path) -> str:
     Returns:
         Sanitized string safe for use in filenames
     """
-    translation_table = str.maketrans("/ :?", "____")
-    return str(path).strip("/").translate(translation_table)
+    return _UNSAFE_FILENAME_CHARS.sub("_", str(path).strip("/"))
 
 
 def generate_cefs_filename(hash: str, operation: str, path: Path | None = None) -> str:

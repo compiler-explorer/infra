@@ -27,7 +27,7 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.binary_info import BinaryInfo
 from lib.installation_context import FetchFailure, PostFailure
-from lib.library_build_config import LibraryBuildConfig
+from lib.library_build_config import MAKE_BUILD_TYPE_FLAGS, LibraryBuildConfig
 from lib.library_build_history import LibraryBuildHistory
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
@@ -1039,11 +1039,25 @@ class LibraryBuilder:
                     )
                     f.write(f"{expanded_line}\n")
 
-                # Use appropriate CMAKE_*_FLAGS based on build type
-                cmake_flags_suffix = "_DEBUG" if buildtype == "Debug" else "_RELEASE"
+                # Our flags (arch, -stdlib, toolchain, the compiler's own options) apply whatever the
+                # build type, so they seed CMAKE_<LANG>_FLAGS via its _INIT variable. CMake adds its own
+                # platform defaults to that, and CMAKE_BUILD_TYPE picks the per-config flags: CMake's
+                # defaults (-g for Debug, -O3 -DNDEBUG for Release) or whatever the library's
+                # CMakeLists.txt sets. Setting CMAKE_<LANG>_FLAGS_<CONFIG> ourselves would replace
+                # those, which is how Debug packages used to lose -g. We add -g for every build type
+                # because CE needs the debug info (objdump, separating library from user code) and it
+                # doesn't change code generation.
+                # MSVC still replaces the Release flags, as it always has, until that's been tried on
+                # the Windows builders.
+                if is_msvc:
+                    cmake_flags_suffix = f"_{buildtype.upper()}"
+                    debug_info_flag = ""
+                else:
+                    cmake_flags_suffix = "_INIT"
+                    debug_info_flag = " -g"
                 cudaflagsparam = ""
                 if compilerType == "nvcc" and not self.buildconfig.cxx_compiler_wrapper:
-                    cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}"'
+                    cudaflagsparam = f'"-DCMAKE_CUDA_FLAGS{cmake_flags_suffix}={cuda_flags}{debug_info_flag}"'
 
                 # clang finds the toolkit through --cuda-path, which find_package(CUDAToolkit) does
                 # not read, so name the root for it. nvcc builds don't need this: their toolkit is
@@ -1055,8 +1069,9 @@ class LibraryBuilder:
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
                     f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
                     f"{cudatoolkitparam} "
-                    f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
-                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'
+                    f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}{debug_info_flag}" '
+                    f'"-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}{debug_info_flag}" '
+                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}{debug_info_flag}" {cudaflagsparam} {extracmakeargs} {sourcefolder}'
                 )
                 cmakeline = self.script_run_logged(cmakecmd, "cecmakelog.txt", "cmake configure failed:")
                 self.logger.debug(cmakeline)
@@ -1128,8 +1143,9 @@ class LibraryBuilder:
                     f.write("make clean > cemakeclean.txt 2>&1 || /bin/true\n")
                 f.write("rm -f *.so*\n")
                 f.write("rm -f *.a\n")
-                f.write(self.script_env("CXXFLAGS", cxx_flags))
-                f.write(self.script_env("CFLAGS", c_flags))
+                make_flags = "" if is_msvc else MAKE_BUILD_TYPE_FLAGS.get(buildtype, "")
+                f.write(self.script_env("CXXFLAGS", f"{make_flags} {cxx_flags}".strip()))
+                f.write(self.script_env("CFLAGS", f"{make_flags} {c_flags}".strip()))
                 logdir = ""
                 if self.buildconfig.source_folder:
                     f.write("LOGDIR=$(pwd)/\n")
@@ -1866,7 +1882,7 @@ class LibraryBuilder:
         checkcompiler = ""
 
         build_supported_os = [self.platform.value]
-        build_supported_buildtype = ["Debug"]
+        build_supported_buildtype = list(self.buildconfig.build_types)
         build_supported_arch = ["x86_64", "x86"]
         build_supported_stdver = [""]
         build_supported_stdlib = ["", "libc++"]

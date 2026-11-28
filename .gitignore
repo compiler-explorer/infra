@@ -12,6 +12,7 @@ node_modules
 /.dist
 /.poetry
 /.venv
+/.cloudflare
 .pytest_cache
 # uv
 /.uv

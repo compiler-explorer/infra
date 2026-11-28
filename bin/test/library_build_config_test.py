@@ -69,3 +69,24 @@ class TestCsharedValidation:
     def test_cshared_requires_use_compiler(self):
         with pytest.raises(RuntimeError, match="required to supply a .cross.compiler"):
             LibraryBuildConfig(_config(lib_type="cshared"))
+
+
+class TestBuildTypes:
+    def test_defaults_to_debug(self):
+        assert LibraryBuildConfig(_config()).build_types == ["Debug"]
+
+    def test_accepts_debug_and_release(self):
+        assert LibraryBuildConfig(_config(build_types=["Debug", "Release"])).build_types == ["Debug", "Release"]
+
+    def test_rejects_unknown_configuration(self):
+        with pytest.raises(RuntimeError, match="must be a non-empty list"):
+            LibraryBuildConfig(_config(build_types=["RelWithDebInfo"]))
+
+    def test_rejects_empty_list(self):
+        with pytest.raises(RuntimeError, match="must be a non-empty list"):
+            LibraryBuildConfig(_config(build_types=[]))
+
+    @pytest.mark.parametrize("build_types", ["Release", 1, None, {"Release": True}, [["Release"]], [1]])
+    def test_rejects_malformed_values(self, build_types):
+        with pytest.raises(RuntimeError, match="must be a non-empty list"):
+            LibraryBuildConfig(_config(build_types=build_types))

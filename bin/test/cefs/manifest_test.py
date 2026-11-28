@@ -63,6 +63,8 @@ def test_finalize_missing_inprogress(tmp_path):
         (Path("arm/gcc-10.2.0"), "arm_gcc-10.2.0"),
         (Path("path with spaces"), "path_with_spaces"),
         (Path("path:with:colons"), "path_with_colons"),
+        (Path("gcc@trunk~1,2=3?"), "gcc_trunk_1_2_3_"),
+        (Path("clang+llvm-17.0.1"), "clang+llvm-17.0.1"),
     ],
 )
 def test_sanitize_path_for_filename(input_path, expected):

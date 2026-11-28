@@ -6,6 +6,16 @@ from lib.installation_context import is_windows
 
 valid_lib_types = ["static", "shared", "cshared", "headeronly", "cmake_built_headeronly"]
 
+# Build types a library can be published as. CMake libraries build CMake's own configuration of that
+# name plus -g (see LibraryBuilder.writebuildscript). Make libraries have no build type of their own, so
+# they get these flags ahead of the builder's. -g matters: CE needs the debug info (objdump, telling
+# library code from user code) and it doesn't change code generation.
+SUPPORTED_BUILD_TYPES = ("Debug", "Release")
+MAKE_BUILD_TYPE_FLAGS = {
+    "Debug": "-g",
+    "Release": "-O2 -g -DNDEBUG",
+}
+
 
 class LibraryBuildConfig:
     def __init__(self, config: dict[str, Any]):
@@ -46,6 +56,14 @@ class LibraryBuildConfig:
         if is_windows():
             self.postbuild_script = self.config_get("postbuild_script_pwsh", self.postbuild_script)
         self.extra_cmake_arg = self.config_get("extra_cmake_arg", [])
+        self.build_types = self.config_get("build_types", ["Debug"])
+        if (
+            not isinstance(self.build_types, list)
+            or not self.build_types
+            or not all(isinstance(bt, str) and bt in SUPPORTED_BUILD_TYPES for bt in self.build_types)
+        ):
+            valid = ", ".join(SUPPORTED_BUILD_TYPES)
+            raise RuntimeError(f"build_types {self.build_types} must be a non-empty list drawn from {valid}")
         self.extra_make_arg = self.config_get("extra_make_arg", [])
         self.make_targets = self.config_get("make_targets", [])
         self.make_utility = self.config_get("make_utility", "make")

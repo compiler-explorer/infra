@@ -417,6 +417,9 @@ libraries:
       type: github
     benchmark:
       build_type: cmake
+      build_types:
+      - Debug
+      - Release
       extra_cmake_arg:
       - -DBENCHMARK_ENABLE_TESTING=off
       - -DHAVE_STD_REGEX=1
@@ -1722,6 +1725,9 @@ libraries:
         type: github
       benchmark:
         build_type: cmake
+        build_types:
+        - Debug
+        - Release
         check_file: README.md
         extra_cmake_arg:
         - -DBENCHMARK_ENABLE_TESTING=off
@@ -4441,6 +4447,8 @@ libraries:
       targets:
       - 1.19.2
       - 1.46.0
+      - 1.53.3
+      - 1.54.1
       type: cratesio
     tokio-util:
       build_type: cargo
