@@ -1655,10 +1655,22 @@ compilers:
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/5adfc398-db78-488c-b98f-78461b3c5760/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
+        - name: 2025.3.3.17
+          check_exe: compiler/latest/bin/icx -V
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/7d055984-4f45-4538-96c8-58433f93fb18/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
         - name: 2026.0.0.564
           check_exe: compiler/latest/bin/icx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/e2f4cda3-8891-4d0e-bf60-00d19c4e3e27/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
+        - name: 2026.1.1.22
+          check_exe: compiler/latest/bin/icx -V
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/e5d4469d-33c1-4d48-8b45-48de1e6fb9e9/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
+        - name: 2026.2.0.612
+          check_exe: compiler/latest/bin/icx -V
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/7f238c79-537b-428e-94ce-c42a2802709d/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
 
     nvhpc-sdk:
       type: script
