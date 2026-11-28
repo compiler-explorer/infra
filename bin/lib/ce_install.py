@@ -757,8 +757,14 @@ def install(context: CliContext, filter_: list[str], force: bool):
     num_skipped = 0
     failed = []
 
+    installables = context.get_installables(filter_)
+    if not installables:
+        hint = " (filters are ANDed: run one install per installable)" if len(filter_) > 1 else ""
+        _LOGGER.error("No installables match %s%s", " ".join(repr(f) for f in filter_), hint)
+        sys.exit(1)
+
     with context.pool() as pool:
-        to_do = pool.map(partial(should_install_helper, force), context.get_installables(filter_))
+        to_do = pool.map(partial(should_install_helper, force), installables)
 
     for installable, should_install in to_do:
         print(f"Installing {installable.name}")

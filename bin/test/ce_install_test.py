@@ -1,6 +1,9 @@
+import logging
+from multiprocessing.pool import ThreadPool
 from unittest.mock import Mock
 
-from lib.ce_install import filter_aggregate, filter_match, should_install_helper
+from click.testing import CliRunner
+from lib.ce_install import filter_aggregate, filter_match, install, should_install_helper
 
 
 def fake(context, target_name):
@@ -301,3 +304,26 @@ def test_backwards_compatibility():
     # Ensure non-pattern strings don't get treated as patterns
     assert not filter_match("14.1.0", fake("compilers/c++/gcc", "14.1.1"))
     assert not filter_match("gcc", fake("compilers/c++/clang", "14.1.0"))
+
+
+def test_install_fails_when_filters_match_nothing(caplog):
+    context = Mock()
+    context.get_installables.return_value = []
+    with caplog.at_level(logging.ERROR):
+        result = CliRunner().invoke(install, ["clang 14.0.6", "clang 15.0.7"], obj=context)
+    assert result.exit_code == 1
+    assert "filters are ANDed" in caplog.text
+    context.pool.assert_not_called()
+
+
+def test_install_succeeds_when_matches_are_already_installed():
+    installable = Mock()
+    installable.name = "compilers/c++/clang 14.0.6"
+    installable.should_install.return_value = False
+    context = Mock()
+    context.installation_context.dry_run = False
+    context.get_installables.return_value = [installable]
+    context.pool.side_effect = lambda: ThreadPool(1)
+    result = CliRunner().invoke(install, ["clang 14.0.6"], obj=context)
+    assert result.exit_code == 0
+    assert "0 packages installed OK, 1 skipped, and 0 failed installation" in result.output
